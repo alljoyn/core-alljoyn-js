@@ -1,0 +1,62 @@
+/**
+ * @file
+ */
+/******************************************************************************
+ * Copyright AllSeen Alliance. All rights reserved.
+ *
+ *    Permission to use, copy, modify, and/or distribute this software for any
+ *    purpose with or without fee is hereby granted, provided that the above
+ *    copyright notice and this permission notice appear in all copies.
+ *
+ *    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ *    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ *    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ *    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ *    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ ******************************************************************************/
+
+#include <ajtcl/alljoyn.h>
+#include <ajtcl/services/OnboardingService.h>
+#include <ajtcl/services/OnboardingManager.h>
+
+int8_t AJOBS_GetState()
+{
+    return AJOBS_STATE_CONFIGURED_VALIDATED;
+}
+
+AJ_Status AJOBS_Start(const AJOBS_Settings* settings)
+{
+    return AJ_OK;
+}
+
+AJ_Status AJOBS_EstablishWiFi()
+{
+    return AJ_OK;
+}
+
+AJ_Status AJOBS_DisconnectWiFi()
+{
+    return AJ_OK;
+}
+
+AJ_Status AJOBS_SwitchToRetry()
+{
+    return AJ_OK;
+}
+
+AJ_Status AJOBS_ConnectedHandler(AJ_BusAttachment* busAttachment)
+{
+    return AJ_OK;
+}
+
+AJ_Status AJOBS_DisconnectHandler(AJ_BusAttachment* busAttachment)
+{
+    return AJ_OK;
+}
+
+AJSVC_ServiceStatus AJOBS_MessageProcessor(AJ_BusAttachment* busAttachment, AJ_Message* msg, AJ_Status* msgStatus)
+{
+    return AJSVC_SERVICE_STATUS_NOT_HANDLED;
+}

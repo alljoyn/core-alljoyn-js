@@ -1,0 +1,4 @@
+Import('env')
+
+env['srcs'].extend(Glob('*.c'))
+env['srcs'].extend(Glob('io/*.c'))

@@ -1,1 +1,3 @@
-duktape
+# This .gitignore force the population of the external/ directory.
+# The pattern below will cause git to ignore all subdirectories.
+*/

@@ -1,8 +1,12 @@
 .sconsign.dblite
+.sconf_temp/
+config.log
 *.swp
 *.nvram
 core
 *.o
+*.so
+*.pyc
 *.pbi
 *.cout
 *.out
@@ -25,8 +29,9 @@ core
 *.suo
 *.pdb
 *.d
+.whitespace.db
 ajs_tmp.js
-build
+build/
+dist/
 alljoynjs
-libajtcl.so
 ajs_console

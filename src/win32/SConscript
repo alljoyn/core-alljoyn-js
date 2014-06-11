@@ -1,0 +1,10 @@
+Import('env')
+
+env['srcs'] += [
+    'ajs_main.c',
+    'ajs_malloc.c',
+    'ajs_obs_stubs.c',
+    'io/io_simulation.c',
+    'io/io_info.c',
+    'io/io_stubs.c'
+]

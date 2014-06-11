@@ -1,0 +1,30 @@
+import os
+
+Import('env')
+
+# Target specific SCons command line variables
+default_msvc_version = os.environ.get('AJ_MSVC_VERSION', '12.0')
+supported_msvc_versions = [ '8.0', '9.0', '10.0', '11.0', '11.0Exp', '12.0', '12.0Exp' ]
+vars = Variables()
+vars.Add(EnumVariable('MSVC_VERSION', 'MSVC compiler version - Windows', default_msvc_version, allowed_values = supported_msvc_versions))
+vars.Update(env)
+Help(vars.GenerateHelpText(env))
+
+# Platform libraries
+env.Append(LIBS = ['advapi32'])
+
+# Compiler flags
+env.Append(CFLAGS = [ '/MD', '/J', '/W3', '/nologo' ])
+env.Append(CPPDEFINES = [ '_CRT_SECURE_NO_WARNINGS',
+                          ('snprintf', '_snprintf')])
+
+# Debug/Release Variants
+if env['VARIANT'] == 'debug':
+    env.Append(CPPDEFINES = [ '_DEBUG',
+                              ('_ITERATOR_DEBUG_LEVEL', 2) ])
+    env.Append(CFLAGS = [ '/LD', '/Zi', '/Od' ])
+    env.Append(LINKFLAGS = [ '/debug' ])
+else:
+    env.Append(CPPDEFINES = [( '_ITERATOR_DEBUG_LEVEL', 0 )])
+    env.Append(CFLAGS = [ '/Gy', '/O1', '/Ob2' ])
+    env.Append(LINKFLAGS = [ '/opt:ref' ])

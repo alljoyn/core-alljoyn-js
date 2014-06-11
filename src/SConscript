@@ -1,0 +1,12 @@
+Import('env')
+
+env['srcs'] = []
+
+env.Prepend(CPPPATH = [ '$TARG' ])
+
+env.SConscript('$TARG/SConscript')
+
+env['srcs'].extend(Glob('*.c'))
+env['srcs'].append(env['duktape_src'])
+
+env.Program('#dist/bin/alljoynjs', env['srcs'])

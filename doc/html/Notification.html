@@ -1,0 +1,69 @@
+<!--
+This work is licensed under a Creative Commons Attribution 4.0 International License.
+
+http://creativecommons.org/licenses/by/4.0/
+-->
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Notification</title><style></style></head><body>
+<h1 id="notification">Notification</h1>
+<hr>
+<h3 id="notification-types-nt-">Notification Types (NT)</h3>
+<p><strong>Emergency-</strong>Emits a notification with an emergency type<br><strong>Warning-</strong>Emits a notification with a warning type<br><strong>Info-</strong>Emits a notification with an info type</p>
+<h3 id="aj-notification">AJ.notification</h3>
+<p><strong>AJ.notification(NT type)-</strong>Construct a new notifcation with the given type  </p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> notif = AJ.notification(AJ.notification.Emergency);
+</code></pre>
+<p>Note: Must contain a .text command before emitting. </p>
+<p><strong>AJ.notification(NT type, String text)-</strong>Construct a new notification with the given type and will emit the given text.<br>text: the text that will be emitted in the notification</p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> notif2 = AJ.notification(AJ.notification.Warning, <span class="hljs-string">"Hello World"</span>);
+</code></pre>
+<p><strong>.text-</strong>Return/Set the given text that the notification will emit</p>
+<pre><code class="lang-javascript">notif.text = {<span class="hljs-string">"EN"</span>:<span class="hljs-string">"Hello World"</span>, 
+              <span class="hljs-string">"SP"</span>:<span class="hljs-string">"Hola Mundo"</span>
+};
+print(notif.text); <span class="hljs-comment">//[object Object]</span>
+print(<span class="hljs-built_in">Object</span>.keys(notif.text)); <span class="hljs-comment">//EN, SP</span>
+</code></pre>
+<p>Note: If provide more than one text for a single language, then notification will only emit the last instance.<br>Note: If provide text in the constructor and do a .text with the same language, then notification will emit the String from .text.</p>
+<p><strong>.type-</strong>Return the type of notification emitted with 0=Emergency, 1=Warning, and 2=Info</p>
+<pre><code class="lang-javascript">print(notif.type); <span class="hljs-comment">//0</span>
+</code></pre>
+<p><strong>.send(int ttl)-</strong>Send the notification with a time to live property<br>ttl: the time to live or hop limit for the notification in seconds. Maximum value of 43200 seconds and minimum value of 30 seconds</p>
+<pre><code class="lang-javascript">notif.send(<span class="hljs-number">1000</span>);
+</code></pre>
+<p><strong>.cancel()-</strong>Cancel the notification that was emitted</p>
+<pre><code class="lang-javascript">notif.cancel();
+</code></pre>
+<h3 id="notification-attributes">Notification Attributes</h3>
+<p><strong>audioUrls-</strong>Return/Attach an Url to an audio recording to be played when the notification is sent</p>
+<pre><code class="lang-javascript">notif.audioUrls = {<span class="hljs-string">"EN"</span>:<span class="hljs-string">"http://.../.../..."</span>, <span class="hljs-string">"SP"</span>: <span class="hljs-string">"http://..."</span>};
+print(notif.audioUrls); <span class="hljs-comment">//[object Object]</span>
+print(<span class="hljs-built_in">Object</span>,keys(notif.audioUrls)); <span class="hljs-comment">//EN, SP</span>
+</code></pre>
+<p><strong>audioPath-</strong>Return/Attach a file path to an audio recording to be played when the notification is sent</p>
+<pre><code class="lang-javascript">notif.audioPath = <span class="hljs-string">"/path/to/audio/file"</span>;
+print(notif.audioPath); <span class="hljs-comment">// /path/to/audio/file</span>
+</code></pre>
+<p><strong>iconUrl-</strong>Return/Attach an Url to an icon to be displayed when the notification is sent</p>
+<pre><code class="lang-javascript">notif.iconUrl = <span class="hljs-string">"http://url/to/icon"</span>;
+print(notif.iconUrl); <span class="hljs-comment">//http://url/to/icon</span>
+</code></pre>
+<p><strong>iconPath-</strong>Return/Attach a file path to an icon to be displayed when the notification is sent</p>
+<pre><code class="lang-javascript">notif.iconPath = <span class="hljs-string">"/file/path/to/icon"</span>;
+print(notif.iconUrl); <span class="hljs-comment">// /file/path/to/icon</span>
+</code></pre>
+<p><strong>controlPanelPath-</strong>Return/Attach a path to the control panel</p>
+<pre><code class="lang-javascript">notif.controlPanelPath = <span class="hljs-string">"/path/to/control/panel"</span>;
+print(notif.controlPanelPath); <span class="hljs-comment">// /path/to/control/panel</span>
+</code></pre>
+<p>Note: Best to use .path from a control panel widget versus hardcoding the actual control panel path </p>
+<p><strong>attributes-</strong>Return/Attach custom attributes to the notification that are not displayed on the notification itself</p>
+<pre><code class="lang-javascript">notif.attributes = {<span class="hljs-string">"IP Address"</span>:<span class="hljs-string">"192.168.240.124"</span>, 
+                    <span class="hljs-string">"Name"</span>:<span class="hljs-string">"Personal Device"</span>,
+                    <span class="hljs-string">"Model Number"</span>:<span class="hljs-string">"XP239-VPN"</span>
+};
+print(notif.attributes); <span class="hljs-comment">//[object Object]</span>
+print(<span class="hljs-built_in">Object</span>.keys(notif.attributes)); <span class="hljs-comment">//IP Address, Name, Model Number</span>
+</code></pre>
+<p>Note: (Name of attribute):(Value of attribute)</p>
+
+</body></html>

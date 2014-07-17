@@ -84,7 +84,9 @@ static const char* ConstructMemberString(duk_context* ctx)
      * Start building the member string
      */
     if (type == 2) {
-        char achar = '=';
+        static const uint8_t R = 1;
+        static const uint8_t W = 2;
+        uint8_t perm = R | W;
         /* Property */
         const char* sig = AJS_GetStringProp(ctx, -2, "signature");
         const char* access = AJS_GetStringProp(ctx, -2, "access");
@@ -93,15 +95,20 @@ static const char* ConstructMemberString(duk_context* ctx)
             duk_error(ctx, DUK_ERR_REFERENCE_ERROR, "Signature is required for type AJ.PROPERTY");
         }
         if (access) {
-            if (strcmp(access, "R") == 0) {
-                achar = '<';
-            } else if (strcmp(access, "W") == 0) {
-                achar = '>';
-            } else if (strcmp(access, "RW") != 0) {
+            perm = 0;
+            for (; *access; ++access) {
+                if (*access == 'R' || *access == 'r') {
+                    perm |= R;
+                    continue;
+                }
+                if (*access == 'W' || *access == 'w') {
+                    perm |= W;
+                    continue;
+                }
                 duk_error(ctx, DUK_ERR_TYPE_ERROR, "Access must be 'R', 'w', or 'RW'");
             }
         }
-        duk_push_sprintf(ctx, "@%s%c%s", member, achar, sig);
+        duk_push_sprintf(ctx, "@%s%c%s", member, (perm == (R | W) ? '=' : (perm == R ? '>' : '<')), sig);
     } else {
         duk_idx_t strIdx;
         duk_push_sprintf(ctx, "%c%s", type ? '!' : '?', member);
@@ -232,7 +239,7 @@ static void BuildLocalObjects(duk_context* ctx)
         }
         numInterfaces = duk_get_length(ctx, -1);
         interfaces = duk_alloc(ctx, (numInterfaces + 2) * sizeof(AJ_InterfaceDescription*));
-        memset(interfaces, 0, (numInterfaces + 2) * sizeof(AJ_InterfaceDescription*));
+        memset((void*)interfaces, 0, (numInterfaces + 2) * sizeof(AJ_InterfaceDescription*));
         /*
          * Locate the interfaces in the interface table
          */

@@ -1,0 +1,74 @@
+<!--
+This work is licensed under a Creative Commons Attribution 4.0 International License.
+
+http://creativecommons.org/licenses/by/4.0/
+-->
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>IO</title><style></style></head><body>
+<h1 id="io">IO</h1>
+<hr>
+<h3 id="configuration-options-co-">Configuration Options (CO)</h3>
+<ol>
+<li>IO.pullDown</li>
+<li>IO.pullUp</li>
+<li>IO.openDrain</li>
+</ol>
+<h3 id="trigger-modes-tm-">Trigger Modes (TM)</h3>
+<ol>
+<li>IO.fallingEdge</li>
+<li>IO.risingEdge</li>
+<li>IO.disable</li>
+</ol>
+<h3 id="information-from-pins">Information From Pins</h3>
+<p><strong>pin.info.physicalPin:</strong> Returns the physical pin number<br><strong>pin.info.schematicId:</strong> Returns the schematic Id of the pin<br><strong>pin.info.datasheetId:</strong> Returns the data sheet Id of the pin<br><strong>pin.info.description:</strong> Returns the description of the pin</p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> led1 = IO.digitalOut(...);  
+print(led1.pin.info...);
+</code></pre>
+<h3 id="digitalin-">digitalIn()</h3>
+<p><strong>IO.digitalIn(IO.pin#, CO config)-</strong>Construct a new digital input pin<br>#: the number of the pin to be configured. Pin numbering starts from 1.<br>config: the Configuration Option of the pin  </p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> pb1 = IO.digitalIn(IO.pin1, IO.pullDown);
+</code></pre>
+<p><strong>.setTrigger(TM mode, function(){})-</strong>Enable or Disable the Trigger Mode for the pin<br>mode: the Trigger Mode of the pin<br>function(): the function that will execute when .setTrigger() is called  </p>
+<pre><code class="lang-javascript">pb1.setTrigger(IO.risingEdge, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>{</span>print(pb1.level);});
+</code></pre>
+<p><strong>.level-</strong>Return the level on which the pin is on  </p>
+<pre><code class="lang-javascript">print(pb1.level) <span class="hljs-comment">//Prints out 0</span>
+</code></pre>
+<h3 id="digitalout-">digitalOut()</h3>
+<p><strong>IO.digitalOut(IO.pin#, CO config)-</strong>Construct a new digital output pin with a configuration option<br>#: the number of the pin to be configured. Pin numbering starts from 1.<br>config: the configuration option of the pin, or can be replaced with 1 (on position) and 0 (off position). The pin
+will automatically start in the on position if a configuration option is typed in  </p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> led1 = IO.digitalOut(IO.pin1, IO.pullUp);
+</code></pre>
+<p><strong>IO.digitalOut(IO.pin#)-</strong>Construct a new digital output pin that will start in the off position<br>#: the number of the pin to be configured. Pin numbering starts from 1. </p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> led2 = IO.digitalOut(IO.pin2);
+</code></pre>
+<p><strong>.toggle()-</strong>Toggle the pin  </p>
+<pre><code class="lang-javascript">led1.toggle();
+</code></pre>
+<p><strong>.pwm(double dutyCycle, int freq)-</strong>Set the PWM duty cycle on a pin (only if PWM functions are supported on the pin)<br>dutyCycle: A value between 0.0 and 1.0 to set the cycle<br>freq: the frequency to rotate the bit pattern  </p>
+<pre><code class="lang-javascript">led2.pwm(<span class="hljs-number">0.5</span>, <span class="hljs-number">4</span>);
+</code></pre>
+<p><strong>.level-</strong>Return or set the level on which the pin is on  </p>
+<pre><code class="lang-javascript">print(led1.level); <span class="hljs-comment">//prints out 1</span>
+led1.level = <span class="hljs-number">0</span>;
+print(led1.level); <span class="hljs-comment">//prints out 0</span>
+</code></pre>
+<h3 id="analogin-">analogIn()</h3>
+<p><strong>IO.analogIn(IO.pin#)-</strong>Construct a new analog input pin<br>#: the number of the pin to be configured to an analog input. Pin numbering starts from 1. </p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> sensor = IO.analogIn(IO.pin12);
+</code></pre>
+<p><strong>.value-</strong>Return the ADC value of the pin  </p>
+<pre><code class="lang-javascript">print(sensor.value);
+</code></pre>
+<h3 id="analogout-">analogOut()</h3>
+<p><strong>IO.analogOut(IO.pin#)-</strong>Construct a new analog output pin<br>#: the number of the pin to be configured to an analog output. Pin numbering starts from 1.  </p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> motor = IO.analogOut(IO.pin10);
+</code></pre>
+<p><strong>.value(int num)-</strong>Set the DAC value<br>num: the number to set  </p>
+<pre><code class="lang-javascript">motor.value(<span class="hljs-number">2</span>);
+</code></pre>
+<h3 id="io-system-string-cmmd-">IO.system(String cmmd)</h3>
+<p>Emit the command to the underlying system<br>cmmd: the command to emit  </p>
+<pre><code class="lang-javascript">IO.system(<span class="hljs-string">'aplay DoorBell.wav'</span>);
+</code></pre>
+
+</body></html>

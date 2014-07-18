@@ -157,12 +157,8 @@ static void AlertLocal(duk_context* ctx, uint8_t alert)
     str = duk_get_string(ctx, -1);
     if (alert) {
         AJ_Printf("ALERT: %s\n", str);
-#ifndef NDEBUG
     } else {
-        if (dbgCONSOLE) {
-            AJ_Printf("PRINT: %s\n", str);
-        }
-#endif
+        AJ_Printf("PRINT: %s\n", str);
     }
     duk_pop(ctx);
 }

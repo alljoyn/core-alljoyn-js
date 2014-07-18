@@ -118,6 +118,23 @@ if env['TARG'] == 'win32':
        env.Append(LINKFLAGS=['/opt:ref'])
  
 if env['TARG'] == 'linux':
+    if os.environ.has_key('CROSS_PREFIX'):
+        env.Replace(CC = os.environ['CROSS_PREFIX'] + 'gcc')
+        env.Replace(CXX = os.environ['CROSS_PREFIX'] + 'g++')
+        env.Replace(LINK = os.environ['CROSS_PREFIX'] + 'gcc')
+        env.Replace(AR = os.environ['CROSS_PREFIX'] + 'ar')
+        env.Replace(RANLIB = os.environ['CROSS_PREFIX'] + 'ranlib')
+        env['ENV']['STAGING_DIR'] = os.environ.get('STAGING_DIR', '')
+
+    if os.environ.has_key('CROSS_PATH'):
+        env['ENV']['PATH'] = ':'.join([ os.environ['CROSS_PATH'], env['ENV']['PATH'] ] )
+
+    if os.environ.has_key('CROSS_CFLAGS'):
+        env.Append(CFLAGS=os.environ['CROSS_CFLAGS'].split())
+
+    if os.environ.has_key('CROSS_LINKFLAGS'):
+        env.Append(LINKFLAGS=os.environ['CROSS_LINKFLAGS'].split())
+
     # Platform libraries
     env.Append(LIBS = ['libm', 'libcrypto', 'libpthread', 'librt'])
     # Compiler flags

@@ -205,7 +205,7 @@ static AJ_Status PushArg(duk_context* ctx, AJ_Message* msg)
     }
     typeId = *sig;
 
-    if ((typeId == ')')) {
+    if (typeId == ')') {
         status = AJ_ERR_NO_MORE;
     } else if (AJ_IsScalarType(typeId)) {
         status = PushScalarArg(ctx, msg);

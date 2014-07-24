@@ -83,7 +83,7 @@ else:
         env['duktape_dist'] = Dir('./external/duktape/dist').abspath
 
 if not(os.path.isdir(env['duktape_dist'])):
-    print "Duktape distribution dir not set or invalid"
+    print "Duktape distribution dir (DUKTAPE_DIST) not set or invalid"
     Exit(1)
 
 ####################################

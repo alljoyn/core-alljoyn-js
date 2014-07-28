@@ -1,0 +1,167 @@
+This work is licensed under a Creative Commons Attribution 4.0 International License.
+http://creativecommons.org/licenses/by/4.0/
+
+#IO
+***
+
+###Configuration Options (CO)  
+
+1. IO.pullDown
+
+2. IO.pullUp
+
+3. IO.openDrain
+
+
+
+###Trigger Modes (TM)
+
+1. IO.fallingEdge
+
+2. IO.risingEdge
+
+3. IO.disable
+
+
+
+###Information From Pins
+
+**pin.info.physicalPin:** Returns the physical pin number  
+
+**pin.info.schematicId:** Returns the schematic Id of the pin  
+
+**pin.info.datasheetId:** Returns the data sheet Id of the pin  
+
+**pin.info.description:** Returns the description of the pin    
+```javascript 
+
+var led1 = IO.digitalOut(...);  
+
+print(led1.pin.info...);```  
+
+
+
+###digitalIn()
+
+**IO.digitalIn(IO.pin#, CO config)-**Construct a new digital input pin  
+
+\#: the number of the pin to be configured. Pin numbering starts from 1.  
+
+config: the Configuration Option of the pin  
+
+```javascript
+
+var pb1 = IO.digitalIn(IO.pin1, IO.pullDown);```  
+
+**.setTrigger(TM mode, function(){})-**Enable or Disable the Trigger Mode for the pin  
+
+mode: the Trigger Mode of the pin  
+
+function(): the function that will execute when .setTrigger() is called  
+
+```javascript
+
+pb1.setTrigger(IO.risingEdge, function(){print(pb1.level);});```  
+
+**.level-**Return the level on which the pin is on  
+
+```javascript
+
+print(pb1.level) //Prints out 0```
+
+
+
+###digitalOut()
+
+**IO.digitalOut(IO.pin#, CO config)-**Construct a new digital output pin with a configuration option  
+
+\#: the number of the pin to be configured. Pin numbering starts from 1.  
+
+config: the configuration option of the pin, or can be replaced with 1 (on position) and 0 (off position). The pin 
+will automatically start in the on position if a configuration option is typed in  
+
+```javascript
+
+var led1 = IO.digitalOut(IO.pin1, IO.pullUp);```  
+
+**IO.digitalOut(IO.pin#)-**Construct a new digital output pin that will start in the off position  
+
+\#: the number of the pin to be configured. Pin numbering starts from 1. 
+
+```javascript
+
+var led2 = IO.digitalOut(IO.pin2);```
+
+**.toggle()-**Toggle the pin  
+
+```javascript
+
+led1.toggle();```
+
+**.pwm(double dutyCycle, int freq)-**Set the PWM duty cycle on a pin (only if PWM functions are supported on the pin)  
+
+dutyCycle: A value between 0.0 and 1.0 to set the cycle  
+
+freq: the frequency to rotate the bit pattern  
+
+```javascript
+
+led2.pwm(0.5, 4);```
+
+**.level-**Return or set the level on which the pin is on  
+```javascript  
+
+print(led1.level); //prints out 1
+
+led1.level = 0;
+
+print(led1.level); //prints out 0```  
+
+
+
+###analogIn()
+
+**IO.analogIn(IO.pin#)-**Construct a new analog input pin  
+
+\#: the number of the pin to be configured to an analog input. Pin numbering starts from 1. 
+
+```javascript
+
+var sensor = IO.analogIn(IO.pin12);```
+
+**.value-**Return the ADC value of the pin  
+
+```javascript
+
+print(sensor.value);```  
+
+
+
+###analogOut()
+
+**IO.analogOut(IO.pin#)-**Construct a new analog output pin  
+
+\#: the number of the pin to be configured to an analog output. Pin numbering starts from 1.  
+
+```javascript
+
+var motor = IO.analogOut(IO.pin10);```  
+
+**.value(int num)-**Set the DAC value  
+
+num: the number to set  
+```javascript
+
+motor.value(2);```
+
+
+
+###IO.system(String cmmd)  
+
+Emit the command to the underlying system  
+
+cmmd: the command to emit  
+
+```javascript
+
+IO.system('aplay DoorBell.wav');```

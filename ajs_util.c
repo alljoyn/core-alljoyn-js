@@ -196,6 +196,7 @@ size_t AJS_NumProps(duk_context* ctx, duk_idx_t idx)
 
 void AJS_DumpJX(duk_context* ctx, const char* tag, duk_idx_t idx)
 {
+#ifndef NDEBUG
     if (dbgAJS) {
         if (tag) {
             AJ_AlwaysPrintf(("%s\n", tag));
@@ -210,10 +211,12 @@ void AJS_DumpJX(duk_context* ctx, const char* tag, duk_idx_t idx)
         AJ_AlwaysPrintf(("%s\n", duk_get_string(ctx, -1)));
         duk_pop_3(ctx);
     }
+#endif
 }
 
 void AJS_DumpStack(duk_context* ctx)
 {
+#ifndef NDEBUG
     if (dbgAJS) {
         duk_idx_t top = duk_get_top_index(ctx);
 
@@ -223,4 +226,5 @@ void AJS_DumpStack(duk_context* ctx)
         }
         AJ_AlwaysPrintf(("=========================\n"));
     }
+#endif
 }

@@ -28,14 +28,15 @@ typedef struct {
     uint32_t sessionId;
 } SessionInfo;
 
-static int NativePeerProtoFinalizer(duk_context* ctx)
+static int NativeServiceObjectFinalizer(duk_context* ctx)
 {
     const char* peer;
     SessionInfo* sessionInfo;
 
-    duk_push_this(ctx);
-    peer = AJS_GetStringProp(ctx, -1, "dest");
-    duk_pop(ctx);
+    duk_get_prop_string(ctx, 0, "dest");
+    peer = duk_get_string(ctx, -1);
+
+    AJ_InfoPrintf(("ServiceObjectFinalizer %s\n", peer));
 
     AJS_GetGlobalStashObject(ctx, "sessions");
     duk_get_prop_string(ctx, -1, peer);
@@ -169,7 +170,7 @@ static int NativeMethod(duk_context* ctx)
     const char* member = duk_require_string(ctx, 0);
     const char* iface;
 
-    AJ_InfoPrintf(("PeerProtoMethod %s\n", member));
+    AJ_InfoPrintf(("NativeMethod %s\n", member));
 
     duk_push_this(ctx);
     iface = FindInterfaceForMember(ctx, -1, member);
@@ -283,6 +284,8 @@ static int NativeGetAllProps(duk_context* ctx)
 
 void AJS_RegisterMsgFunctions(AJ_BusAttachment* bus, duk_context* ctx, duk_idx_t ajIdx)
 {
+    duk_idx_t objIdx;
+
     duk_push_c_function(ctx, NativeBroadcastSignal, 3);
     duk_put_prop_string(ctx, ajIdx, "signal");
 
@@ -290,24 +293,26 @@ void AJS_RegisterMsgFunctions(AJ_BusAttachment* bus, duk_context* ctx, duk_idx_t
     /*
      * Push the peerProto object
      */
-    duk_push_object(ctx);
+    objIdx = duk_push_object(ctx);
+    /*
+     * Finalizer function called when the object is deleted
+     */
+    AJS_RegisterFinalizer(ctx, objIdx, NativeServiceObjectFinalizer);
     /*
      * Initialize the peerProto object
      */
     duk_push_int(ctx, 0);
-    duk_put_prop_string(ctx, -2, "session");
+    duk_put_prop_string(ctx, objIdx, "session");
     duk_push_c_function(ctx, NativeMethod, 1);
-    duk_put_prop_string(ctx, -2, "method");
+    duk_put_prop_string(ctx, objIdx, "method");
     duk_push_c_function(ctx, NativeSignal, 3);
-    duk_put_prop_string(ctx, -2, "signal");
+    duk_put_prop_string(ctx, objIdx, "signal");
     duk_push_c_function(ctx, NativeGetAllProps, 1);
-    duk_put_prop_string(ctx, -2, "getAllProps");
+    duk_put_prop_string(ctx, objIdx, "getAllProps");
     duk_push_c_function(ctx, NativeGetProp, 1);
-    duk_put_prop_string(ctx, -2, "getProp");
+    duk_put_prop_string(ctx, objIdx, "getProp");
     duk_push_c_function(ctx, NativeSetProp, 2);
-    duk_put_prop_string(ctx, -2, "setProp");
-
-    AJS_RegisterFinalizer(ctx, -1, NativePeerProtoFinalizer);
+    duk_put_prop_string(ctx, objIdx, "setProp");
     /*
      * Give the object a name
      */
@@ -441,7 +446,9 @@ static void AddServiceObject(duk_context* ctx, duk_idx_t anIdx, SessionInfo* ses
     /*
      * Append service object to the announcements array for processing later.
      */
-    duk_put_prop_index(ctx, anIdx, duk_get_length(ctx, anIdx));
+    if (anIdx >= 0) {
+        duk_put_prop_index(ctx, anIdx, duk_get_length(ctx, anIdx));
+    }
     /*
      * Increment the peer session refCount. It will be decremented when the service object
      * finalizer is called. If the refCount goes to zero and a session was established when
@@ -717,8 +724,9 @@ Exit:
 AJ_Status AJS_HandleJoinSessionReply(duk_context* ctx, AJ_Message* msg)
 {
     const char* peer = NULL;
-    SessionInfo* sessionInfo;
+    SessionInfo* sessionInfo = NULL;
     uint32_t replySerial = msg->replySerial;
+    uint8_t joined = FALSE;
 
     AJS_GetGlobalStashObject(ctx, "sessions");
     duk_enum(ctx, -1, DUK_ENUM_OWN_PROPERTIES_ONLY);
@@ -727,8 +735,8 @@ AJ_Status AJS_HandleJoinSessionReply(duk_context* ctx, AJ_Message* msg)
         AJ_ASSERT(duk_is_object(ctx, -1));
         duk_get_prop_string(ctx, -1, "info");
         sessionInfo = duk_get_buffer(ctx, -1, NULL);
-        duk_pop(ctx);
-
+        AJ_ASSERT(sessionInfo);
+        duk_pop_3(ctx);
         if (sessionInfo->replySerial == replySerial) {
             uint32_t sessionId;
             uint32_t replyStatus;
@@ -740,17 +748,15 @@ AJ_Status AJS_HandleJoinSessionReply(duk_context* ctx, AJ_Message* msg)
                 /*
                  * TODO - if we have a well-known name send a ping to get the unique name
                  */
-                duk_pop_2(ctx);
                 sessionInfo->sessionId = sessionId;
-            } else {
-                duk_pop_2(ctx);
+                joined = TRUE;
             }
             sessionInfo->replySerial = 0;
             break;
         }
     }
     duk_pop(ctx); /* Pop the enum */
-    if (peer) {
+    if (joined) {
         /*
          * TODO - we may need to initiate authentication with the remote peer
          */
@@ -800,7 +806,7 @@ AJ_Status AJS_SessionLost(duk_context* ctx, AJ_Message* msg)
 
 AJ_Status AJS_HandleAcceptSession(duk_context* ctx, AJ_Message* msg, uint16_t port, uint32_t sessionId, const char* joiner)
 {
-    uint8_t accept = TRUE;
+    uint32_t accept = TRUE;
     SessionInfo* sessionInfo;
 
     /*
@@ -808,14 +814,14 @@ AJ_Status AJS_HandleAcceptSession(duk_context* ctx, AJ_Message* msg, uint16_t po
      */
     AJS_GetGlobalStashObject(ctx, "sessions");
     sessionInfo = AllocSessionObject(ctx, joiner);
-    sessionInfo->port = port;
-    sessionInfo->sessionId = sessionId;
-
-    AJS_GetAllJoynProperty(ctx, "onPeerConnected");
     /*
      * If there is no handler automatically accept the connection
      */
+    AJS_GetAllJoynProperty(ctx, "onPeerConnected");
     if (duk_is_callable(ctx, -1)) {
+        /* Empty interface array */
+        duk_push_array(ctx);
+        AddServiceObject(ctx, -1, sessionInfo, "/", joiner);
         if (duk_pcall(ctx, 1) != DUK_EXEC_SUCCESS) {
             AJS_ConsoleSignalError(ctx);
             accept = FALSE;
@@ -823,16 +829,19 @@ AJ_Status AJS_HandleAcceptSession(duk_context* ctx, AJ_Message* msg, uint16_t po
             accept = duk_get_boolean(ctx, -1);
         }
     }
-    duk_pop(ctx);
+    duk_pop_2(ctx);
     /*
      * It is possible that we already have an outbound session to this peer so if we are not
      * accepting the session we can only delete the entry if the refCount is zero.
      */
     if (accept) {
         ++sessionInfo->refCount;
+        sessionInfo->port = port;
+        sessionInfo->sessionId = sessionId;
     } else if (sessionInfo->refCount == 0) {
         duk_del_prop_string(ctx, -1, joiner);
     }
-    duk_pop_2(ctx);
+    /* Pop sessions object */
+    duk_pop(ctx);
     return AJ_BusReplyAcceptSession(msg, accept);
 }

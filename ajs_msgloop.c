@@ -301,7 +301,6 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj)
                 continue;
             }
             if (status == AJ_ERR_NO_MATCH) {
-                AJ_WarnPrintf(("Quietly ignoring unknown message\n"));
                 status = AJ_OK;
             }
             AJ_CloseMsg(&msg);

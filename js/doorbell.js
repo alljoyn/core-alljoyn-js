@@ -16,10 +16,7 @@
 
 AJ.interfaceDefinition['org.allseen.DoorBell'] = { ding_dong:{ type:AJ.SIGNAL } };
 
-AJ.onAttach = function(msg)
-{
-    AJ.addMatch('org.allseen.DoorBell', 'ding_dong');
-}
+AJ.objectDefinition['/DoorBell'] = { interfaces:['org.allseen.DoorBell'] };
 
 AJ.onSignal = function()
 {

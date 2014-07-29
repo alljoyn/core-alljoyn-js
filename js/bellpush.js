@@ -18,13 +18,14 @@ AJ.interfaceDefinition['org.allseen.DoorBell'] = { ding_dong:{ type:AJ.SIGNAL } 
 
 AJ.objectDefinition['/pushbutton'] = { interfaces:['org.allseen.DoorBell'] };
 
-var pb=IO.digitalIn(IO.pin9, IO.pullDown);
+var pb = IO.digitalIn(IO.pin9, IO.pullDown);
 
 AJ.onAttach = function()
 {
-    var dingdong = AJ.signal('/pushbutton', 'org.allseen.DoorBell', 'ding_dong');
-    print('attached');
-    pb.setTrigger(IO.fallingEdge, function(){ print('ding dong!'); dingdong.send(); });
+    AJ.findService('org.allseen.DoorBell', function(svc) {
+        var dingdong = svc.signal('/pushbutton', 'org.allseen.DoorBell', 'ding_dong');
+        pb.setTrigger(IO.fallingEdge, function() { dingdong.send() });
+    });
 }
 
 AJ.onDetach = function()

@@ -108,7 +108,7 @@ if env['TARG'] == 'win32':
        # Compiler flags for DEBUG builds
        env.Append(CPPDEFINES=['_DEBUG', ('_ITERATOR_DEBUG_LEVEL', 2)])
        # Linker flags for DEBUG builds
-       env.Append(CFLAGS=['/J', '/W3', '/LD', '/MD', '/Zi', '/Od'])
+       env.Append(CFLAGS=['/J', '/W3', '/LD', '/MD', '/Z7', '/Od'])
        env.Append(LINKFLAGS=['/debug'])
     else:
        # Compiler flags for RELEASE builds

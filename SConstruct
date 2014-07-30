@@ -34,13 +34,16 @@ elif platform.system() == 'Darwin':
 vars = Variables()
 
 # Common build variables
-vars.Add(EnumVariable('TARG', 'Target platform variant', default_target, allowed_values=('win32', 'linux', 'darwin')))
+vars.Add(EnumVariable('TARG', 'Target platform variant', default_target, allowed_values=('win32', 'linux', 'stm32', 'darwin')))
 vars.Add(EnumVariable('VARIANT', 'Build variant', 'debug', allowed_values=('debug', 'release')))
 vars.Add(PathVariable('GTEST_DIR', 'The path to googletest sources', os.environ.get('GTEST_DIR'), PathVariable.PathIsDir))
 vars.Add(EnumVariable('WS', 'Whitespace Policy Checker', 'off', allowed_values=('check', 'detail', 'fix', 'off')))
 vars.Add(EnumVariable('FORCE32', 'Force building 32 bit on 64 bit architecture', 'false', allowed_values=('false', 'true')))
 vars.Add(EnumVariable('POOL_MALLOC', 'Use pool based memory allocation - default is native malloc', 'false', allowed_values=('false', 'true')))
 vars.Add(EnumVariable('DUKTAPE_SEPARATE', 'Use seperate rather than combined duktape source files', 'false', allowed_values=('false', 'true')))
+vars.Add(PathVariable('ARM_TOOLCHAIN_DIR', 'Path to the GNU ARM toolchain bin folder', os.environ.get('ARM_TOOLCHAIN_DIR'), PathVariable.PathIsDir))
+vars.Add(PathVariable('STM_SRC_DIR', 'Path to the source code for the STM32 microcontroller', os.environ.get('STM_SRC_DIR'), PathVariable.PathIsDir))
+vars.Add(PathVariable('FREE_RTOS_DIR','Directory to FreeRTOS source code', os.environ.get('FREE_RTOS_DIR'), PathVariable.PathIsDir))
 
 if default_msvc_version:
     vars.Add(EnumVariable('MSVC_VERSION', 'MSVC compiler version - Windows', default_msvc_version, allowed_values=('8.0', '9.0', '10.0', '11.0', '11.0Exp')))
@@ -167,6 +170,8 @@ if env['TARG'] == 'linux':
         env.Append(CFLAGS=['-Os'])
         env.Append(LINKFLAGS=['-s'])
 
+if env['TARG'] == 'stm32':
+    env['os'] = 'stm32'
 
 if env['TARG'] == 'darwin':
     if os.environ.has_key('CROSS_PREFIX'):
@@ -275,15 +280,18 @@ else:
 # 
 env.Append(LIBPATH = env['ajtcl_root'])
 
-if env['PLATFORM'] == 'win32':
-    env.Append(LIBS = ['ajtcl_st'])
+if env['TARG'] != 'stm32':
+    if env['PLATFORM'] == 'win32':
+        env.Append(LIBS = ['ajtcl_st'])
 
-if env['PLATFORM'] == 'posix':
-    env.Append(LIBS = ['libajtcl'])
+    if env['PLATFORM'] == 'posix':
+        env.Append(LIBS = ['libajtcl'])
 
-if env['PLATFORM'] == 'darwin':
-    env.Append(LIBS = ['libajtcl_st'])
+    if env['PLATFORM'] == 'darwin':
+        env.Append(LIBS = ['libajtcl_st'])
 
-progs = env.SConscript('SConscript', 'env', variant_dir='build/$VARIANT', duplicate=0)
+    progs = env.SConscript('SConscript', 'env', variant_dir='build/$VARIANT', duplicate=0)
+else:
+    progs = env.SConscript('stm32/SConscript', 'env', variant_dir='build/$VARIANT', duplicate=0)
 
 env.Install('.', progs)

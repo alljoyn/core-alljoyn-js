@@ -1,0 +1,215 @@
+# *****************************************************************************
+#  Copyright (c) 2014, AllSeen Alliance. All rights reserved.
+#
+#     Permission to use, copy, modify, and/or distribute this software for any
+#     purpose with or without fee is hereby granted, provided that the above
+#     copyright notice and this permission notice appear in all copies.
+#
+#     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+#     WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+#     MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+#     ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+#     WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+#     ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+#     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+# *****************************************************************************
+
+import platform
+import os
+import string
+
+Import('env')
+
+print 'Building for STM32'
+# Set the compiler
+env.Replace(CC = env.File('${ARM_TOOLCHAIN_DIR}/arm-none-eabi-gcc'))
+env.Replace(CXX = env.File('${ARM_TOOLCHAIN_DIR}/arm-none-eabi-g++'))
+env.Replace(LINK = env.File('${ARM_TOOLCHAIN_DIR}/arm-none-eabi-gcc'))
+env.Replace(AR = env.File('${ARM_TOOLCHAIN_DIR}/arm-none-eabi-ar')) 
+
+# Override any prefix or suffix's that are specific to the GNU ARM compiler
+env['CPPDEFPREFIX']     = '-D'
+env['OBJSUFFIX']        = '.o'
+env['SHOBJSUFFIX']      = '.os'
+env['CCCOM']            = '$CC -o $TARGET -c $CFLAGS $CCFLAGS $_CCCOMCOM $SOURCES' 
+env['INCPREFIX']        = '-I'
+env['CCFLAGS']          = ''
+env['PROGSUFFIX']       = '.elf'
+env['PROGPREFIX']       = ''
+env['LDMODULEPREFIX']   = ''
+env['LDMODULESUFFIX']   = ''
+env['LIBLINKPREFIX']    = ''
+env['LIBPREFIX']        = ''
+env['OBJPREFIX']        = ''
+env['LINKFLAGS']        = ''
+env['LINKCOM']          = '$LINK -o $TARGET $LINKFLAGS $__RPATH $SOURCES $_LIBDIRFLAGS $_LIBFLAGS'
+env['LINK']             = '$CC'
+env['ASFLAGS']          = ''
+env['ASPPCOM']          = '$AS'
+env['ARFLAGS']          = 'rc'
+env['ARCOM']            = '$AR $ARFLAGS $TARGET $SOURCES' 
+env['LIBDIRPREFIX']     = '-L'
+env['ASCOM']            = '$CC -o $TARGET -c $CFLAGS $CCFLAGS $_CCCOMCOM $SOURCES' 
+env['LIBPREFIX'] = 'lib'
+env['LIBSUFFIX'] = '.a'
+env['RANLIB'] = 'ranlib'
+env['RANLIBFLAGS'] =    ''
+env['RANLIBCOM'] = '$RANLIB $RANLIBFLAGS $TARGET'
+env['SHLIBPREFIX'] = ''
+# This was done because scons creates a link file to feed into the linker
+# and arm-none-eabi removes '\' when interpreting a linker file. This
+# prevents scons from creating a link file and just feeding the command line
+# options directly to the compiler/linker 
+env['MAXLINELENGTH'] = 10000
+
+# Compiler Flags
+env.Append(CFLAGS = ['-mthumb', '-fdata-sections', '-ffunction-sections', '-mlong-calls',
+                 '-g3', '-Wall', '-mcpu=cortex-m3', '-c', '-pipe', '-fno-strict-aliasing',
+                 '-Wmissing-prototypes', '-Wpointer-arith', '-std=gnu99', '-Wchar-subscripts',
+                 '-Wcomment', '-Wformat=2', '-Wimplicit-int', '-Wmain', '-Wparentheses',
+                 '-Wsequence-point', '-Wreturn-type', '-Wswitch', '-Wtrigraphs', '-Wunused',
+                 '-Wuninitialized', '-Wfloat-equal', '-Wundef', '-Wshadow', '-Wbad-function-cast',
+                 '-Wwrite-strings', '-Wsign-compare', '-Waggregate-return', '-Wmissing-declarations',
+                 '-Wformat', '-Wmissing-format-attribute', '-Wno-deprecated-declarations', 
+                 '-Wpacked', '-Wlong-long', '-Wunreachable-code', '-Wcast-align', '-MD', '-MP'])
+
+# FreeRTOS source files + shim layers
+rtos_src = [Glob('RTOS/FreeRTOS/*.c') + 
+            Glob(env['FREE_RTOS_DIR'] + '/Source/*.c')]
+rtos_src += [env['FREE_RTOS_DIR'] + '/Source/portable/MemMang/heap_4.c', 
+             env['FREE_RTOS_DIR'] + '/Source/portable/GCC/ARM_CM3/port.c',
+             env['ajtcl_root'] + '/RTOS/aj_net.c', 
+             env['ajtcl_root'] + '/RTOS/aj_wifi_ctrl.c', 
+             env['ajtcl_root'] + '/RTOS/Alljoyn.c', 
+             env['ajtcl_root'] + '/RTOS/main.c',
+             env['ajtcl_root'] + '/RTOS/FreeRTOS/aj_target_rtos.c']
+
+# Add platform dependent sources
+stm_src = [env['STM_SRC_DIR'] + 'Libraries/CMSIS/ST/STM32F4xx/Source/Templates/gcc_ride7/startup_stm32f4xx.s',
+           env['STM_SRC_DIR'] + 'Libraries/CMSIS/ST/STM32F4xx/Source/Templates/system_stm32f4xx.c',
+           env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/src/misc.c',
+           env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_rcc.c',
+           env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_usart.c',
+           env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_gpio.c',
+           env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dma.c',
+           env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_wwdg.c',
+           env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_spi.c',
+           env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_flash.c',
+           env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_rng.c',
+           env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_exti.c',
+           env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_syscfg.c',
+           env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_tim.c',
+           env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_adc.c',
+           env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dac.c',
+           env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/src/stm32f4xx_i2c.c',
+           env['ajtcl_root'] + '/bsp/stm32/aj_target_platform.c',
+           env['ajtcl_root'] + '/bsp/stm32/aj_spi.c',
+           env['ajtcl_root'] + '/bsp/stm32/syscalls.c']
+
+# Add platform dependent include paths
+env.Append(CPPPATH = [env['ajtcl_root'] + '/bsp', 
+                  env['ajtcl_root'] + '/bsp/stm32', 
+                  env['FREE_RTOS_DIR'] + '/Source/include', 
+                  env['ajtcl_root'] + '/RTOS/FreeRTOS',
+                  env['ajtcl_root'] + '/bsp/stm32/config',
+                  env['ajtcl_root'] + '/RTOS', 
+                  env['ajtcl_root'] + '/crypto', 
+                  env['ajtcl_root'] + '/crypto/ecc', 
+                  env['ajtcl_root'] + '/external/sha2', 
+                  env['ajtcl_root'] + '/malloc', 
+                  env['ajtcl_root'] + '/inc', 
+                  env['ajtcl_root'] + '/WSL', 
+                  env['FREE_RTOS_DIR'] + '/Source/portable/GCC/ARM_CM3',
+                  env['STM_SRC_DIR'] + 'Utilities/STM32F4-Discovery',
+                  env['STM_SRC_DIR'] + 'Libraries/CMSIS/ST/STM32F4xx/Include',
+                  env['STM_SRC_DIR'] + 'Libraries/CMSIS/Include',
+                  env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/inc',
+                  '.',
+                  '..',
+                  '../../',
+                  '../../external/duktape/dist/src'])
+# Add platform dependent defines
+env.Append(CPPDEFINES = ['STM32F407xx', 'USE_STDPERIPH_DRIVER','HAL_UART_MODULE_ENABLED', 'HAL_RCC_MODULE_ENABLED', 
+                         'HAL_GPIO_MODULE_ENABLED', 'HAL_USART_MODULE_ENABLED', 'HAL_FLASH_MODULE_ENABLED', 'DUK_F_BCC',
+                         'AJ_CONFIGURE_WIFI_UPON_START',
+                         'WIFI_SSID=\\"SEAQUIC-AP3\\"',
+                         'WIFI_PASSPHRASE=\\"12345678\\"'])
+
+env.Append(LINKFLAGS = ['-mthumb', '-Wl,--start-group', '-lm', '-lc',
+                        '-Wl,--end-group', '-Wl,--gc-sections', '-Wl,-Map,${TARGET.base}.map',
+                        '-mcpu=cortex-m3', '-T' + env['STM_SRC_DIR'] + 'Project/Peripheral_Examples/SysTick/TrueSTUDIO/SysTick/stm32_flash.ld',
+                        '-Wl,--entry=Reset_Handler'])
+
+# Include paths
+env['includes'] = [ env['ajtcl_root'] + '/inc', env['ajtcl_root'] + '/crypto/ecc', env['ajtcl_root'] + '/external/sha2']
+
+# AllJoyn Thin Client headers and sources (target independent)
+env['aj_headers'] = [Glob(env['ajtcl_root'] + '/inc/*.h') + Glob(env['ajtcl_root'] + '/external/*/*.h')]
+env['aj_srcs'] = [Glob(env['ajtcl_root'] + '/src/*.c')]
+env['aj_sw_crypto'] = [Glob(env['ajtcl_root'] + '/crypto/*.c')]
+env['aj_malloc'] = [Glob(env['ajtcl_root'] + '/malloc/*.c')]
+env['aj_crypto_ecc'] = [Glob(env['ajtcl_root'] + '/crypto/ecc/*.c')]
+env['aj_external_sha2'] = [Glob(env['ajtcl_root'] + '/external/sha2/*.c')]
+wsl = [Glob(env['ajtcl_root'] + '/WSL/*.c')]
+
+if env['DUKTAPE_SEPARATE'] == 'true':
+    duktape_sources = Glob(env['duktape_dist'] + '/src-separate/*.c')
+else:
+    duktape_sources = Glob(env['duktape_dist'] + '/src/*.c')
+
+svcs_sources = []
+svcs_sources.append(Glob(env['svcs_root'] + '/services_common/src/*.c'))
+svcs_sources.append(Glob(env['svcs_root'] + '/notification/src/NotificationCommon/*.c'))
+svcs_sources.append(Glob(env['svcs_root'] + '/notification/src/NotificationProducer/*.c'))
+svcs_sources.append(Glob(env['svcs_root'] + '/config/src/*.c'))
+svcs_sources.append(Glob(env['svcs_root'] + '/controlpanel/src/CPSControllee/*.c'))
+svcs_sources.append(Glob(env['svcs_root'] + '/controlpanel/src/CPSControllee/Common/*.c'))
+svcs_sources.append(Glob(env['svcs_root'] + '/controlpanel/src/CPSControllee/Widgets/*.c'))
+#svcs_sources.append(Glob(env['svcs_root'] + '/onboarding/src/*.c'))
+#svcs_sources.append(Glob(env['svcs_root'] + '/notification/src/NotificationConsumer/*.c'))
+
+ajs_sources = [
+     '../../ajs.c',
+     '../../ajs_attach.c',
+     '../../ajs_console.c',
+     '../../ajs_cps.c',
+     '../../ajs_ctrlpanel.c',
+     '../../ajs_io.c',
+     '../../ajs_handlers.c',
+     '../../ajs_heap.c',
+     '../../ajs_marshal.c',
+     '../../ajs_msgloop.c',
+     '../../ajs_notif.c',
+     '../../ajs_propstore.c',
+     '../../ajs_services.c',
+     '../../ajs_sessions.c',
+     '../../ajs_tables.c',
+     '../../ajs_timer.c',
+     '../../ajs_translations.c',
+     '../../ajs_util.c',
+     '../../ajs_unmarshal.c',
+     'ajs_main.c',
+     'ajs_obs_stubs.c',
+     'ajs_malloc.c',
+     'io/io_info.c',
+     'io/io_stubs.c',
+     'io/io_gpio.c',
+     'io/io_pwm.c',
+     'io/io_adc.c',
+     'io/io_spi.c',
+     'io/io_uart.c',
+     'io/io_common.c'
+]
+
+srcs = env.Object(env['aj_srcs'] + env['aj_sw_crypto'] + env['aj_malloc'] + env['aj_crypto_ecc'] + env['aj_external_sha2'])
+srcs += env.Object(wsl)
+srcs += env.Object(rtos_src)
+#srcs += env.Object(stm_src)
+srcs += env.Object(ajs_sources)
+srcs += env.Object(svcs_sources)
+srcs += env.Object(duktape_sources)
+
+stm_lib = env.StaticLibrary('stm32', stm_src)
+
+env.Program('alljoynjs', [srcs, stm_lib])
+#env.Program('svclite', env['ajtcl_root'] + '/test/svclite.c', srcs)

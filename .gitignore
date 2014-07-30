@@ -24,6 +24,7 @@ core
 *.lib
 *.suo
 *.pdb
+*.d
 ajs_tmp.js
 build
 alljoynjs

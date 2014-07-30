@@ -357,6 +357,139 @@ static int NativeIoSystem(duk_context* ctx)
     }
     return 1;
 }
+static int NativeSpiFinalizer(duk_context* ctx)
+{
+    AJ_InfoPrintf(("Closing SPI\n"));
+    duk_get_prop_string(ctx, 0, AJS_HIDDEN_PROP("ctx"));
+    AJS_TargetIO_SpiClose(duk_require_pointer(ctx, -1));
+    duk_pop(ctx);
+    return 1;
+}
+static int NativeSpiRead(duk_context* ctx)
+{
+    duk_push_int(ctx, AJS_TargetIO_SpiRead(PinCtxPtr(ctx)));
+    return 1;
+}
+static int NativeSpiWrite(duk_context* ctx)
+{
+    uint8_t value = duk_require_int(ctx, 0);
+    AJS_TargetIO_SpiWrite(PinCtxPtr(ctx), value);
+    return 1;
+}
+
+static int NativeIoSpi(duk_context* ctx)
+{
+    uint32_t mosi, miso, cs, clk, prescaler;
+    uint8_t master;
+    uint8_t cpol, cpha, data;
+    void* spiCtx;
+    AJ_Status status;
+    int idx;
+
+    mosi = GetPinId(ctx, 0, AJS_IO_FUNCTION_SPI_MOSI);
+    miso = GetPinId(ctx, 1, AJS_IO_FUNCTION_SPI_MISO);
+    cs = GetPinId(ctx, 2, AJS_IO_FUNCTION_SPI_SS);
+    clk = GetPinId(ctx, 3, AJS_IO_FUNCTION_SPI_SCK);
+
+    duk_get_prop_string(ctx, 4, "prescaler");
+    prescaler = duk_require_int(ctx, -1);
+    duk_get_prop_string(ctx, 4, "master");
+    if (duk_get_boolean(ctx, -1)) {
+        master = TRUE;
+    } else {
+        master = FALSE;
+    }
+    duk_get_prop_string(ctx, 4, "cpol");
+    cpol = duk_require_int(ctx, -1);
+    duk_get_prop_string(ctx, 4, "cpha");
+    cpha = duk_require_int(ctx, -1);
+    duk_get_prop_string(ctx, 4, "data");
+    data = duk_require_int(ctx, -1);
+    AJ_Printf("Clock = %u\n", prescaler);
+    AJ_Printf("Master? = %u\n", master);
+    AJ_Printf("cpol = %u\n", cpol);
+    AJ_Printf("cpha = %u\n", cpha);
+    AJ_Printf("data = %u\n", data);
+    duk_pop(ctx);
+
+    // Clock polarity must be high (1) or low (0)
+    if (cpol != 0 && cpol != 1) {
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "cpol must be 0 or 1; you gave %u", cpol);
+    }
+    // Clock edge phase must be one edge (1) or two edge (2)
+    if (cpha != 1 && cpha != 2) {
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "cpha must be 1 or 2; you gave %u", cpha);
+    }
+    // Data bits must be 8, 16, or 32
+    if (data != 8 && data != 16) {
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "data must be 8 or 16; you gave %u", data);
+    }
+    if (prescaler != 2 && prescaler != 4 && prescaler != 8 &&
+        prescaler != 16 && prescaler != 32 && prescaler != 64 &&
+        prescaler != 128 && prescaler != 256) {
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "prescaler must be 2, 4, 8, 16, 32, 64, 128 or 256; you gave %u", prescaler);
+    }
+
+    status = AJS_TargetIO_SpiOpen(mosi, miso, cs, clk, prescaler, master, cpol, cpha, data, &spiCtx);
+    if (status != AJ_OK) {
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Failed to open SPI device");
+    }
+    idx = NewIOObject(ctx, spiCtx, NativeSpiFinalizer);
+
+    duk_push_c_function(ctx, NativeSpiRead, 1);
+    duk_put_prop_string(ctx, idx, "read");
+
+    duk_push_c_function(ctx, NativeSpiWrite, 1);
+    duk_put_prop_string(ctx, idx, "write");
+
+    return 1;
+}
+static int NativeUartFinalizer(duk_context* ctx)
+{
+    AJ_InfoPrintf(("Closing UART\n"));
+    duk_get_prop_string(ctx, 0, AJS_HIDDEN_PROP("ctx"));
+    AJS_TargetIO_UartClose(duk_require_pointer(ctx, -1));
+    duk_pop(ctx);
+    return 1;
+}
+static int NativeUartRead(duk_context* ctx)
+{
+    duk_push_int(ctx, AJS_TargetIO_UartRead(PinCtxPtr(ctx)));
+    return 1;
+}
+static int NativeUartWrite(duk_context* ctx)
+{
+    uint8_t value = duk_require_int(ctx, 0);
+    AJS_TargetIO_UartWrite(PinCtxPtr(ctx), value);
+    return 1;
+}
+
+static int NativeIoUart(duk_context* ctx)
+{
+    AJ_Status status;
+    uint8_t tx, rx;
+    uint32_t baud;
+    void* uartCtx;
+    int idx;
+
+    tx = GetPinId(ctx, 0, AJS_IO_FUNCTION_UART_TX);
+    rx = GetPinId(ctx, 1, AJS_IO_FUNCTION_UART_RX);
+    baud = duk_require_int(ctx, 2);
+    duk_pop(ctx);
+    status = AJS_TargetIO_UartOpen(tx, rx, baud, &uartCtx);
+    if (status != AJ_OK) {
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Failed to open USART device\n");
+    }
+    idx = NewIOObject(ctx, uartCtx, NativeUartFinalizer);
+
+    duk_push_c_function(ctx, NativeUartRead, 1);
+    duk_put_prop_string(ctx, idx, "read");
+
+    duk_push_c_function(ctx, NativeUartWrite, 1);
+    duk_put_prop_string(ctx, idx, "write");
+
+    return 1;
+}
 
 /*
  * Returns the IO functions supported by this pin
@@ -461,6 +594,11 @@ AJ_Status AJS_RegisterIO(duk_context* ctx)
     duk_push_c_function(ctx, NativeIoSystem, 1);
     duk_put_prop_string(ctx, ioIdx, "system");
 
+    duk_push_c_function(ctx, NativeIoSpi, 5);
+    duk_put_prop_string(ctx, ioIdx, "spi");
+
+    duk_push_c_function(ctx, NativeIoUart, 3);
+    duk_put_prop_string(ctx, ioIdx, "uart");
     /*
      * GPIO attribute constants
      */

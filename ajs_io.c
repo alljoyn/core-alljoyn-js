@@ -28,7 +28,7 @@ void* PinCtxPtr(duk_context* ctx)
 {
     void* pinCtx;
     duk_push_this(ctx);
-    duk_get_prop_string(ctx, -1, "$ctx$");
+    duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("ctx"));
     pinCtx = duk_require_pointer(ctx, -1);
     duk_pop(ctx);
     return pinCtx;
@@ -44,7 +44,7 @@ static int NewIOObject(duk_context* ctx, void* pinCtx, duk_c_function finalizer)
     duk_dup(ctx, 0);
     duk_put_prop_string(ctx, idx, "pin");
     duk_push_pointer(ctx, pinCtx);
-    duk_put_prop_string(ctx, idx, "$ctx$");
+    duk_put_prop_string(ctx, idx, AJS_HIDDEN_PROP("ctx"));
     /*
      * Callback from when the pin object is garbage collected.
      */
@@ -74,7 +74,7 @@ static int NativeSetTrigger(duk_context* ctx)
 
     duk_push_global_object(ctx);
     duk_get_prop_string(ctx, -1, "IO");
-    duk_get_prop_string(ctx, -1, "$triggers$");
+    duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("trigs"));
 
     if ((mode == AJS_IO_PIN_TRIGGER_ON_RISE) || (mode == AJS_IO_PIN_TRIGGER_ON_FALL)) {
         /*
@@ -142,7 +142,9 @@ static int NativePWM(duk_context* ctx)
 static int NativePinFinalizer(duk_context* ctx)
 {
     AJ_InfoPrintf(("Closing Pin\n"));
-    AJS_TargetIO_PinClose(PinCtxPtr(ctx));
+    duk_get_prop_string(ctx, 0, AJS_HIDDEN_PROP("ctx"));
+    AJS_TargetIO_PinClose(duk_require_pointer(ctx, -1));
+    duk_pop(ctx);
     return 0;
 }
 
@@ -273,7 +275,9 @@ static int NativeIoAdcGetter(duk_context* ctx)
 static int NativeAdcFinalizer(duk_context* ctx)
 {
     AJ_InfoPrintf(("Closing ADC\n"));
-    AJS_TargetIO_AdcClose(PinCtxPtr(ctx));
+    duk_get_prop_string(ctx, 0, AJS_HIDDEN_PROP("ctx"));
+    AJS_TargetIO_AdcClose(duk_require_pointer(ctx, -1));
+    duk_pop(ctx);
     return 0;
 }
 
@@ -311,7 +315,9 @@ static int NativeIoDacSetter(duk_context* ctx)
 static int NativeDacFinalizer(duk_context* ctx)
 {
     AJ_InfoPrintf(("Closing DAC\n"));
-    AJS_TargetIO_AdcClose(PinCtxPtr(ctx));
+    duk_get_prop_string(ctx, 0, AJS_HIDDEN_PROP("ctx"));
+    AJS_TargetIO_AdcClose(duk_require_pointer(ctx, -1));
+    duk_pop(ctx);
     return 0;
 }
 
@@ -472,7 +478,7 @@ AJ_Status AJS_RegisterIO(duk_context* ctx)
      * Property for keeping track of triggers
      */
     duk_push_array(ctx);
-    duk_put_prop_string(ctx, ioIdx, "$triggers$");
+    duk_put_prop_string(ctx, ioIdx, AJS_HIDDEN_PROP("trigs"));
 
     duk_put_prop_string(ctx, -2, "IO");
     duk_pop(ctx);
@@ -492,7 +498,7 @@ AJ_Status AJS_ServiceIO(duk_context* ctx)
          */
         duk_push_global_object(ctx);
         duk_get_prop_string(ctx, -1, "IO");
-        duk_get_prop_string(ctx, -1, "$triggers$");
+        duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("trigs"));
         do {
             duk_get_prop_index(ctx, -1, trigId);
             if (duk_is_object(ctx, -1)) {

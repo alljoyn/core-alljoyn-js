@@ -28,6 +28,11 @@
 extern uint8_t dbgAJS;
 #endif
 
+/*
+ * Prefixing a property name with 0xFF makes it a hidden property
+ */
+#define AJS_HIDDEN_PROP(n) "\377" n
+
 /**
  * Register a finalizer on an object
  *

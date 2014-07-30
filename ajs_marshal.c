@@ -440,7 +440,7 @@ static int HandleReply(duk_context* ctx, const char* error)
     /*
      * We stored information about the call in the message object
      */
-    duk_get_prop_string(ctx, -1, "$reply$");
+    duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("reply"));
     msgReply = duk_require_buffer(ctx, -1, NULL);
     duk_pop(ctx);
 
@@ -478,7 +478,7 @@ static int HandleReply(duk_context* ctx, const char* error)
              * Property GET messages are a special case because we need the property signature to
              * figure out how to marshal the property value.
              */
-            duk_get_prop_string(ctx, -1, "$propSig$");
+            duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("propSig"));
             if (duk_is_string(ctx, -1)) {
                 status = MarshalProp(ctx, &msg, duk_get_string(ctx, -1), 0);
             } else {

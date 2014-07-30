@@ -60,9 +60,9 @@ static int RegisterTimer(duk_context* ctx, int32_t ms)
     /*
      * Get the global state management objects
      */
-    duk_push_global_object(ctx);
-    duk_get_prop_string(ctx, -1, "$timerFuncs");
-    duk_get_prop_string(ctx, -2, "$timerState");
+    duk_push_global_stash(ctx);
+    duk_get_prop_string(ctx, -1, "timerFuncs");
+    duk_get_prop_string(ctx, -2, "timerState");
 
     timers = duk_get_buffer(ctx, -1, &numTimers);
     numTimers = numTimers / sizeof(AJS_TIMER);
@@ -97,7 +97,7 @@ static int RegisterTimer(duk_context* ctx, int32_t ms)
     duk_dup(ctx, 0);
     duk_put_prop_index(ctx, -2, timerEntry);
     /*
-     * Pop the callable, the timerFuncsArray and the global context
+     * Pop the callable, the timerFuncs array and the global stash
      */
     duk_pop_3(ctx);
     /*
@@ -125,8 +125,8 @@ static AJS_TIMER* GetTimer(duk_context* ctx, uint8_t isInterval)
     uint32_t timerId = (uint32_t)duk_require_int(ctx, 0);
     uint32_t timerEntry = GET_TIMER_INDEX(timerId);
 
-    duk_push_global_object(ctx);
-    duk_get_prop_string(ctx, -1, "$timerState");
+    duk_push_global_stash(ctx);
+    duk_get_prop_string(ctx, -1, "timerState");
     timers = duk_get_buffer(ctx, -1, &numTimers);
     numTimers = numTimers / sizeof(AJS_TIMER);
     /*
@@ -157,8 +157,8 @@ static int ClearTimer(duk_context* ctx, uint8_t isInterval)
     /*
      * Remove reference to timer callback function
      */
-    duk_push_global_object(ctx);
-    duk_get_prop_string(ctx, -1, "$timerFuncs");
+    duk_push_global_stash(ctx);
+    duk_get_prop_string(ctx, -1, "timerFuncs");
     duk_push_undefined(ctx);
     duk_put_prop_index(ctx, -2, timerEntry);
     duk_pop(ctx);
@@ -237,20 +237,21 @@ static int NativeClearTimeout(duk_context* ctx)
 
 AJ_Status AJS_RegisterTimerFuncs(duk_context* ctx)
 {
-    duk_push_global_object(ctx);
-
     /*
-     * Timer state is managed via two global properties, "$timerFuncs" is an array that hold
-     * references to the timer callback functions, "$timerState" is a memory blob that holds
-     * an array of C structs that provide information about the active timers.
+     * Timer state is managed via two global stash properties, "timerFuncs" is an array that holds
+     * references to the timer callback functions, "timerState" is a memory blob that holds an array
+     * of C structs that provide information about the active timers.
      */
+    duk_push_global_stash(ctx);
     duk_push_array(ctx);
-    duk_put_prop_string(ctx, -2, "$timerFuncs");
+    duk_put_prop_string(ctx, -2, "timerFuncs");
     duk_push_dynamic_buffer(ctx, NUM_TIMERS * sizeof(AJS_TIMER));
-    duk_put_prop_string(ctx, -2, "$timerState");
+    duk_put_prop_string(ctx, -2, "timerState");
+    duk_pop(ctx);
     /*
      * Register interval and timeout functions
      */
+    duk_push_global_object(ctx);
     duk_push_c_function(ctx, NativeSetInterval, 2);
     duk_put_prop_string(ctx, -2, "setInterval");
     duk_push_c_function(ctx, NativeClearInterval, 1);
@@ -263,7 +264,6 @@ AJ_Status AJS_RegisterTimerFuncs(duk_context* ctx)
     duk_put_prop_string(ctx, -2, "clearTimeout");
     duk_push_c_function(ctx, NativeResetTimeout, 2);
     duk_put_prop_string(ctx, -2, "resetTimeout");
-
     duk_pop(ctx);
 
     deadline = 0;
@@ -294,11 +294,11 @@ AJ_Status AJS_RunTimers(duk_context* ctx, AJ_Time* clock, uint32_t* currentTO)
     /*
      * Get the global state management objects
      */
-    duk_push_global_object(ctx);
-    duk_get_prop_string(ctx, -1, "$timerState");
+    duk_push_global_stash(ctx);
+    duk_get_prop_string(ctx, -1, "timerState");
     timers = duk_get_buffer(ctx, -1, &numTimers);
     numTimers = numTimers / sizeof(AJS_TIMER);
-    duk_get_prop_string(ctx, -2, "$timerFuncs");
+    duk_get_prop_string(ctx, -2, "timerFuncs");
     /*
      * Iterate over the timers and call functions at or past the deadline
      */

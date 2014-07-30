@@ -42,7 +42,7 @@ duk_idx_t AJS_UnmarshalMessage(duk_context* ctx, AJ_Message* msg)
             msgReply->msgId = msg->msgId;
             msgReply->flags = msg->hdr->flags;
             msgReply->serialNum = msg->hdr->serialNum;
-            duk_put_prop_string(ctx, objIndex, "$reply$");
+            duk_put_prop_string(ctx, objIndex, AJS_HIDDEN_PROP("reply"));
 
             duk_push_string(ctx, msg->objPath);
             duk_put_prop_string(ctx, objIndex, "path");
@@ -269,7 +269,7 @@ AJ_Status AJS_UnmarshalPropArgs(duk_context* ctx, AJ_Message* msg, uint8_t acces
                      * value in the reply.
                      */
                     duk_push_string(ctx, signature);
-                    duk_put_prop_string(ctx, msgIdx, "$propSig$");
+                    duk_put_prop_string(ctx, msgIdx, AJS_HIDDEN_PROP("propSig"));
                 } else {
                     /*
                      * Push the value to set

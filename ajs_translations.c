@@ -20,7 +20,7 @@
 #include "ajs.h"
 #include "ajs_util.h"
 
-static const char** languagesList;
+static char** languagesList;
 
 static const char* GetTranslatedString(duk_context* ctx, duk_idx_t idx, uint16_t langNum, const char* langName)
 {
@@ -102,7 +102,7 @@ static int NativeTranslationsSetter(duk_context* ctx)
     duk_enum(ctx, 0, DUK_ENUM_OWN_PROPERTIES_ONLY);
     while (duk_next(ctx, -1, 0)) {
         languagesList = duk_realloc(ctx, languagesList, sizeof(const char*) * (numLangs + 1));
-        languagesList[numLangs] = duk_get_string(ctx, -1);
+        languagesList[numLangs] = (char*)duk_get_string(ctx, -1);
         duk_put_prop_index(ctx, -3, numLangs);
         ++numLangs;
     }

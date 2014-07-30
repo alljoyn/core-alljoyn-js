@@ -32,7 +32,7 @@ static AJS_Widget* GetWidgetFromThis(duk_context* ctx)
     AJS_Widget* widget;
 
     duk_push_this(ctx);
-    duk_get_prop_string(ctx, -1, "_wbuf");
+    duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("wbuf"));
 #ifndef NDEBUG
     if (!duk_is_buffer(ctx, -1)) {
         AJ_ErrPrintf(("GetWidgetFromThis \"this\" is not a widget\n"));
@@ -66,7 +66,7 @@ static AJS_Widget* CreateWidget(duk_context* ctx, uint8_t type)
     widget = (AJS_Widget*)duk_push_fixed_buffer(ctx, sizeof(AJS_Widget));
     widget->type = type;
     widget->dukCtx = ctx;
-    duk_put_prop_string(ctx, -2, "_wbuf");
+    duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("wbuf"));
     return widget;
 }
 
@@ -342,7 +342,7 @@ static int NativeValueSetter(duk_context* ctx)
          * String needs to be stabilized so we need to set a property
          */
         duk_dup(ctx, 0);
-        duk_put_prop_string(ctx, -2, "_value");
+        duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("value"));
         break;
     }
     duk_pop(ctx);
@@ -418,7 +418,7 @@ AJ_Status AJS_CPS_OnValueChanged(AJS_Widget* ajsWidget)
     if (ajsWidget->property.wdt.signature[0] == 's') {
         duk_push_string(ctx, ajsWidget->property.val.s);
         ajsWidget->property.val.s = duk_get_string(ctx, -1);
-        duk_put_prop_string(ctx, -2, "_value");
+        duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("value"));
     }
     duk_get_prop_string(ctx, -1, "onValueChanged");
     if (duk_is_callable(ctx, -1)) {
@@ -465,7 +465,7 @@ static const char* GetChoice(PropertyWidget* widget, uint16_t index, const void*
     duk_context* ctx = ajsWidget->dukCtx;
 
     GetWidgetObject(ctx, ajsWidget->index);
-    duk_get_prop_string(ctx, -1, "_choices");
+    duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("choices"));
     duk_get_prop_index(ctx, -1, index);
     choice = AJS_GetTranslatedString(ctx, -1, language);
     duk_pop_3(ctx);
@@ -478,7 +478,7 @@ static const char* GetChoice(PropertyWidget* widget, uint16_t index, const void*
 static int NativeChoicesGetter(duk_context* ctx)
 {
     duk_push_this(ctx);
-    duk_get_prop_string(ctx, -1, "_choices");
+    duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("choices"));
     duk_remove(ctx, -2);
     return 1;
 }
@@ -510,7 +510,7 @@ static int NativeChoicesSetter(duk_context* ctx)
      * Set enumeration as a property on the widget object
      */
     duk_dup(ctx, 0);
-    duk_put_prop_string(ctx, -2, "_choices");
+    duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("choices"));
 
     widget->property.wdt.optParams.numConstraints = (uint16_t)numChoices;
     widget->property.wdt.optParams.getConstraint = GetChoice;
@@ -555,7 +555,7 @@ static int NativeRangeSetter(duk_context* ctx)
     widget->property.wdt.optParams.constraintRange.maxValue = &range[1];
     widget->property.wdt.optParams.constraintRange.increment = &range[2];
     widget->property.wdt.optParams.constraintRangeDefined = TRUE;
-    duk_put_prop_string(ctx, -2, "_range");
+    duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("range"));
 
     if (duk_has_prop_string(ctx, 0, "units")) {
         duk_get_prop_string(ctx, 0, "units");
@@ -688,7 +688,7 @@ static const char* DialogLabel(DialogWidget* widget, uint8_t action, uint16_t la
     AJ_InfoPrintf(("DialogLabel from %s\n", ajsWidget->path));
 
     GetWidgetObject(ctx, ajsWidget->index);
-    duk_get_prop_string(ctx, -1, "_buttons");
+    duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("buttons"));
     if (duk_is_array(ctx, -1)) {
         duk_get_prop_index(ctx, -1, action);
         if (duk_is_object(ctx, -1)) {
@@ -750,7 +750,7 @@ static int NativeButtonsSetter(duk_context* ctx)
         duk_pop_2(ctx);
     }
     duk_dup(ctx, 0);
-    duk_put_prop_string(ctx, -2, "_buttons");
+    duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("buttons"));
     duk_pop(ctx);
     return 0;
 
@@ -768,7 +768,7 @@ AJ_Status AJS_CP_ExecuteAction(AJS_Widget* ajsWidget, uint8_t action)
 
     GetWidgetObject(ctx, ajsWidget->index);
     AJ_InfoPrintf(("Execute action%d on %s\n", action, ajsWidget->path));
-    duk_get_prop_string(ctx, -1, "_buttons");
+    duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("buttons"));
     if (duk_is_array(ctx, -1)) {
         duk_get_prop_index(ctx, -1, action);
         if (duk_is_object(ctx, -1)) {
@@ -914,7 +914,7 @@ static int NativeLoadControlPanel(duk_context* ctx)
         duk_get_prop_string(ctx, -1, "path");
         objList[i].path = duk_require_string(ctx, -1);
         duk_pop(ctx);
-        duk_get_prop_string(ctx, -1, "_wbuf");
+        duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("wbuf"));
         widget = duk_require_buffer(ctx, -1, NULL);
         AJ_ASSERT(widget->index == i);
         duk_pop_2(ctx);
@@ -999,7 +999,7 @@ static int NativeOptLabelSetter(duk_context* ctx)
     AJ_InfoPrintf(("Native label setter called\n"));
     widget->base.optParams.getLabel = GetLabel;
     duk_dup(ctx, 0);
-    duk_put_prop_string(ctx, -2, "_label");
+    duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("label"));
     duk_pop(ctx);
     AJS_CPS_SignalMetadataChanged(AJS_GetBusAttachment(), widget);
     return 0;
@@ -1009,7 +1009,7 @@ static int NativeOptLabelGetter(duk_context* ctx)
 {
     GetWidgetFromThis(ctx);
     AJ_InfoPrintf(("Native label getter called\n"));
-    duk_get_prop_string(ctx, -1, "_label");
+    duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("label"));
     duk_remove(ctx, -2);
     return 1;
 }

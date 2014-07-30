@@ -422,41 +422,32 @@ static void AnnouncementCallbacks(duk_context* ctx, const char* peer, SessionInf
 }
 
 /*
- * Called with and array of interfaces at the top of the stack
+ * Called with and array of interfaces at the top of the stack. Replaces the interfaces array with
+ * the service object on returning.
  */
-static void AddServiceObject(duk_context* ctx, duk_idx_t anIdx, SessionInfo* sessionInfo, const char* path, const char* dest)
+static void AddServiceObject(duk_context* ctx, SessionInfo* sessionInfo, const char* path, const char* dest)
 {
-    duk_idx_t ifIdx = duk_get_top_index(ctx);
-    duk_idx_t objIdx;
     /*
      * Create a service object from the prototype and customize it
      */
-    duk_push_global_stash(ctx);
-    duk_get_prop_string(ctx, -1, "peerProto");
-    objIdx = AJS_CreateObjectFromPrototype(ctx, -1);
+    AJS_GetGlobalStashObject(ctx, "peerProto");
+    AJS_CreateObjectFromPrototype(ctx, -1);
+    duk_remove(ctx, -2);
     /*
      * Set properties on the service object
      */
     duk_push_string(ctx, dest);
-    duk_put_prop_string(ctx, objIdx, "dest");
+    duk_put_prop_string(ctx, -2, "dest");
     duk_push_string(ctx, path);
-    duk_put_prop_string(ctx, objIdx, "path");
-    duk_dup(ctx, ifIdx);
-    duk_put_prop_string(ctx, objIdx, "interfaces");
-    /*
-     * Append service object to the announcements array for processing later.
-     */
-    if (anIdx >= 0) {
-        duk_put_prop_index(ctx, anIdx, duk_get_length(ctx, anIdx));
-    }
+    duk_put_prop_string(ctx, -2, "path");
+    duk_swap_top(ctx, -2);
+    duk_put_prop_string(ctx, -2, "interfaces");
     /*
      * Increment the peer session refCount. It will be decremented when the service object
      * finalizer is called. If the refCount goes to zero and a session was established when
      * session will be closed.
      */
     ++sessionInfo->refCount;
-    /* cleanup the stack including the interface array */
-    duk_pop_3(ctx);
 }
 
 AJ_Status AJS_FoundAdvertisedName(duk_context* ctx, AJ_Message* msg)
@@ -525,7 +516,11 @@ AJ_Status AJS_FoundAdvertisedName(duk_context* ctx, AJ_Message* msg)
         duk_put_prop(ctx, -3);
         duk_pop(ctx);
         /* Interfaces array is at the top of the stack */
-        AddServiceObject(ctx, anIdx, sessionInfo, AJS_GetStringProp(ctx, fnmeIdx, "path"), name);
+        AddServiceObject(ctx, sessionInfo, AJS_GetStringProp(ctx, fnmeIdx, "path"), name);
+        /*
+         * Append service object to the announcements array for processing later
+         */
+        duk_put_prop_index(ctx, anIdx, duk_get_length(ctx, anIdx));
 
         AJ_ASSERT(duk_get_top_index(ctx) == anIdx);
         duk_put_prop_string(ctx, svcIdx, "anno");
@@ -658,7 +653,11 @@ AJ_Status AJS_AboutAnnouncement(duk_context* ctx, AJ_Message* msg)
             }
         }
         if (hasCB) {
-            AddServiceObject(ctx, anIdx, sessionInfo, path, sender);
+            AddServiceObject(ctx, sessionInfo, path, sender);
+            /*
+             * Append service object to the announcements array for processing later
+             */
+            duk_put_prop_index(ctx, anIdx, duk_get_length(ctx, anIdx));
         } else {
             /* discard the interface array */
             duk_pop(ctx);
@@ -821,7 +820,7 @@ AJ_Status AJS_HandleAcceptSession(duk_context* ctx, AJ_Message* msg, uint16_t po
     if (duk_is_callable(ctx, -1)) {
         /* Empty interface array */
         duk_push_array(ctx);
-        AddServiceObject(ctx, -1, sessionInfo, "/", joiner);
+        AddServiceObject(ctx, sessionInfo, "/", joiner);
         if (duk_pcall(ctx, 1) != DUK_EXEC_SUCCESS) {
             AJS_ConsoleSignalError(ctx);
             accept = FALSE;

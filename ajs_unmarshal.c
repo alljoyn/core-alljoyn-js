@@ -22,7 +22,7 @@
 #include <aj_msg_priv.h>
 
 
-duk_idx_t AJS_UnmarshalMessage(duk_context* ctx, AJ_Message* msg)
+duk_idx_t AJS_UnmarshalMessage(duk_context* ctx, AJ_Message* msg, uint8_t accessor)
 {
     duk_idx_t objIndex = duk_push_object(ctx);
 
@@ -34,6 +34,8 @@ duk_idx_t AJS_UnmarshalMessage(duk_context* ctx, AJ_Message* msg)
         duk_put_prop_string(ctx, objIndex, "member");
         duk_push_string(ctx, msg->iface);
         duk_put_prop_string(ctx, objIndex, "iface");
+        duk_push_string(ctx, msg->objPath);
+        duk_put_prop_string(ctx, objIndex, "path");
         if (msg->hdr->msgType == AJ_MSG_METHOD_CALL) {
             /*
              * Private information needed for composing the reply
@@ -42,16 +44,11 @@ duk_idx_t AJS_UnmarshalMessage(duk_context* ctx, AJ_Message* msg)
             msgReply->msgId = msg->msgId;
             msgReply->flags = msg->hdr->flags;
             msgReply->serialNum = msg->hdr->serialNum;
+            msgReply->sessionId = msg->sessionId;
+            msgReply->accessor = accessor;
             duk_put_prop_string(ctx, objIndex, AJS_HIDDEN_PROP("reply"));
-
-            duk_push_string(ctx, msg->objPath);
-            duk_put_prop_string(ctx, objIndex, "path");
-            if (msg->sessionId) {
-                duk_push_int(ctx, msg->sessionId);
-                duk_put_prop_string(ctx, objIndex, "session");
-            }
             /*
-             * The reply functions
+             * Register the reply functions
              */
             duk_push_c_function(ctx, AJS_MethodCallReply, DUK_VARARGS);
             duk_put_prop_string(ctx, objIndex, "reply");
@@ -240,7 +237,7 @@ AJ_Status AJS_UnmarshalPropArgs(duk_context* ctx, AJ_Message* msg, uint8_t acces
     const char* prop;
     const char* signature;
     uint32_t propId;
-    uint8_t secure;
+    uint8_t secure = FALSE;
 
     AJ_InfoPrintf(("PushPropArgs\n"));
 
@@ -248,18 +245,21 @@ AJ_Status AJS_UnmarshalPropArgs(duk_context* ctx, AJ_Message* msg, uint8_t acces
         status = AJ_UnmarshalArgs(msg, "s", &iface);
         if (status == AJ_OK) {
             duk_push_string(ctx, iface);
+            /*
+             * Save interface so we know how to marshal the reply values
+             */
+            duk_dup(ctx, -1);
+            duk_put_prop_string(ctx, msgIdx, AJS_HIDDEN_PROP("propIface"));
         }
+        /*
+         * This call always returns an error status because the interface name we are passing in is
+         * invalid but it will indicate if security is required so we can perform the check below
+         */
+        AJ_IdentifyProperty(msg, iface, "", &propId, &signature, &secure);
     } else {
         status = AJ_UnmarshalArgs(msg, "ss", &iface, &prop);
         if (status == AJ_OK) {
             status = AJ_IdentifyProperty(msg, iface, prop, &propId, &signature, &secure);
-            /*
-             * If the interface is secure check the message is encrypted
-             */
-            if ((status == AJ_OK) && secure && !(msg->hdr->flags & AJ_FLAG_ENCRYPTED)) {
-                status = AJ_ERR_SECURITY;
-                AJ_WarnPrintf(("Security violation accessing property\n"));
-            }
             if (status == AJ_OK) {
                 duk_push_string(ctx, iface);
                 duk_push_string(ctx, prop);
@@ -278,6 +278,13 @@ AJ_Status AJS_UnmarshalPropArgs(duk_context* ctx, AJ_Message* msg, uint8_t acces
                 }
             }
         }
+    }
+    /*
+     * If the interface is secure check the message is encrypted
+     */
+    if ((status == AJ_OK) && secure && !(msg->hdr->flags & AJ_FLAG_ENCRYPTED)) {
+        status = AJ_ERR_SECURITY;
+        AJ_WarnPrintf(("Security violation accessing property\n"));
     }
     return status;
 }

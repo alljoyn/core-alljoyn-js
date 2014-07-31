@@ -24,17 +24,12 @@
 #include <aj_link_timeout.h>
 #include <alljoyn/controlpanel/ControlPanelService.h>
 
-/*
- * Flags that a method call is not a property accessor (Get/Set/GetAll)
- */
-#define NOT_ACCESSOR 0xFF
-
 static uint8_t IsPropAccessor(AJ_Message* msg)
 {
     if (strcmp(msg->iface, AJ_PropertiesIface[0] + 1) == 0) {
         return msg->msgId & 0xFF;
     } else {
-        return NOT_ACCESSOR;
+        return AJS_NOT_ACCESSOR;
     }
 }
 
@@ -106,7 +101,7 @@ static AJ_Status SessionDispatcher(duk_context* ctx, AJ_Message* msg)
 static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t AJ_Idx, AJ_Message* msg)
 {
     duk_idx_t msgIdx;
-    uint8_t accessor = NOT_ACCESSOR;
+    uint8_t accessor = AJS_NOT_ACCESSOR;
     const char* func;
     AJ_Status status;
 
@@ -151,7 +146,7 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t AJ_Idx, AJ_Message* m
     } else if (msg->hdr->msgType == AJ_MSG_METHOD_CALL) {
         accessor = IsPropAccessor(msg);
         switch (accessor) {
-        case NOT_ACCESSOR:
+        case AJS_NOT_ACCESSOR:
             func = "onMethodCall";
             break;
 
@@ -197,12 +192,12 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t AJ_Idx, AJ_Message* m
         duk_pop(ctx);
         return status;
     }
-    msgIdx = AJS_UnmarshalMessage(ctx, msg);
+    msgIdx = AJS_UnmarshalMessage(ctx, msg, accessor);
     AJ_ASSERT(msgIdx == (AJ_Idx + 2));
     /*
      * Special case for GET prop so we can get the signature for marshalling the result
      */
-    if (accessor == NOT_ACCESSOR) {
+    if (accessor == AJS_NOT_ACCESSOR) {
         status = AJS_UnmarshalMsgArgs(ctx, msg);
     } else {
         status = AJS_UnmarshalPropArgs(ctx, msg, accessor, msgIdx);

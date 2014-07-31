@@ -38,18 +38,32 @@
 extern uint8_t dbgAJS;
 #endif
 
+/*
+ * These correspond the values in the AJ object - see ajs.c
+ */
+#define AJS_MEMBER_TYPE_METHOD    0
+#define AJS_MEMBER_TYPE_SIGNAL    1
+#define AJS_MEMBER_TYPE_PROPERTY  2 
+
 /**
  * The name of the AllJoyn object
  */
 extern const char* AJS_AllJoynObject;
 
+/*
+ * Flags that a message call is not a property accessor (Get/Set/GetAll)
+ */
+#define AJS_NOT_ACCESSOR 0xFF
+
 /**
  * Private information stuffed into an unmarshalled message.
  */
 typedef struct {
+    uint8_t flags;
+    uint8_t accessor;  /* AJS_NOT_ACCESSOR or AJ_PROP_GET, AJ_PROP_SET, AJ_PROP_GET_ALL */
     uint32_t msgId;
     uint32_t serialNum;
-    uint8_t flags;
+    uint32_t sessionId;
 } AJS_ReplyInternal;
 
 
@@ -326,12 +340,13 @@ int AJS_MarshalSignal(duk_context* ctx);
  * Unmarshals a message from C to JavaScript pushing the resultant JavaScript object onto the
  * duktape stack. Returns the index of the message object.
  *
- * @param ctx  An opaque pointer to a duktape context structure
- * @param msg  The message to unmarshal
+ * @param ctx      An opaque pointer to a duktape context structure
+ * @param msg      The message to unmarshal
+ * @param accessor Indicates if the message is an accessor (PropGet/PropSet/PropGetAll method call)
  *
  * @return   Returns the absolute index on the duktape stack for the pushed object.
  */
-duk_idx_t AJS_UnmarshalMessage(duk_context* ctx, AJ_Message* msg);
+duk_idx_t AJS_UnmarshalMessage(duk_context* ctx, AJ_Message* msg, uint8_t accessor);
 
 /**
  * Unmarshals message arguments from C to JavaScript pushing the resultant JavaScript objects onto
@@ -354,6 +369,21 @@ AJ_Status AJS_UnmarshalMsgArgs(duk_context* ctx, AJ_Message* msg);
  * @return   Returns AJ_OK if the unmarshaling was succesful
  */
 AJ_Status AJS_UnmarshalPropArgs(duk_context* ctx, AJ_Message* msg, uint8_t accessor, duk_idx_t msgIdx);
+
+/*
+ * Access permissions on properties
+ */
+#define AJS_PROP_ACCESS_R      '>'
+#define AJS_PROP_ACCESS_W      '<'
+#define AJS_PROP_ACCESS_RW     '='
+
+/**
+ * Gets the access permission defined on a property member.
+ *
+ * @param ctx  An opaque pointer to a duktape context structure
+ * @param idx  Index for the property object
+ */
+char AJS_GetPropMemberAccess(duk_context* ctx, duk_idx_t idx);
 
 /**
  * This function is used to by all native functions that make a method call to push a reply object

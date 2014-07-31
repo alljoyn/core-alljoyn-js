@@ -177,7 +177,7 @@ if env['VARIANT'] == 'debug':
     #env.Append(CPPDEFINES=['DUK_OPT_DEBUG'])
 
 # AllJoyn.js added defines
-env.Append(CPPDEFINES=['DUK_OPT_SHORT_LENGTHS'])
+env.Append(CPPDEFINES=['DUK_OPT_SHORT_SIZES'])
 
 #######################################################
 # Services defines

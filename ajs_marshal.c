@@ -225,6 +225,94 @@ static AJ_Status MarshalProp(duk_context* ctx, AJ_Message* msg, const char* prop
     return status;
 }
 
+static AJ_Status MarshalPropEntry(duk_context* ctx, AJ_Message* msg, const char* propName, const char* propSig, duk_idx_t idx)
+{
+    AJ_Arg entry;
+    AJ_Status status = AJ_MarshalContainer(msg, &entry, AJ_ARG_DICT_ENTRY);
+
+    if (status == AJ_OK) {
+        if (status == AJ_OK) {
+            AJ_MarshalArgs(msg, "s", propName);
+            status = MarshalProp(ctx, msg, propSig, idx);
+        }
+        if (status == AJ_OK) {
+            status = AJ_MarshalCloseContainer(msg, &entry);
+        }
+    }
+    return status;
+}
+
+static AJ_Status MarshalProperties(duk_context* ctx, AJ_Message* msg, const char* iface, duk_idx_t idx)
+{
+    AJ_Arg propList;
+    AJ_Status status = AJ_MarshalContainer(msg, &propList, AJ_ARG_ARRAY);
+
+    if (status != AJ_OK) {
+        return status;
+    }
+    /*
+     * Ok if nothing was returned
+     */
+    if (duk_is_undefined(ctx, idx)) {
+        goto CloseAndExit;
+    }
+    /*
+     * Not ok if the value is not an object
+     */
+    if (!duk_is_object(ctx, idx)) {
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "Requires object with values for each property to be returned");
+    }
+    /*
+     * Ok if there are no interfaces
+     */
+    AJS_GetAllJoynProperty(ctx, "interfaceDefinition");
+    if (!duk_is_object(ctx, -1)) {
+        duk_pop(ctx);
+        goto CloseAndExit;
+    }
+    /*
+     * Ok if the interface doesn't exsit
+     */
+    duk_get_prop_string(ctx, -1, iface);
+    if (!duk_is_object(ctx, -1)) {
+        duk_pop_2(ctx);
+        goto CloseAndExit;
+    }
+    /*
+     * Iterate over the properties in the interface
+     */
+    duk_enum(ctx, -1, DUK_ENUM_OWN_PROPERTIES_ONLY);
+    while (duk_next(ctx, -1, 1) && (status == AJ_OK)) {
+        if (duk_is_object(ctx, -1)) {
+            if (AJS_GetIntProp(ctx, -1, "type") == AJS_MEMBER_TYPE_PROPERTY) {
+                /*
+                 * Skip write-only properties
+                 */
+                if (AJS_GetPropMemberAccess(ctx, -1) != AJS_PROP_ACCESS_W) {
+                    const char* prop = duk_get_string(ctx, -2);
+                    /*
+                     * Is there is a value for this property
+                     */
+                    duk_get_prop_string(ctx, idx, prop);
+                    if (!duk_is_undefined(ctx, -1)) {
+                        const char* sig = AJS_GetStringProp(ctx, -2, "signature");
+                        status = MarshalPropEntry(ctx, msg, prop, sig, -1);
+                    }
+                    duk_pop(ctx);
+
+                }
+            }
+        }
+        duk_pop_2(ctx);
+    }
+    duk_pop(ctx);
+    
+CloseAndExit:
+
+    AJ_MarshalCloseContainer(msg, &propList);
+    return status;
+}
+
 static AJ_Status MarshalPropSet(duk_context* ctx, AJ_Message* msg)
 {
     AJ_Status status = AJ_ERR_SIGNATURE;
@@ -453,18 +541,11 @@ static int HandleReply(duk_context* ctx, const char* error)
     header.flags = msgReply->flags;
     header.msgType = AJ_MSG_METHOD_CALL;
 
-    duk_get_prop_string(ctx, -1, "session");
-    if (duk_is_number(ctx, -1)) {
-        call.sessionId = duk_require_int(ctx, -1);
-    } else {
-        call.sessionId = 0;
-    }
-    duk_pop(ctx);
-
     duk_get_prop_string(ctx, -1, "sender");
     call.sender = duk_require_string(ctx, -1);
     duk_pop(ctx);
 
+    call.sessionId = msgReply->sessionId;
     call.msgId = msgReply->msgId;
     call.hdr = &header;
     call.bus = AJS_GetBusAttachment();
@@ -478,16 +559,19 @@ static int HandleReply(duk_context* ctx, const char* error)
              * Property GET messages are a special case because we need the property signature to
              * figure out how to marshal the property value.
              */
-            duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("propSig"));
-            if (duk_is_string(ctx, -1)) {
-                status = MarshalProp(ctx, &msg, duk_get_string(ctx, -1), 0);
+            if (msgReply->accessor == AJ_PROP_GET) {
+                duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("propSig"));
+                status = MarshalProp(ctx, &msg, duk_require_string(ctx, -1), 0);
+                duk_pop(ctx);
+            } else if (msgReply->accessor == AJ_PROP_GET_ALL) {
+                duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("propIface"));
+                status = MarshalProperties(ctx, &msg, duk_require_string(ctx, -1), 0);
             } else {
                 duk_idx_t idx;
                 for (idx = 0; (idx < numArgs) && (status == AJ_OK); ++idx) {
                     status = MarshalJSArg(ctx, &msg, NULL, idx);
                 }
             }
-            duk_pop(ctx);
         }
     }
     /*

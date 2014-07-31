@@ -65,6 +65,34 @@ static void AddArgs(duk_context* ctx, duk_idx_t strIdx, char inout)
     }
 }
 
+char AJS_GetPropMemberAccess(duk_context* ctx, duk_idx_t idx)
+{
+    static const uint8_t R = 1;
+    static const uint8_t W = 2;
+    uint8_t acc = R | W;
+    const char* access = AJS_GetStringProp(ctx, idx, "access");
+
+    if (access) {
+        acc = 0;
+        for (; *access; ++access) {
+            if (*access == 'R' || *access == 'r') {
+                acc |= R;
+                continue;
+            }
+            if (*access == 'W' || *access == 'w') {
+                acc |= W;
+                continue;
+            }
+            duk_error(ctx, DUK_ERR_TYPE_ERROR, "Access must be 'R', 'w', or 'RW'");
+        }
+    }
+    if (acc == (R | W)) {
+        return AJS_PROP_ACCESS_RW;
+    } else {
+        return (acc == R) ? AJS_PROP_ACCESS_R : AJS_PROP_ACCESS_W;
+    }
+}
+
 static const char* ConstructMemberString(duk_context* ctx)
 {
     const char* memberString;
@@ -73,7 +101,7 @@ static const char* ConstructMemberString(duk_context* ctx)
 
     AJ_InfoPrintf(("BuildMemberList %s\n", member));
 
-    if ((type < 0) || (type > 2)) {
+    if ((type < AJS_MEMBER_TYPE_METHOD) || (type > AJS_MEMBER_TYPE_PROPERTY)) {
         duk_error(ctx, DUK_ERR_TYPE_ERROR, "Member type must be AJ.SIGNAL, AJ.METHOD, or AJ.PROPERTY");
     }
     /*
@@ -83,32 +111,12 @@ static const char* ConstructMemberString(duk_context* ctx)
     /*
      * Start building the member string
      */
-    if (type == 2) {
-        static const uint8_t R = 1;
-        static const uint8_t W = 2;
-        uint8_t perm = R | W;
-        /* Property */
+    if (type == AJS_MEMBER_TYPE_PROPERTY) {
         const char* sig = AJS_GetStringProp(ctx, -2, "signature");
-        const char* access = AJS_GetStringProp(ctx, -2, "access");
-
         if (!sig) {
             duk_error(ctx, DUK_ERR_REFERENCE_ERROR, "Signature is required for type AJ.PROPERTY");
         }
-        if (access) {
-            perm = 0;
-            for (; *access; ++access) {
-                if (*access == 'R' || *access == 'r') {
-                    perm |= R;
-                    continue;
-                }
-                if (*access == 'W' || *access == 'w') {
-                    perm |= W;
-                    continue;
-                }
-                duk_error(ctx, DUK_ERR_TYPE_ERROR, "Access must be 'R', 'w', or 'RW'");
-            }
-        }
-        duk_push_sprintf(ctx, "@%s%c%s", member, (perm == (R | W) ? '=' : (perm == R ? '>' : '<')), sig);
+        duk_push_sprintf(ctx, "@%s%c%s", member, AJS_GetPropMemberAccess(ctx, -2), sig);
     } else {
         duk_idx_t strIdx;
         duk_push_sprintf(ctx, "%c%s", type ? '!' : '?', member);
@@ -116,10 +124,10 @@ static const char* ConstructMemberString(duk_context* ctx)
         /* Method or Signal */
         duk_get_prop_string(ctx, -3, "args");
         if (!duk_is_undefined(ctx, -1)) {
-            AddArgs(ctx, strIdx, (type == 0) ? '<' : '>');
+            AddArgs(ctx, strIdx, (type == AJS_MEMBER_TYPE_METHOD) ? '<' : '>');
         }
         duk_pop(ctx);
-        if (type == 0) {
+        if (type == AJS_MEMBER_TYPE_METHOD) {
             /* Method only */
             duk_get_prop_string(ctx, -3, "returns");
             if (!duk_is_undefined(ctx, -1)) {

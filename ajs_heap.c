@@ -28,9 +28,8 @@
 
 #include "aj_target.h"
 #include "aj_debug.h"
+#include "ajs.h"
 #include "ajs_heap.h"
-
-extern void duk_dump_string_table(void* ctx);
 
 /**
  * Turn on per-module debug printing by setting this variable to non-zero value
@@ -40,6 +39,8 @@ extern void duk_dump_string_table(void* ctx);
 uint8_t dbgHEAP = 0;
 uint8_t dbgHEAPDUMP = 0;
 #endif
+
+#ifndef AJS_USE_NATIVE_MALLOC
 
 typedef struct {
     void* endOfPool; /* Address of end of this pool */
@@ -72,11 +73,6 @@ size_t AJS_HeapRequired(const AJS_HeapConfig* poolConfig, uint8_t numPools)
         heapSz += sz * poolConfig[i].entries;
     }
     return heapSz;
-}
-
-void AJS_HeapTerminate(void* heap)
-{
-    heapPools = NULL;
 }
 
 AJ_Status AJS_HeapInit(void* heap, size_t heapSz, const AJS_HeapConfig* poolConfig, uint8_t num)
@@ -126,11 +122,6 @@ AJ_Status AJS_HeapInit(void* heap, size_t heapSz, const AJS_HeapConfig* poolConf
     return AJ_OK;
 }
 
-uint8_t AJS_HeapIsInitialized()
-{
-    return heapPools != NULL;
-}
-
 void* AJS_Alloc(void* userData, size_t sz)
 {
     Pool* p = heapPools;
@@ -167,7 +158,6 @@ void* AJS_Alloc(void* userData, size_t sz)
     }
     AJ_ErrPrintf(("AJS_Alloc of %d bytes failed\n", (int)sz));
     AJS_HeapDump();
-    //duk_dump_string_table(*((void**)userData));
     return NULL;
 }
 
@@ -263,3 +253,5 @@ void AJS_HeapDump(void)
     }
 }
 #endif
+
+#endif // AJS_USE_NATIVE_MALLOC

@@ -22,7 +22,6 @@
 #include "ajs_target.h"
 #include "ajs_ctrlpanel.h"
 #include "aj_util.h"
-#include "ajs_heap.h"
 
 /**
  * Turn on per-module debug printing by setting this variable to non-zero value
@@ -55,53 +54,6 @@ static const char aj_init[] =
     "};"
     "print('AJ initialized\\n');";
 
-#if defined(BIG_HEAP)
-
-static const AJS_HeapConfig heapConfig[] = {
-    { 16,     200 },
-    { 24,     800 },
-    { 32,     800 },
-    { 48,     800 },
-    { 64,     800 },
-    { 96,     800 },
-    { 128,     64 },
-    { 256,     64 },
-    { 512,     16 },
-    { 1024,    16 },
-    { 2048,     8 },
-    { 3000,     8 },
-#ifdef DUK_FIXED_SIZE_ST
-    { DUK_FIXED_SIZE_ST* sizeof(void*), 1 },
-#else
-    { 4096,     2 },
-#endif
-    { 16384,    2 }
-};
-
-static uint32_t heap[500000 / 4];
-
-#else
-
-static const AJS_HeapConfig heapConfig[] = {
-    { 12,      20, AJS_POOL_BORROW },
-    { 20,      60, AJS_POOL_BORROW },
-    { 24,     300, AJS_POOL_BORROW },
-    { 32,     500, AJS_POOL_BORROW },
-    { 40,     400 },
-    { 128,    80 },
-    { 256,    30 },
-    { 512,    16 },
-    { 1024,   6 },
-    { 2048,   4 },
-#ifdef DUK_FIXED_SIZE_ST
-    { DUK_FIXED_SIZE_ST* sizeof(void*), 1 }
-#else
-    { 4096,     2 }
-#endif
-};
-
-static uint32_t heap[92928 / 4];
-#endif
 
 static void ErrorHandler(duk_context* ctx, duk_errcode_t code, const char* msg)
 {
@@ -255,7 +207,6 @@ AJ_Status AJS_Main()
     AJ_Status status = AJ_OK;
     duk_context* ctx;
     duk_int_t ret;
-    size_t heapSz;
     duk_idx_t ajIdx;
 
     AJ_AboutSetIcon(icon, sizeof(icon), "image/jpeg", NULL);
@@ -266,22 +217,16 @@ AJ_Status AJS_Main()
     memset(&ajBus, 0, sizeof(ajBus));
 
     while (status == AJ_OK) {
-        /*
-         * Allocate the heap pools
-         */
-        heapSz = AJS_HeapRequired(heapConfig, ArraySize(heapConfig));
-        if (heapSz > sizeof(heap)) {
-            AJ_ErrPrintf(("Heap space is too small %d required %d\n", (int)sizeof(heap), (int)heapSz));
-            status = AJ_ERR_RESOURCES;
+
+        status = AJS_HeapCreate();
+        if (status != AJ_OK) {
             break;
         }
-        AJ_Printf("Allocated heap %d bytes\n", (int)heapSz);
-        AJS_HeapInit(heap, heapSz, heapConfig, ArraySize(heapConfig));
-
         ctx = duk_create_heap(AJS_Alloc, AJS_Realloc, AJS_Free, &ctx, ErrorHandler);
         if (!ctx) {
             AJ_ErrPrintf(("Failed to create duktape heap\n"));
             status = AJ_ERR_RESOURCES;
+            AJS_HeapDestroy();
             break;
         }
         AJS_HeapDump();
@@ -293,6 +238,8 @@ AJ_Status AJS_Main()
         if (ret != DUK_EXEC_SUCCESS) {
             AJ_ErrPrintf(("AJ init script failed %s\n", duk_safe_to_string(ctx, -1)));
             status = AJ_ERR_RESOURCES;
+            duk_destroy_heap(ctx);
+            AJS_HeapDestroy();
             break;
         }
         duk_pcall(ctx, 0);
@@ -385,7 +332,7 @@ AJ_Status AJS_Main()
         AJ_RegisterDescriptionLanguages(NULL);
 
         duk_destroy_heap(ctx);
-
+        AJS_HeapDestroy();
     }
     return status;
 }

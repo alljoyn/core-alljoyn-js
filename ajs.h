@@ -335,7 +335,7 @@ duk_idx_t AJS_UnmarshalMessage(duk_context* ctx, AJ_Message* msg);
 
 /**
  * Unmarshals message arguments from C to JavaScript pushing the resultant JavaScript objects onto
- * the duktape stack. 
+ * the duktape stack.
  *
  * @param ctx  An opaque pointer to a duktape context structure
  * @param msg  The message to unmarshal
@@ -346,7 +346,7 @@ AJ_Status AJS_UnmarshalMsgArgs(duk_context* ctx, AJ_Message* msg);
 
 /**
  * Unmarshals message arguments for a property accessor call from C to JavaScript pushing the
- * resultant JavaScript objects onto the duktape stack. 
+ * resultant JavaScript objects onto the duktape stack.
  *
  * @param ctx  An opaque pointer to a duktape context structure
  * @param msg  The property accessor message to unmarshal
@@ -377,15 +377,54 @@ void AJS_AlertHandler(duk_context* ctx, uint8_t alert);
  */
 AJ_Status AJS_PropertyStoreInit(duk_context* ctx);
 
+/**
+ * Allocate memory
+ *
+ * @param sz  The size of the memory block to allocate
+ *
+ * @return A pointer to the allocated memory block or NULL if the request could not be satisfied.
+ */
+void* AJS_Alloc(void* userData, size_t sz);
+
+/**
+ * Free a memory block returning it to the pool from which it was allocated.
+ *
+ * @param mem   Pointer to the memory block to free, can be NULL
+ */
+void AJS_Free(void* userData, void* mem);
+
+/**
+ * Reallocates a memory block with a larger or smaller size. If the current block is large enough to
+ * satisfy the request that block is simply returned, otherwise a new larger block is allocated, the
+ * contents of the old block are copied over and the old block is freed.
+ *
+ * @param mem   Pointer to the memory block to reallocate, can be NULL which case this is equivalent
+ *              to calling AJS_HeapMalloc.
+ * @param newSz The size of the new memory block
+ *
+ * @return A pointer to the allocated memory block or NULL if the request could not be satisfied.
+ */
+void* AJS_Realloc(void* userData, void* mem, size_t newSz);
+
+/**
+ * Create the AllJoyn.js heap
+ */
+AJ_Status AJS_HeapCreate();
+
+/**
+ * Destroy the AllJoyn.js heap
+ */
+void AJS_HeapDestroy();
+
 /*
  * Dump the heap pool allocations
  *
  * @param ctx     An opaque pointer to a duktape context structure
  */
 #ifndef NDEBUG
-void AJS_DumpHeap(duk_context* ctx);
+void AJS_HeapDump();
 #else
-#define AJS_DumpHeap(ctx)
+#define AJS_HeapDump()
 #endif
 
 #endif

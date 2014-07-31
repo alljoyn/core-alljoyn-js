@@ -116,7 +116,7 @@ AJ_Status AJS_CloseScript(void* scriptf)
 
 AJ_Status AJS_DeleteScript()
 {
-    unlink(scriptName);
+    _unlink(scriptName);
     return AJ_OK;
 }
 

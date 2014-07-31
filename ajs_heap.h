@@ -1,3 +1,5 @@
+#ifndef _AJS_HEAP_H
+#define _AJS_HEAP_H
 /**
  * @file  A pool based memory allocator designed for embedded systemms.
  */
@@ -18,7 +20,6 @@
  ******************************************************************************/
 
 #include "aj_target.h"
-
 
 /*
  * Indicates that allocations can be borrowed from the the next larger pool if the best-fit pool is
@@ -78,47 +79,4 @@ size_t AJS_HeapRequired(const AJS_HeapConfig* heapConfig, uint8_t numPools);
  */
 AJ_Status AJS_HeapInit(void* heap, size_t heapSz, const AJS_HeapConfig* heapConfig, uint8_t numPools);
 
-/**
- * Terminate the heap
- */
-void AJS_HeapTerminate(void* heap);
-
-/**
- * Indicates if the heap has been initialized
- */
-uint8_t AJS_HeapIsInitialized();
-
-/**
- * Allocate memory
- *
- * @param sz  The size of the memory block to allocate
- *
- * @return A pointer to the allocated memory block or NULL if the request could not be satisfied.
- */
-void* AJS_Alloc(void* userData, size_t sz);
-
-/**
- * Free a memory block returning it to the pool from which it was allocated.
- *
- * @param mem   Pointer to the memory block to free, can be NULL
- */
-void AJS_Free(void* userData, void* mem);
-
-/**
- * Reallocates a memory block with a larger or smaller size. If the current block is large enough to
- * satisfy the request that block is simply returned, otherwise a new larger block is allocated, the
- * contents of the old block are copied over and the old block is freed.
- *
- * @param mem   Pointer to the memory block to reallocate, can be NULL which case this is equivalent
- *              to calling AJS_HeapMalloc.
- * @param newSz The size of the new memory block
- *
- * @return A pointer to the allocated memory block or NULL if the request could not be satisfied.
- */
-void* AJS_Realloc(void* userData, void* mem, size_t newSz);
-
-#ifndef NDEBUG
-void AJS_HeapDump(void);
-#else
-#define AJS_HeapDump()
 #endif

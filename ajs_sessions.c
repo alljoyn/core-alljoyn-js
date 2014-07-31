@@ -33,23 +33,25 @@ static int NativeServiceObjectFinalizer(duk_context* ctx)
     const char* peer;
     SessionInfo* sessionInfo;
 
+    AJ_InfoPrintf(("ServiceObjectFinalizer\n"));
+
     duk_get_prop_string(ctx, 0, "dest");
     peer = duk_get_string(ctx, -1);
-
-    AJ_InfoPrintf(("ServiceObjectFinalizer %s\n", peer));
-
-    AJS_GetGlobalStashObject(ctx, "sessions");
-    duk_get_prop_string(ctx, -1, peer);
-    duk_get_prop_string(ctx, -1, "info");
-    sessionInfo = duk_get_buffer(ctx, -1, NULL);
-    duk_pop_2(ctx);
-    AJ_ASSERT(sessionInfo->refCount != 0);
-    if ((--sessionInfo->refCount == 0) && sessionInfo->sessionId) {
-        duk_del_prop_string(ctx, -1, peer);
-        (void) AJ_BusLeaveSession(AJS_GetBusAttachment(), sessionInfo->sessionId);
-        sessionInfo->sessionId = 0;
+    if (peer) {
+        AJS_GetGlobalStashObject(ctx, "sessions");
+        duk_get_prop_string(ctx, -1, peer);
+        duk_get_prop_string(ctx, -1, "info");
+        sessionInfo = duk_get_buffer(ctx, -1, NULL);
+        duk_pop_2(ctx);
+        AJ_ASSERT(sessionInfo->refCount != 0);
+        if ((--sessionInfo->refCount == 0) && sessionInfo->sessionId) {
+            duk_del_prop_string(ctx, -1, peer);
+            (void) AJ_BusLeaveSession(AJS_GetBusAttachment(), sessionInfo->sessionId);
+            sessionInfo->sessionId = 0;
+        }
+        duk_pop(ctx);
     }
-    duk_pop_2(ctx);
+    duk_pop(ctx);
     return 0;
 }
 

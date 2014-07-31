@@ -53,6 +53,7 @@ ajs_sources = [
      'ajs_unmarshal.c',
      'ajs_util.c',
      env['os'] + '/ajs_main.c',
+     env['os'] + '/ajs_malloc.c',
      env['os'] + '/ajs_obs_stubs.c',
      env['os'] + '/io/io_simulation.c',
      env['os'] + '/io/io_info.c',

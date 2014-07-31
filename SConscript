@@ -14,6 +14,8 @@
 #     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 # *****************************************************************************
 
+import os
+
 Import('env')
 
 if env['DUKTAPE_SEPARATE'] == 'true':
@@ -54,11 +56,16 @@ ajs_sources = [
      'ajs_util.c',
      env['os'] + '/ajs_main.c',
      env['os'] + '/ajs_malloc.c',
-     env['os'] + '/ajs_obs_stubs.c',
-     env['os'] + '/io/io_simulation.c',
-     env['os'] + '/io/io_info.c',
-     env['os'] + '/io/io_stubs.c'
+     env['os'] + '/ajs_obs_stubs.c'
 ]
+
+if os.environ.get('YUN_BUILD', '0') == '1':
+    ajs_sources += env['os'] + '/io/io_yun.c',
+else:
+    ajs_sources += env['os'] + '/io/io_info.c'
+    ajs_sources += env['os'] + '/io/io_simulation.c'
+    ajs_sources += env['os'] + '/io/io_stubs.c'
+
 
 sources = []
 sources.append(ajs_sources)

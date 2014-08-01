@@ -96,7 +96,7 @@ static AJ_Status PushScalarArg(duk_context* ctx, AJ_Message* msg)
     if (status == AJ_OK) {
         switch (arg.typeId) {
         case AJ_ARG_BYTE:
-            duk_push_int(ctx, *arg.val.v_byte);
+            duk_push_uint(ctx, (uint32_t)(*arg.val.v_byte));
             break;
 
         case AJ_ARG_BOOLEAN:
@@ -104,13 +104,19 @@ static AJ_Status PushScalarArg(duk_context* ctx, AJ_Message* msg)
             break;
 
         case AJ_ARG_UINT32:
+            duk_push_uint(ctx, *arg.val.v_uint32);
+            break;
+
         case AJ_ARG_INT32:
-            duk_push_int(ctx, *arg.val.v_uint32);
+            duk_push_int(ctx, *arg.val.v_int32);
+            break;
+
+        case AJ_ARG_UINT16:
+            duk_push_uint(ctx, *arg.val.v_uint16);
             break;
 
         case AJ_ARG_INT16:
-        case AJ_ARG_UINT16:
-            duk_push_int(ctx, *arg.val.v_uint16);
+            duk_push_int(ctx, *arg.val.v_int16);
             break;
 
         case AJ_ARG_DOUBLE:

@@ -307,22 +307,37 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj)
             /* If a message was parsed but is unrecognized and should be ignored */
             break;
 
+            /* Introspection messages */
         case AJ_METHOD_PING:
         case AJ_METHOD_GET_MACHINE_ID:
         case AJ_METHOD_INTROSPECT:
+        case AJ_METHOD_GET_DESCRIPTION_LANG:
+        case AJ_METHOD_INTROSPECT_WITH_DESC:
+            /* About messages */
+        case AJ_METHOD_ABOUT_GET_OBJECT_DESCRIPTION:
+        case AJ_METHOD_ABOUT_ICON_GET_PROP:
+        case AJ_METHOD_ABOUT_ICON_GET_URL:
+        case AJ_METHOD_ABOUT_ICON_GET_CONTENT:
+            /* Authentication messages and replies */
         case AJ_METHOD_EXCHANGE_GUIDS:
-        case AJ_METHOD_GEN_SESSION_KEY:
-        case AJ_METHOD_EXCHANGE_GROUP_KEYS:
-        case AJ_METHOD_AUTH_CHALLENGE:
         case AJ_REPLY_ID(AJ_METHOD_EXCHANGE_GUIDS):
+        case AJ_METHOD_EXCHANGE_SUITES:
+        case AJ_REPLY_ID(AJ_METHOD_EXCHANGE_SUITES):
+        case AJ_METHOD_AUTH_CHALLENGE:
         case AJ_REPLY_ID(AJ_METHOD_AUTH_CHALLENGE):
+        case AJ_METHOD_GEN_SESSION_KEY:
         case AJ_REPLY_ID(AJ_METHOD_GEN_SESSION_KEY):
+        case AJ_METHOD_EXCHANGE_GROUP_KEYS:
         case AJ_REPLY_ID(AJ_METHOD_EXCHANGE_GROUP_KEYS):
+        case AJ_METHOD_KEY_EXCHANGE:
+        case AJ_REPLY_ID(AJ_METHOD_KEY_EXCHANGE):
+        case AJ_METHOD_KEY_AUTHENTICATION:
+        case AJ_REPLY_ID(AJ_METHOD_KEY_AUTHENTICATION):
+            /* Replies the app ignores */
         case AJ_REPLY_ID(AJ_METHOD_ADD_MATCH):
         case AJ_REPLY_ID(AJ_METHOD_REMOVE_MATCH):
-            /*
-             * Internal management messages that should not be passed to the app
-             */
+            /* Signals the app ignores */
+        case AJ_SIGNAL_NAME_OWNER_CHANGED:
             status = AJ_BusHandleBusMessage(&msg);
             break;
 
@@ -332,16 +347,6 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj)
 
         case AJ_REPLY_ID(AJ_METHOD_BIND_SESSION_PORT):
             status = SessionBindReply(ctx, &msg);
-            break;
-
-        case AJ_SIGNAL_NAME_OWNER_CHANGED:
-            /*
-             * The app may want to handle this after the management code has seen it.
-             */
-            status = AJ_BusHandleBusMessage(&msg);
-            if (status == AJ_OK) {
-                status = HandleMessage(ctx, AJ_Idx, &msg);
-            }
             break;
 
         default:

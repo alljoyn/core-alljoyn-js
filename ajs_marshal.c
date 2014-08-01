@@ -59,7 +59,7 @@ static AJ_Status MarshalScalarArg(AJ_Message* msg, uint8_t typeId, double n)
         break;
 
     case AJ_ARG_BOOLEAN:
-        status = AJ_MarshalArgs(msg, sig, (uint32_t)(n == 0.0));
+        status = AJ_MarshalArgs(msg, sig, ((uint32_t)n) != 0);
         break;
 
     case AJ_ARG_UINT32:
@@ -187,9 +187,8 @@ static AJ_Status MarshalJSArg(duk_context* ctx, AJ_Message* msg, const char* sig
         return AJ_ERR_SIGNATURE;
     }
     if (AJ_IsScalarType(typeId)) {
-        if ((typeId == AJ_ARG_BOOLEAN) && duk_is_boolean(ctx, idx)) {
-            status = AJ_MarshalArgs(msg, "b", (uint32_t)duk_get_boolean(ctx, idx));
-        } else if (duk_is_number(ctx, idx) || duk_to_number(ctx, idx)) {
+        duk_to_number(ctx, idx);
+        if (duk_is_number(ctx, idx)) {
             status = MarshalScalarArg(msg, typeId, duk_get_number(ctx, idx));
         }
     } else if (AJ_IsStringType(typeId)) {
@@ -248,13 +247,13 @@ static AJ_Status MarshalProperties(duk_context* ctx, AJ_Message* msg, const char
     AJ_Status status = AJ_MarshalContainer(msg, &propList, AJ_ARG_ARRAY);
 
     if (status != AJ_OK) {
-        return status;
+        goto ExitProps;
     }
     /*
      * Ok if nothing was returned
      */
     if (duk_is_undefined(ctx, idx)) {
-        goto CloseAndExit;
+        goto ExitProps;
     }
     /*
      * Not ok if the value is not an object
@@ -268,7 +267,7 @@ static AJ_Status MarshalProperties(duk_context* ctx, AJ_Message* msg, const char
     AJS_GetAllJoynProperty(ctx, "interfaceDefinition");
     if (!duk_is_object(ctx, -1)) {
         duk_pop(ctx);
-        goto CloseAndExit;
+        goto ExitProps;
     }
     /*
      * Ok if the interface doesn't exsit
@@ -276,7 +275,7 @@ static AJ_Status MarshalProperties(duk_context* ctx, AJ_Message* msg, const char
     duk_get_prop_string(ctx, -1, iface);
     if (!duk_is_object(ctx, -1)) {
         duk_pop_2(ctx);
-        goto CloseAndExit;
+        goto ExitProps;
     }
     /*
      * Iterate over the properties in the interface
@@ -306,10 +305,12 @@ static AJ_Status MarshalProperties(duk_context* ctx, AJ_Message* msg, const char
         duk_pop_2(ctx);
     }
     duk_pop(ctx);
-    
-CloseAndExit:
 
-    AJ_MarshalCloseContainer(msg, &propList);
+ExitProps:
+
+    if (status == AJ_OK) {
+        AJ_MarshalCloseContainer(msg, &propList);
+    }
     return status;
 }
 

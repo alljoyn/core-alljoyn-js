@@ -43,7 +43,7 @@ extern uint8_t dbgAJS;
  */
 #define AJS_MEMBER_TYPE_METHOD    0
 #define AJS_MEMBER_TYPE_SIGNAL    1
-#define AJS_MEMBER_TYPE_PROPERTY  2 
+#define AJS_MEMBER_TYPE_PROPERTY  2
 
 /**
  * The name of the AllJoyn object

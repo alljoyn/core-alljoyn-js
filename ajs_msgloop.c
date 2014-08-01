@@ -307,18 +307,18 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj)
             /* If a message was parsed but is unrecognized and should be ignored */
             break;
 
-            /* Introspection messages */
+        /* Introspection messages */
         case AJ_METHOD_PING:
         case AJ_METHOD_GET_MACHINE_ID:
         case AJ_METHOD_INTROSPECT:
         case AJ_METHOD_GET_DESCRIPTION_LANG:
         case AJ_METHOD_INTROSPECT_WITH_DESC:
-            /* About messages */
+        /* About messages */
         case AJ_METHOD_ABOUT_GET_OBJECT_DESCRIPTION:
         case AJ_METHOD_ABOUT_ICON_GET_PROP:
         case AJ_METHOD_ABOUT_ICON_GET_URL:
         case AJ_METHOD_ABOUT_ICON_GET_CONTENT:
-            /* Authentication messages and replies */
+        /* Authentication messages and replies */
         case AJ_METHOD_EXCHANGE_GUIDS:
         case AJ_REPLY_ID(AJ_METHOD_EXCHANGE_GUIDS):
         case AJ_METHOD_EXCHANGE_SUITES:
@@ -333,10 +333,10 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj)
         case AJ_REPLY_ID(AJ_METHOD_KEY_EXCHANGE):
         case AJ_METHOD_KEY_AUTHENTICATION:
         case AJ_REPLY_ID(AJ_METHOD_KEY_AUTHENTICATION):
-            /* Replies the app ignores */
+        /* Replies the app ignores */
         case AJ_REPLY_ID(AJ_METHOD_ADD_MATCH):
         case AJ_REPLY_ID(AJ_METHOD_REMOVE_MATCH):
-            /* Signals the app ignores */
+        /* Signals the app ignores */
         case AJ_SIGNAL_NAME_OWNER_CHANGED:
             status = AJ_BusHandleBusMessage(&msg);
             break;

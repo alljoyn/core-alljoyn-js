@@ -202,6 +202,16 @@ static AJ_Status PushArg(duk_context* ctx, AJ_Message* msg)
     }
     typeId = *sig;
 
+    /*
+     * De-variant the argument
+     */
+    while (typeId == AJ_ARG_VARIANT) {
+        status = AJ_UnmarshalVariant(msg, &sig);
+        if (status != AJ_OK) {
+            return status;
+        }
+        typeId = *sig;
+    }
     if (typeId == ')') {
         status = AJ_ERR_NO_MORE;
     } else if (AJ_IsScalarType(typeId)) {
@@ -210,11 +220,6 @@ static AJ_Status PushArg(duk_context* ctx, AJ_Message* msg)
         status = AJ_UnmarshalArg(msg, &arg);
         if (status == AJ_OK) {
             duk_push_string(ctx, arg.val.v_string);
-        }
-    } else if (typeId == AJ_ARG_VARIANT) {
-        status = AJ_UnmarshalVariant(msg, &sig);
-        if (status == AJ_OK) {
-            status = PushArg(ctx, msg);
         }
     } else if (typeId == AJ_ARG_STRUCT) {
         status = PushContainerArg(ctx, AJ_ARG_STRUCT, msg);

@@ -36,6 +36,7 @@ vars.Add(EnumVariable('VARIANT', 'Build variant', 'debug', allowed_values=('debu
 vars.Add(PathVariable('GTEST_DIR', 'The path to googletest sources', os.environ.get('GTEST_DIR'), PathVariable.PathIsDir))
 vars.Add(EnumVariable('WS', 'Whitespace Policy Checker', 'off', allowed_values=('check', 'detail', 'fix', 'off')))
 vars.Add(EnumVariable('FORCE32', 'Force building 32 bit on 64 bit architecture', 'false', allowed_values=('false', 'true')))
+vars.Add(EnumVariable('POOL_MALLOC', 'Use pool based memory allocation - default is native malloc', 'false', allowed_values=('false', 'true')))
 vars.Add(EnumVariable('DUKTAPE_SEPARATE', 'Use seperate rather than combined duktape source files', 'false', allowed_values=('false', 'true')))
 
 if default_msvc_version:
@@ -178,6 +179,9 @@ if env['VARIANT'] == 'debug':
 
 # AllJoyn.js added defines
 env.Append(CPPDEFINES=['DUK_OPT_SHORT_SIZES'])
+
+if env['POOL_MALLOC'] == 'false':
+    env.Append(CPPDEFINES=['AJS_USE_NATIVE_MALLOC'])
 
 #######################################################
 # Services defines

@@ -279,16 +279,31 @@ AJ_Status AJS_Main()
         /*
          * Evaluate the installed script
          */
-        if (AJS_IsScriptInstalled()) {
-            void* sf = AJS_OpenScript(AJS_SCRIPT_READ);
-            if (sf) {
-                const uint8_t* js;
-                size_t len;
-                AJS_ReadScript(sf, &js, &len);
-                /*
-                 * TODO - get a script name
-                 */
-                duk_push_string(ctx, "InstalledScript.js");
+        if (AJ_NVRAM_Exist(AJS_SCRIPT_NVRAM_ID)) {
+            AJ_NV_DATASET* ds;
+            /*
+             * Read the script name if there is one
+             */
+            ds = AJ_NVRAM_Open(AJS_SCRIPT_NAME_NVRAM_ID, "r", 0);
+            if (ds) {
+                const char* scriptName = AJ_NVRAM_Peek(ds);
+                if (scriptName) {
+                    duk_push_string(ctx, scriptName);
+                } else {
+                    duk_push_string(ctx, "InstalledScript.js");
+                }
+                AJ_NVRAM_Close(ds);
+            }
+            /*
+             * Now load the script
+             */
+            ds = AJ_NVRAM_Open(AJS_SCRIPT_NVRAM_ID, "r", 0);
+            if (ds) {
+                uint32_t len;
+                const char* js;
+
+                AJ_NVRAM_Read(&len, sizeof(len), ds);
+                js = AJ_NVRAM_Peek(ds);
                 ret = duk_pcompile_lstring_filename(ctx, 0, (const char*)js, len);
                 if (ret == DUK_EXEC_SUCCESS) {
                     ret = duk_pcall(ctx, 0);
@@ -302,22 +317,22 @@ AJ_Status AJS_Main()
                     AJ_ErrPrintf(("ajIdx == %d, top_index == %d\n", (int)ajIdx, (int)duk_get_top_index(ctx)));
                     AJ_ASSERT(duk_get_top_index(ctx) == ajIdx);
                 }
-                AJS_CloseScript(sf);
+                AJ_NVRAM_Close(ds);
                 AJS_HeapDump();
                 if (status == AJ_OK) {
                     AJ_InfoPrintf(("Installed script from NVRAM\n"));
                 } else {
-                    AJ_ErrPrintf(("Failed to install script from NVRAM\n"));
+                    AJ_ErrPrintf(("Deleting bad script from NVRAM\n"));
                     /*
-                     * We don't want to keep trying to install a broken script
+                     * We don't want to repeatedly attempt to install a broken script
                      */
-                    AJS_DeleteScript();
+                    AJ_NVRAM_Delete(AJS_SCRIPT_NVRAM_ID);
                     status = AJ_ERR_RESTART_APP;
                 }
                 duk_gc(ctx, 0);
                 AJS_HeapDump();
             } else {
-                status = AJ_ERR_READ;
+                AJ_ErrPrintf(("Failed to read script from NVRAM\n"));
             }
         }
         if (status == AJ_OK) {

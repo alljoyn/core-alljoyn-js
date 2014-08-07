@@ -19,6 +19,9 @@
 
 #include "ajs.h"
 #include "ajs_util.h"
+#include "ajs_propstore.h"
+#include <alljoyn/services_common/PropertyStore.h>
+
 
 
 static AJ_BusAttachment* ajBus;
@@ -162,6 +165,210 @@ static int NativeFindService(duk_context* ctx)
     return 1;
 }
 
+/*
+ * The proplist is an object that maps property names to NVRAM identifiers. This function loads the
+ * JSON encoded proplist from NVRAM and converts it to a JavaScript object
+ */
+static void LoadNVRAMPropList(duk_context* ctx)
+{
+    AJ_NV_DATASET* ds;
+
+    ds = AJ_NVRAM_Open(AJS_PROPSTORE_NVRAM_ID, "r", 0);
+    if (!ds) {
+        duk_push_object(ctx);
+    } else {
+        const char* props = AJ_NVRAM_Peek(ds);
+
+        duk_push_string(ctx, props);
+        duk_json_decode(ctx, -1);
+        /*
+         * TODO - must trap errors and close the data set
+         */
+        AJ_NVRAM_Close(ds);
+    }
+}
+
+/*
+ * The proplist is an object at idx on the duktape stack. This function encodes the object as a JSON
+ * string and stores it in NVRAM.
+ */
+static void StoreNVRAMPropList(duk_context* ctx, duk_idx_t idx)
+{
+    AJ_NV_DATASET* ds;
+    duk_size_t len;
+    uint16_t ret;
+    const char* str;
+
+    duk_json_encode(ctx, idx);
+    str = duk_get_lstring(ctx, idx, &len);
+    ds = AJ_NVRAM_Open(AJS_PROPSTORE_NVRAM_ID, "w", len + 1);
+    ret = AJ_NVRAM_Write(str, len + 1, ds);
+    AJ_NVRAM_Close(ds);
+    if (ret != (len + 1)) {
+        duk_error(ctx, DUK_ERR_ALLOC_ERROR, "store failed");
+    }
+}
+
+#define SET_BIT(m, n)   (m)[(n) / 8] |= (1 << ((n) % 8))
+#define TEST_BIT(m, n)  (m)[(n) / 8] & (1 << ((n) % 8))
+
+static void StorePropInNVRAM(duk_context* ctx, const char* propName, duk_idx_t idx)
+{
+    AJ_NV_DATASET* ds;
+    const char* val;
+    duk_size_t sz;
+    uint16_t nvId = 0;
+
+    /*
+     * Get the NVRAM id for the property - may need to allocate one
+     */
+    LoadNVRAMPropList(ctx);
+    duk_get_prop_string(ctx, -1, propName);
+    if (duk_is_undefined(ctx, -1)) {
+        size_t i;
+        uint8_t used[(7 + AJS_PROPSTORE_NVRAM_MAX - AJS_PROPSTORE_NVRAM_MIN) / 8];
+        memset(used, 0, sizeof(used));
+        /*
+         * Iterate over the properties to initialize a bit mask of used NVRAM identifiers.
+         */
+        duk_enum(ctx, -2, DUK_ENUM_OWN_PROPERTIES_ONLY);
+        while (duk_next(ctx, -1, 1)) {
+            uint16_t bit = duk_get_int(ctx, -1) - AJS_PROPSTORE_NVRAM_MIN;
+            duk_pop_2(ctx);
+            AJ_ASSERT(bit < (AJS_PROPSTORE_NVRAM_MAX - AJS_PROPSTORE_NVRAM_MIN));
+            SET_BIT(used, bit);
+        }
+        duk_pop(ctx);
+        /*
+         * Use first free slot.
+         */
+        for (i = 0; i < sizeof(used) * 8; ++i) {
+            if (!TEST_BIT(used, i)) {
+                nvId = AJS_PROPSTORE_NVRAM_MIN + i;
+                break;
+            }
+        }
+        /*
+         * Add the nvId entry to the properties object
+         */
+        if (nvId) {
+            duk_push_number(ctx, nvId);
+            duk_put_prop_string(ctx, -3, propName);
+            StoreNVRAMPropList(ctx, -2);
+        }
+    } else {
+        nvId = duk_get_int(ctx, -1);
+    }
+    duk_pop_2(ctx);
+    if (!nvId) {
+        duk_error(ctx, DUK_ERR_ALLOC_ERROR, "store failed");
+    }
+    /*
+     * Use duktape JX encoding so buffers are appropriately encoded
+     */
+    duk_push_global_object(ctx);
+    duk_get_prop_string(ctx, -1, "Duktape");
+    duk_remove(ctx, -2);
+    duk_get_prop_string(ctx, -1, "enc");
+    duk_remove(ctx, -2);
+    duk_push_string(ctx, "jx");
+    duk_dup(ctx, idx);
+    duk_call(ctx, 2);
+    val = duk_get_lstring(ctx, -1, &sz);
+    ds = AJ_NVRAM_Open(nvId, "w", sz + 1);
+    AJ_NVRAM_Write(val, sz + 1, ds);
+    AJ_NVRAM_Close(ds);
+}
+
+static void LoadPropFromNVRAM(duk_context* ctx, const char* propName)
+{
+
+    /*
+     * Get the NVRAM id for the property
+     */
+    LoadNVRAMPropList(ctx);
+    duk_get_prop_string(ctx, -1, propName);
+    if (duk_is_undefined(ctx, -1)) {
+        /*
+         * Leave the undefined result on the stack
+         */
+        duk_remove(ctx, -1);
+    } else {
+        const char* val;
+        uint16_t nvId = duk_get_int(ctx, -1);
+        duk_int_t ret;
+        AJ_NV_DATASET* ds;
+
+        AJ_ASSERT((nvId <= AJS_PROPSTORE_NVRAM_MAX) && (nvId >= AJS_PROPSTORE_NVRAM_MIN));
+        /*
+         * Pop the prop list and the nvram id
+         */
+        duk_pop_2(ctx);
+        /*
+         * Use the duktape JX decoder so buffer objects get decoded.
+         */
+        duk_push_global_object(ctx);
+        duk_get_prop_string(ctx, -1, "Duktape");
+        duk_remove(ctx, -2);
+        duk_get_prop_string(ctx, -1, "dec");
+        duk_remove(ctx, -2);
+        duk_push_string(ctx, "jx");
+        ds = AJ_NVRAM_Open(nvId, "r", 0);
+        if (!ds) {
+            duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Inconsistent propstore");
+        }
+        val = AJ_NVRAM_Peek(ds);
+        duk_push_string(ctx, val);
+        ret = duk_pcall(ctx, 2);
+        AJ_NVRAM_Close(ds);
+        if (ret != DUK_EXEC_SUCCESS) {
+            duk_throw(ctx);
+        }
+    }
+}
+
+static int NativeLoadProperty(duk_context* ctx)
+{
+    const char* prop = duk_require_string(ctx, 0);
+    AJSVC_PropertyStoreFieldIndices index = AJSVC_PropertyStore_GetFieldIndex(prop);
+
+    /*
+     * First check for built-in (config/about) properties
+     */
+    if (index != AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX) {
+        const char* val = AJSVC_PropertyStore_GetValue(index);
+        if (val) {
+            duk_push_string(ctx, val);
+        } else {
+            duk_push_undefined(ctx);
+        }
+    } else {
+        LoadPropFromNVRAM(ctx, prop);
+    }
+    return 1;
+}
+
+static int NativeStoreProperty(duk_context* ctx)
+{
+    const char* prop = duk_require_string(ctx, 0);
+    AJSVC_PropertyStoreFieldIndices index = AJSVC_PropertyStore_GetFieldIndex(prop);
+
+    /*
+     * First check for built-in (config/about) properties
+     */
+    if (index != AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX) {
+        if (!AJSVC_PropertyStore_IsReadOnly(index)) {
+            /*
+             * Ignore attempts to set a readonly property
+             */
+            AJSVC_PropertyStore_SetValue(index, duk_require_string(ctx, -1));
+        }
+    } else {
+        StorePropInNVRAM(ctx, prop, 1);
+    }
+    return 0;
+}
+
 AJ_Status AJS_RegisterHandlers(AJ_BusAttachment* bus, duk_context* ctx, duk_idx_t ajIdx)
 {
     ajBus = bus;
@@ -174,5 +381,9 @@ AJ_Status AJS_RegisterHandlers(AJ_BusAttachment* bus, duk_context* ctx, duk_idx_
     duk_put_prop_string(ctx, ajIdx, "findServiceByName");
     duk_push_c_function(ctx, NativeAdvertiseName, 1);
     duk_put_prop_string(ctx, ajIdx, "advertiseName");
+    duk_push_c_function(ctx, NativeLoadProperty, 1);
+    duk_put_prop_string(ctx, ajIdx, "load");
+    duk_push_c_function(ctx, NativeStoreProperty, 2);
+    duk_put_prop_string(ctx, ajIdx, "store");
     return AJ_OK;
 }

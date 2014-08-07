@@ -14,65 +14,22 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#ifndef _AJS_CONFIG_SVC_H_
-#define _AJS_CONFIG_SVC_H_
+#ifndef _AJS_PROPSTORE_H_
+#define _AJS_PROPSTORE_H_
 
 #include <alljoyn.h>
-#include <aj_config.h>
-#include <alljoyn/services_common/ServicesCommon.h>
 #include <alljoyn/services_common/PropertyStore.h>
 
-#define LANG_VALUE_LENGTH 7
-#define KEY_VALUE_LENGTH 10
-#define MACHINE_ID_LENGTH (UUID_LENGTH * 2)
-#define DEVICE_NAME_VALUE_LENGTH 32
-#define PASSWORD_VALUE_LENGTH (AJ_ADHOC_LEN * 2)
-
-extern const uint8_t AJSVC_PROPERTY_STORE_NUMBER_OF_LANGUAGES;
-extern const char** propertyStoreDefaultLanguages;
+#define PASSWORD_VALUE_LENGTH     (AJ_ADHOC_LEN * 2)
 
 /**
- * property structure
+ * Initialize the property store
  */
-typedef struct _PropertyStoreEntry {
-    const char* keyName; // The property key name as shown in About and Config documentation
-
-    // msb=public/private; bit number 3 - initialise once; bit number 2 - multi-language value; bit number 1 - announce; bit number 0 - read/write
-    uint8_t mode0Write : 1;
-    uint8_t mode1Announce : 1;
-    uint8_t mode2MultiLng : 1;
-    uint8_t mode3Init : 1;
-    uint8_t mode4 : 1;
-    uint8_t mode5 : 1;
-    uint8_t mode6 : 1;
-    uint8_t mode7Public : 1;
-} PropertyStoreEntry;
-
-/**
- * properties array variable with property definitions
- */
-extern const PropertyStoreEntry propertyStoreProperties[AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS];
-
-/**
- * properties array variable with default values
- */
-extern const char** propertyStoreDefaultValues[AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS]; // Array of Array of size 1 or AJSVC_PROPERTY_STORE_NUMBER_OF_LANGUAGES constant buffers depending on whether the property is multilingual
-
-/**
- * properties container for runtime values
- */
-typedef struct _PropertyStoreRuntimeEntry {
-    char** value;  // An array of size 1 or AJSVC_PROPERTY_STORE_NUMBER_OF_LANGUAGES mutable buffers depending on whether the property is multilingual
-    uint8_t size; // The size of the value buffer(s)
-} PropertyStoreConfigEntry;
-
-/**
- * properties runtime array variable with runtime values of dynamically initialized and configurable properties
- */
-extern PropertyStoreConfigEntry propertyStoreRuntimeValues[AJSVC_PROPERTY_STORE_NUMBER_OF_RUNTIME_KEYS];
-
-#define AJ_PROPERTIES_NV_ID_END   (AJ_PROPERTIES_NV_ID_BEGIN + (int)AJSVC_PROPERTY_STORE_NUMBER_OF_RUNTIME_KEYS * (int)AJSVC_PROPERTY_STORE_NUMBER_OF_LANGUAGES - 1)
-
 AJ_Status PropertyStore_Init();
 
-#endif //_AJS_CONFIG_SVC_H
+/**
+ * TODO - this function should be declared in PropertyStory.h
+ */
+uint8_t AJSVC_PropertyStore_IsReadOnly(AJSVC_PropertyStoreFieldIndices index);
+
+#endif //_AJS_PROPSTORE_H

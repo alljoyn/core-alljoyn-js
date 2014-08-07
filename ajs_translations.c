@@ -121,7 +121,7 @@ static int NativeTranslationsSetter(duk_context* ctx)
     duk_put_prop_string(ctx, -2, "translations");
     duk_pop(ctx);
 
-    AJ_RegisterDescriptionLanguages(languagesList);
+    AJ_RegisterDescriptionLanguages((const char* const*)languagesList);
     return 0;
 }
 

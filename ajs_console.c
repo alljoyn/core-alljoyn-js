@@ -98,6 +98,14 @@ static const AJ_Object consoleObjects[] = {
 #define PRINT_SIGNAL_MSGID  AJ_APP_MESSAGE_ID(0,  1, 7)
 #define ALERT_SIGNAL_MSGID  AJ_APP_MESSAGE_ID(0,  1, 8)
 
+/*
+ * We don't want scripts to fill all available NVRAM.
+ */
+static uint32_t MaxScriptLen()
+{
+    return (3 * AJ_NVRAM_GetSizeRemaining()) / 4;
+}
+
 /**
  * Active session for this service
  */
@@ -291,11 +299,11 @@ static AJ_Status Install(duk_context* ctx, AJ_Message* msg)
     AJ_Message reply;
     AJ_Status status;
     const void* raw;
-    const char* scriptName;
     size_t sz;
     uint8_t replyStatus;
-    size_t len;
+    uint32_t len;
     uint8_t endswap = (msg->hdr->endianess != AJ_NATIVE_ENDIAN);
+    AJ_NV_DATASET* ds = NULL;
 
     /*
      * Scripts can only be installed on a clean engine
@@ -305,19 +313,24 @@ static AJ_Status Install(duk_context* ctx, AJ_Message* msg)
         AJ_MarshalReplyMsg(msg, &reply);
         AJ_MarshalArgs(&reply, "ys", SCRIPT_NEED_RESET_ERROR, "Reset required");
         return AJ_DeliverMsg(&reply);
+    } else {
+        const char* scriptName;
+        status = AJ_UnmarshalArgs(msg, "s", &scriptName);
+        if (status != AJ_OK) {
+            goto ErrorReply;
+        }
+        AJ_InfoPrintf(("Installing script %s\n", scriptName));
+        /*
+         * Save the script name so it can be passed to the compiler
+         */
+        sz = strlen(scriptName) + 1;
+        ds = AJ_NVRAM_Open(AJS_SCRIPT_NAME_NVRAM_ID, "w", sz);
+        if (ds) {
+            AJ_NVRAM_Write(scriptName, sz, ds);
+            AJ_NVRAM_Close(ds);
+            ds = NULL;
+        }
     }
-    status = AJ_UnmarshalArgs(msg, "s", &scriptName);
-    if (status != AJ_OK) {
-        goto ErrorReply;
-    }
-    /*
-     * Save the script name so it can be passed to the compiler
-     */
-    duk_push_global_stash(ctx);
-    duk_push_string(ctx, scriptName);
-    duk_put_prop_string(ctx, -2, "scriptName");
-    AJ_InfoPrintf(("Installing script %s\n", scriptName));
-    scriptName = NULL;
     /*
      * Load script and install it
      */
@@ -330,23 +343,33 @@ static AJ_Status Install(duk_context* ctx, AJ_Message* msg)
         len = ENDSWAP32(len);
     }
     AJ_MarshalReplyMsg(msg, &reply);
-    if (len > AJS_GetMaxScriptLen()) {
+    if (len > MaxScriptLen()) {
         replyStatus = SCRIPT_RESOURCE_ERROR;
         AJ_MarshalArgs(&reply, "ys", replyStatus, "Script too long");
         AJ_ErrPrintf(("Script installation failed - too long\n"));
         status = AJ_DeliverMsg(&reply);
     } else {
-        void* scriptf = AJS_OpenScript(AJS_SCRIPT_WRITE);
+        ds = AJ_NVRAM_Open(AJS_SCRIPT_NVRAM_ID, "w", sizeof(len) + len);
         while (len) {
             status = AJ_UnmarshalRaw(msg, &raw, len, &sz);
             if (status != AJ_OK) {
-                AJS_CloseScript(scriptf);
                 goto ErrorReply;
             }
-            AJS_WriteScript(scriptf, raw, sz);
+            if (AJ_NVRAM_Write(&len, sizeof(len), ds) != sizeof(len)) {
+                status = AJ_ERR_RESOURCES;
+                goto ErrorReply;
+            }
+            if (AJ_NVRAM_Write(raw, sz, ds) != sz) {
+                status = AJ_ERR_RESOURCES;
+                goto ErrorReply;
+            }
             len -= sz;
         }
-        AJS_CloseScript(scriptf);
+        AJ_NVRAM_Close(ds);
+        ds = NULL;
+        /*
+         * Let console know the script was installed sucessfully
+         */
         replyStatus = SCRIPT_OK;
         AJ_MarshalArgs(&reply, "ys", replyStatus, "Script installed");
         AJ_InfoPrintf(("Script succesfully installed\n"));
@@ -362,6 +385,14 @@ static AJ_Status Install(duk_context* ctx, AJ_Message* msg)
     return status;
 
 ErrorReply:
+
+    if (ds) {
+        AJ_NVRAM_Close(ds);
+    }
+    /*
+     * We don't want to leave a stale or partial script in NVRAM
+     */
+    AJ_NVRAM_Delete(AJS_SCRIPT_NVRAM_ID);
 
     AJ_MarshalStatusMsg(msg, &reply, status);
     return AJ_DeliverMsg(&reply);
@@ -394,7 +425,7 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
         return AJ_MarshalArgs(replyMsg, "u", MAX_EVAL_LEN);
 
     case MAX_SCRIPT_LEN_PROP:
-        return AJ_MarshalArgs(replyMsg, "u", (uint32_t)AJS_GetMaxScriptLen());
+        return AJ_MarshalArgs(replyMsg, "u", (uint32_t)MaxScriptLen());
 
     default:
         return AJ_ERR_UNEXPECTED;

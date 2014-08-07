@@ -28,6 +28,7 @@
 #endif
 
 #include <aj_target.h>
+#include <aj_nvram.h>
 #include <alljoyn.h>
 #include <duktape.h>
 
@@ -44,6 +45,15 @@ extern uint8_t dbgAJS;
 #define AJS_MEMBER_TYPE_METHOD    0
 #define AJS_MEMBER_TYPE_SIGNAL    1
 #define AJS_MEMBER_TYPE_PROPERTY  2
+
+/*
+ * NVRAM identifiers used by AllJoyn.js
+ */
+#define AJS_SCRIPT_NAME_NVRAM_ID  (AJ_NVRAM_ID_FOR_APPS + 0)
+#define AJS_SCRIPT_NVRAM_ID       (AJ_NVRAM_ID_FOR_APPS + 1)
+#define AJS_PROPSTORE_NVRAM_ID    (AJ_NVRAM_ID_FOR_APPS + 32)
+#define AJS_PROPSTORE_NVRAM_MIN   (AJS_PROPSTORE_NVRAM_ID + 1)
+#define AJS_PROPSTORE_NVRAM_MAX   (AJS_PROPSTORE_NVRAM_MIN + 256)
 
 /**
  * The name of the AllJoyn object

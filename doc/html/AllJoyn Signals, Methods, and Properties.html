@@ -1,0 +1,208 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>AllJoyn Signals, Methods, and Properties</title><style></style></head><body>
+<p>This work is licensed under a Creative Commons Attribution 4.0 International License<br><a href="http://creativecommons.org/licenses/by/4.0/">http://creativecommons.org/licenses/by/4.0/</a></p>
+<h2 id="alljoyn-signals-methods-and-properties">AllJoyn Signals, Methods, and Properties</h2>
+<hr>
+<h3 id="message-types">Message Types</h3>
+<p><strong>AJ.METHOD-</strong>A message that has specific arguments included and requires a return value   </p>
+<pre><code class="lang-javascript">AJ.interfaceDefinition[<span class="hljs-string">"org.alljoyn.marshal_test"</span>] = {
+    method:{type:AJ.METHOD, args:[DT], returns:[DT]}
+};
+</code></pre>
+<p><strong>AJ.SIGNAL-</strong>A message that can have specific arguments included with no return value</p>
+<pre><code class="lang-javascript">AJ.interfaceDefinition[<span class="hljs-string">"org.alljoyn.marshal_test"</span>] = {
+    signal:{type:AJ.SIGNAL, args:[DT]}
+};
+</code></pre>
+<p><strong>AJ.PROPERTY-</strong>A message that has a signature and a read/write state</p>
+<pre><code class="lang-javascript">AJ.interfaceDefinition[<span class="hljs-string">"org.alljoyn.marshal_test"</span>] = {
+    property:{type:AJ.PROPERTY, signature: DT, access: DT}
+};
+</code></pre>
+<h3 id="message-methods">Message Methods</h3>
+<p><strong>AJ.interfaceDefinition[String interface]-</strong>List all of the different methods/signals/properties within the given interface<br>interface: A String that dictates the interface that the messages will be travelling on</p>
+<pre><code class="lang-javascript">AJ.interfaceDefinition[<span class="hljs-string">"org.alljoyn.marshal_test"</span>] = {messages};
+</code></pre>
+<p><strong>AJ.objcectDefinition[String object]-</strong>List all of the different interfaces and other information within one object<br>object: Path for the object</p>
+<pre><code class="lang-javascript">AJ.objectDefinition[<span class="hljs-string">'/test'</span>] = {
+    interfaces:[<span class="hljs-string">'org.alljoyn.test'</span>]
+};
+</code></pre>
+<p><strong>AJ.onAttach-</strong>This function is called when the program has attached to an Alljoyn Bus</p>
+<pre><code class="lang-javascript">AJ.onAttach = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+{</span>
+    print(<span class="hljs-string">"AJ.onAttach"</span>);
+}
+</code></pre>
+<p><strong>AJ.onDetach-</strong>This function is called when the program has been detached from an Alljoyn Bus</p>
+<pre><code class="lang-javascript">AJ.onDetach = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+{</span>
+    print(<span class="hljs-string">"AJ.onDetach"</span>);
+}
+</code></pre>
+<h3 id="sending-message-methods">Sending Message Methods</h3>
+<p><strong>AJ.findService(String interface, function() {})-</strong>Find the service that is using the given interface and perform the given function once the service has been found.<br>interface: the interface name from the interface definition</p>
+<pre><code class="lang-javascript">AJ.findService(<span class="hljs-string">'org.alljoyn.test'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(svc)</span> {</span>});
+</code></pre>
+<p><strong>AJ.onPeerConnected-</strong>Find the service that the program is going to be using once the program has found another message service</p>
+<pre><code class="lang-javascript">AJ.onPeerConnected = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(svc)</span> {</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+}
+</code></pre>
+<p>Note: Must return true after performing the function  </p>
+<p><strong>.method(String name)-</strong>Create a method message using the information provided in the interface definition on the service fround from AJ.findService<br>name: the name of the message from interfaceDefinition</p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> name = svc.method(<span class="hljs-string">'method'</span>);
+</code></pre>
+<p><strong>.call(raw DT)-</strong>Call the method message with the given parameters which must be in the form as declared in the interface definition</p>
+<pre><code class="lang-javascript">AJ.interfaceDefinition[<span class="hljs-string">"org.alljoyn.test"</span>] = {
+    method1:{type:AJ.METHOD, args:[<span class="hljs-string">"v"</span>], returns:[<span class="hljs-string">"s"</span>]}
+};
+...
+<span class="hljs-keyword">var</span> name = svc.method(<span class="hljs-string">'method1'</span>);
+name.call({<span class="hljs-string">"s"</span>:<span class="hljs-string">"Hello"</span>});
+</code></pre>
+<p><strong>.onReply-</strong>This function is called when the message receives a reply. Can only be used for method and property messages</p>
+<pre><code class="lang-javascript">name.onReply = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(arg)</span> {</span>print(arg);}
+</code></pre>
+<p><strong>.signal(String objectDef, String interfaceDef, String name)-</strong>Create a signal message using the information provided in the interface definition and the object definition on the service found from AJ.findService.<br>objectDef: the path for the object from objectDefinition<br>interfaceDef: the name of the interface definition from interfaceDefinition 
+name: the name of the signal from InterfaceDefinition  </p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> signal = svc.signal(<span class="hljs-string">'/test'</span>, <span class="hljs-string">'org.alljoyn.test'</span>, <span class="hljs-string">'signal1'</span>);
+</code></pre>
+<p>Note: the objectDefinition as declared must contain the name of the interfaceDefinition that was also declared</p>
+<p><strong>.send(raw DT)-</strong>Send the signal message with the given parameters which must be in the form as declared in the interface definition</p>
+<pre><code class="lang-javascript">AJ.interfaceDefinition[<span class="hljs-string">'org.alljoyn.test'</span>] = {
+  signal1:{type:AJ.SIGNAL, args[<span class="hljs-string">"d"</span>]}  
+};
+...
+signal.send(<span class="hljs-number">3.14159265358979</span>);
+</code></pre>
+<p><strong>.getProp(String name)-</strong>Gets the property value from other programs on the same interface who declare the property&#39;s value<br>name: the name of the property from InterfaceDefinition</p>
+<pre><code class="lang-javascript">svc.getProp(<span class="hljs-string">'property1'</span>);
+</code></pre>
+<p>Note: Can only be called if the property is a Read/Write or Read-Only</p>
+<p><strong>.setProp(String name, raw DT)-</strong>Sets the property value from other programs on the same interface who declare the property&#39;s value and it must be in the form as declared in the interface definition<br>name: the name of the property from InterfaceDefinition</p>
+<pre><code class="lang-javascript">AJ.interfaceDefinition[<span class="hljs-string">'org.alljoyn.test'</span>] = {
+    property1:{type:AJ.PROPERTY, signature: <span class="hljs-string">"av"</span>, access: <span class="hljs-string">"R"</span>}
+};
+...
+svc.setProp(<span class="hljs-string">'property1'</span>, [{<span class="hljs-string">"s"</span>:<span class="hljs-string">"July"</span>},{<span class="hljs-string">"v"</span>:{<span class="hljs-string">"i"</span>:<span class="hljs-number">4</span>}},{<span class="hljs-string">"av"</span>:[{<span class="hljs-string">"i"</span>:<span class="hljs-number">1776</span>},{<span class="hljs-string">"i"</span>:<span class="hljs-number">2014</span>}]}]);
+</code></pre>
+<p>Note: Can only be called if the property is a Read/Write or Write-Only</p>
+<p><strong>.getAllProps(String iface)-</strong>Gets all the properties from a specific interface in the form a{sv}</p>
+<pre><code class="lang-javascript">svc.getAllProp(<span class="hljs-string">"org.alljoyn.marshal_test"</span>).onReply = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> {</span>
+    print(<span class="hljs-built_in">arguments</span>[<span class="hljs-number">0</span>]);
+}
+</code></pre>
+<h3 id="receiving-message-methods">Receiving Message Methods</h3>
+<p><strong>AJ.onMethodCall-</strong>This function is called when the program receives a method message</p>
+<pre><code class="lang-javascript">AJ.onMethodCall = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(arg)</span>
+{</span>
+    <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.member == method1) {
+        print(arg);
+        <span class="hljs-keyword">this</span>.reply(<span class="hljs-string">"Hello to you too"</span>);
+    }
+}
+</code></pre>
+<p>Note: if the method message&#39;s interface definition has a returns: DT, then the this.reply() parameter must be in the form that was declared.</p>
+<p><strong>AJ.onSignal-</strong>This function is called when the program receives a signal message</p>
+<pre><code class="lang-javascript">AJ.onSignal = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+{</span>
+    <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.member == <span class="hljs-string">'signal1'</span>) {
+        print(<span class="hljs-string">"Signal Received"</span>);
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">throw</span>(<span class="hljs-string">'rejected'</span>);
+    }
+}
+</code></pre>
+<p><strong>AJ.onPropGet-</strong>This function is called when the program receives a property message that requests to get the property value</p>
+<pre><code class="lang-javascript">AJ.onPropGet = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(iface, prop)</span> {</span>
+    <span class="hljs-keyword">if</span> (iface == <span class="hljs-string">'org.alljoyn.marshal_test'</span>) {
+        <span class="hljs-keyword">this</span>.reply(properties[prop]);
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">throw</span>(<span class="hljs-string">'rejected'</span>);
+    }
+}
+</code></pre>
+<p><strong>AJ.onPropSet-</strong>This function is called when the program receives a property message that requests to set the property value</p>
+<pre><code class="lang-javascript">AJ.onPropSet = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(iface, prop, value)</span> {</span>
+    <span class="hljs-keyword">if</span> (iface == <span class="hljs-string">'org.alljoyn.marshal_test'</span>) {
+        properties[prop] = value;
+        <span class="hljs-keyword">this</span>.reply();
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">throw</span>(<span class="hljs-string">'rejected'</span>);
+    }
+}
+</code></pre>
+<p><strong>AJ.onPropGetAll-</strong>This function is called when the program receives a get all property message and returns all the properties within a given interface in the format a{sv}</p>
+<pre><code class="lang-javascript">AJ.onPropGetAll = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(iface)</span> {</span>
+    <span class="hljs-keyword">if</span>(iface == <span class="hljs-string">'org.alljoyn.marshal_test'</span>) {
+        <span class="hljs-keyword">this</span>.reply(properties);
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">throw</span>(<span class="hljs-string">'rejected'</span>);
+    }
+}
+</code></pre>
+<p>Note: It is recommended that properties are stored as an object, making this reply simply the ojbect name.</p>
+<p><strong>AJ.addMatch(String iface, String name)-</strong>Adds the signal message and matches to make sure that the message is on the given interface<br>iface: interface name listed in interface definition<br>name: name of the signal message to be matched</p>
+<pre><code class="lang-javacript">AJ.addMatch(&#39;org.alljoyn.test&#39;, &#39;signal1&#39;);
+</code></pre>
+<h3 id="data-types-dt-">Data Types (DT)</h3>
+<p><strong>&quot;y&quot;-</strong>Byte (8-bit unsigned integer)<br><strong>&quot;b&quot;-</strong>Boolean value<br><strong>&quot;n&quot;-</strong>16-bit signed integer<br><strong>&quot;q&quot;-</strong>16-bit unsigned integer<br><strong>&quot;i&quot;-</strong>32-bit signed integer<br><strong>&quot;u&quot;-</strong>32-bit unsigned integer<br><strong>&quot;x&quot;-</strong>64-bit signed integer<br><strong>&quot;t&quot;-</strong>64-bit unsigned integer<br><strong>&quot;d&quot;-</strong>IEEE 754 double<br><strong>&quot;s&quot;-</strong>UTF-8 string<br><strong>&quot;o&quot;-</strong>Object Path: Name of an object instance<br><strong>&quot;a&quot;-</strong>Array<br><strong>&quot;()&quot;-</strong>Struct: Like an array but maintains the order of the elements contained within the struct<br><strong>&quot;v&quot;-</strong>Variant: A data type which contains another data type and its value as a dictionary entry<br><strong>&quot;{}&quot;-</strong>Entry in a dictionary or map<br><strong>&quot;r&quot;/&quot;R&quot;-</strong>Read-Only, used for access: in property message<br><strong>&quot;w&quot;/&quot;W&quot;-</strong>Write-Only, used for access: in property message</p>
+<p><strong>Data Type Usage Examples</strong></p>
+<pre><code class="lang-javascript">AJ.interfaceDefinition[<span class="hljs-string">"org.alljoyn.test"</span>] = {
+    method1:{type:AJ.METHOD, args:[<span class="hljs-string">"v"</span>], returns:[<span class="hljs-string">"s"</span>]},
+    method2:{type:AJ.METHOD, args:[<span class="hljs-string">"ai"</span>], returns:[<span class="hljs-string">"dbs"</span>]},
+    method3:{type:AJ.METHOD, args:[<span class="hljs-string">"ay"</span>], returns:[<span class="hljs-string">"(ii)"</span>]},  
+    method4:{type:AJ.METHOD, args:[<span class="hljs-string">"a{is}"</span>], returns:[<span class="hljs-string">"a{is}"</span>]},
+    signal1:{type:AJ.SIGNAL, args:[<span class="hljs-string">"d"</span>]},
+    property1:{type:AJ.PROPERTY, signature: <span class="hljs-string">"av"</span>, access: <span class="hljs-string">"RW"</span>}
+};
+...
+(On sending side)
+svc.method(<span class="hljs-string">'method1'</span>).call({<span class="hljs-string">"s"</span>:<span class="hljs-string">"Hello"</span>});
+svc.method(<span class="hljs-string">'method2'</span>).call([<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>]);
+svc.method(<span class="hljs-string">'method3'</span>).call(Duktape.Buffer(<span class="hljs-string">'foo'</span>));
+svc.method(<span class="hljs-string">'method4'</span>).call({<span class="hljs-number">3</span>: <span class="hljs-string">"Three"</span>, <span class="hljs-number">4</span>: <span class="hljs-string">"Four"</span>});
+svc.signal(<span class="hljs-string">'/test'</span>, <span class="hljs-string">'org.alljoyn.test'</span>, <span class="hljs-string">'signal1'</span>).send(<span class="hljs-number">3.14159265358979</span>);
+svc.setProp(<span class="hljs-string">'property1'</span>, [{<span class="hljs-string">"s"</span>:<span class="hljs-string">"July"</span>},{<span class="hljs-string">"v"</span>:{<span class="hljs-string">"i"</span>:<span class="hljs-number">4</span>}},{<span class="hljs-string">"av"</span>:[{<span class="hljs-string">"i"</span>:<span class="hljs-number">1776</span>},{<span class="hljs-string">"i"</span>:<span class="hljs-number">2014</span>}]}]);
+...
+(On receiving side)
+AJ.onMethodCall = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>
+{</span>
+    <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.member == <span class="hljs-string">'method1'</span>){
+        <span class="hljs-keyword">this</span>.reply(<span class="hljs-string">"Hello to you too"</span>);
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.member == <span class="hljs-string">'method2'</span>){
+        <span class="hljs-keyword">this</span>.reply(<span class="hljs-number">4.0</span>, <span class="hljs-literal">false</span>, <span class="hljs-string">"GPA"</span>);
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.member == <span class="hljs-string">'method3'</span>){
+        <span class="hljs-keyword">this</span>.reply([<span class="hljs-number">1</span>, <span class="hljs-number">2</span>]);
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.member == <span class="hljs-string">'method4'</span>){
+        <span class="hljs-keyword">var</span> array = [];
+        array[<span class="hljs-number">3</span>] = <span class="hljs-string">"Three"</span>;
+        array[<span class="hljs-number">4</span>] = <span class="hljs-string">"Four"</span>;
+        <span class="hljs-keyword">this</span>.reply(array);
+    } <span class="hljs-keyword">else</span>{
+        <span class="hljs-keyword">throw</span>(<span class="hljs-string">'rejected'</span>);
+    }
+}
+AJ.onSignal = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(arg)</span>
+{</span>
+    <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.member == <span class="hljs-string">'signal1'</span>){
+        print(arg);
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">throw</span>(<span class="hljs-string">'rejected'</span>);
+    }
+}
+AJ.onPropSet = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(iface, prop, value)</span>
+{</span>
+    <span class="hljs-keyword">if</span> (iface == <span class="hljs-string">'org.alljoyn.marshal_test'</span>) {
+        properties[prop] = value;
+        <span class="hljs-keyword">this</span>.reply();
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">throw</span>(<span class="hljs-string">'rejected'</span>);
+    }    
+}
+</code></pre>
+<p>Note: if using dictionary entry then must have &quot;a{}&quot;<br>Note: &quot;ay&quot; is a buffer and needs to be called with Duktape.Buffer
+Note: Can have a variant inside of a variant<br>Note: if access: is blank, then the property is both readable and writeable.  </p>
+<p><strong>To see more examples of message sending and receiving, look at client_test.js and server_test.js in the js folder in alljoyn-js.</strong></p>
+
+</body></html>

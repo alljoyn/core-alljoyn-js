@@ -38,7 +38,7 @@ static uint8_t OpenScript(SCRIPTF* sf, const char* scriptName)
     }
 }
 
-static AJ_Status ReadScript(SCRIPTF* sf, const uint8_t** data, size_t* len)
+static AJ_Status ReadScript(SCRIPTF* sf, const uint8_t** data, uint32_t* len)
 {
     if (fseek(sf->file, 0, SEEK_END) == 0) {
         sf->len = ftell(sf->file);
@@ -46,7 +46,7 @@ static AJ_Status ReadScript(SCRIPTF* sf, const uint8_t** data, size_t* len)
         fseek(sf->file, 0, SEEK_SET);
         fread(sf->buf, sf->len, 1, sf->file);
         *data = sf->buf;
-        *len = sf->len;
+        *len = (uint32_t)sf->len;
         return AJ_OK;
     } else {
         return AJ_ERR_FAILURE;
@@ -72,7 +72,7 @@ static AJ_Status InstallScript(const char* fn)
         status = AJ_ERR_UNKNOWN;
     } else {
         const uint8_t* data;
-        size_t len;
+        uint32_t len;
         status = ReadScript(&sf, &data, &len);
         if (status == AJ_OK) {
             AJ_NV_DATASET* ds = AJ_NVRAM_Open(AJS_SCRIPT_NVRAM_ID, "w", sizeof(len) + len);

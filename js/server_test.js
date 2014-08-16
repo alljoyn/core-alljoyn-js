@@ -32,6 +32,7 @@ AJ.objectDefinition['/marshal_test'] = {
 
 AJ.onAttach = function()
 {
+    AJ.addMatch('org.alljoyn.marshal_test', 'test8');
     print("AJ.onAttach");
 }
 

@@ -72,40 +72,64 @@ static void CheckPeerIsAlive(duk_context* ctx, const char* peer)
  *
  * TODO - check for ambiguity - same member defined on multiple interfaces
  */
-static const char* FindInterfaceForMember(duk_context* ctx, duk_idx_t ifIdx, const char* member)
+static const char* FindInterfaceForMember(duk_context* ctx, duk_idx_t mbrIdx, const char** member)
 {
-    const char* iface = NULL;
-    size_t i;
+    const char* iface;
+    uint8_t found = FALSE;
     size_t numInterfaces;
     duk_idx_t listIdx;
 
-    duk_get_prop_string(ctx, ifIdx, "interfaces");
+    duk_get_prop_string(ctx, -1, "interfaces");
     numInterfaces = duk_get_length(ctx, -1);
     listIdx = AJS_GetAllJoynProperty(ctx, "interfaceDefinition");
 
-    for (i = 0; i < numInterfaces; ++i) {
-        duk_get_prop_index(ctx, -2, i);
-        iface = duk_require_string(ctx, -1);
-        duk_get_prop_string(ctx, listIdx, iface);
+    if (duk_is_object(ctx, mbrIdx)) {
         /*
-         * See if the requested member exists on this interface
+         * Expect an object of form { member:"org.foo.interface" }
          */
-        if (duk_has_prop_string(ctx, -1, member)) {
-            duk_pop_2(ctx);
-            break;
+        duk_enum(ctx, mbrIdx, DUK_ENUM_OWN_PROPERTIES_ONLY);
+        if (!duk_next(ctx, -1, 1)) {
+            duk_error(ctx, DUK_ERR_TYPE_ERROR, "Require object of form { 'member-name':'interface-name' }");
         }
-        duk_pop_2(ctx);
+        iface = duk_require_string(ctx, -1);
+        if (!AJ_StringFindFirstOf(iface, ".") == -1) {
+            duk_error(ctx, DUK_ERR_TYPE_ERROR, "Interface name '%s' is not a dotted name", iface);
+        }
+        *member = duk_require_string(ctx, -2);
+        duk_pop_3(ctx);
+        duk_get_prop_string(ctx, listIdx, iface);
+        if (duk_is_undefined(ctx, -1)) {
+            duk_error(ctx, DUK_ERR_REFERENCE_ERROR, "Unknown interface: '%s'", iface);
+        }
+        found = duk_has_prop_string(ctx, -1, *member);
+        duk_pop(ctx);
+    } else {
+        size_t i;
+        /*
+         * Expect a string
+         */
+        *member = duk_require_string(ctx, mbrIdx);
+        for (i = 0; !found && (i < numInterfaces); ++i) {
+            duk_get_prop_index(ctx, -2, i);
+            iface = duk_require_string(ctx, -1);
+            duk_get_prop_string(ctx, listIdx, iface);
+            /*
+             * See if the requested member exists on this interface
+             */
+            found = duk_has_prop_string(ctx, -1, *member);
+            duk_pop_2(ctx);
+        }
     }
     duk_pop_2(ctx);
-    if (!iface) {
-        duk_error(ctx, DUK_ERR_REFERENCE_ERROR, "Unknown member: '%s'", member);
+    if (!found) {
+        duk_error(ctx, DUK_ERR_REFERENCE_ERROR, "Unknown member: '%s'", *member);
     }
     return iface;
 }
 
 /*
- * Called with a sessions object on the top of the stack. Returns with a message object on top of
- * the stack replacing the sessions object.
+ * Called with a service object on the top of the stack. Returns with a message object on top of
+ * the stack replacing the service object.
  */
 static void MessageSetup(duk_context* ctx, const char* iface, const char* member, const char* path, uint8_t msgType)
 {
@@ -125,7 +149,7 @@ static void MessageSetup(duk_context* ctx, const char* iface, const char* member
     dest = duk_get_lstring(ctx, -1, &dlen);
     duk_pop(ctx);
     /*
-     * If this is no a broadcast message make sure the destination peer is still connected
+     * If this is not a broadcast message make sure the destination peer is still connected
      */
     if (dlen) {
         CheckPeerIsAlive(ctx, dest);
@@ -153,11 +177,12 @@ static void MessageSetup(duk_context* ctx, const char* iface, const char* member
     /*
      * Buffer to caching message information stored in the "info" property on the method object
      */
-    msgInfo = duk_push_fixed_buffer(ctx, sizeof(AJS_MsgInfo) + dlen);
+    msgInfo = duk_push_fixed_buffer(ctx, sizeof(AJS_MsgInfo) + dlen + 1);
     msgInfo->secure = secure;
     msgInfo->session = AJS_GetIntProp(ctx, -2, "session");
     msgInfo->msgId = msg.msgId;
     memcpy(msgInfo->dest, dest, dlen);
+    msgInfo->dest[dlen] = 0;
     duk_put_prop_string(ctx, objIdx, "info");
 
     AJ_ASSERT(duk_get_top_index(ctx) == objIdx);
@@ -169,13 +194,13 @@ static void MessageSetup(duk_context* ctx, const char* iface, const char* member
 
 static int NativeMethod(duk_context* ctx)
 {
-    const char* member = duk_require_string(ctx, 0);
+    const char* member;
     const char* iface;
 
     AJ_InfoPrintf(("NativeMethod %s\n", member));
 
     duk_push_this(ctx);
-    iface = FindInterfaceForMember(ctx, -1, member);
+    iface = FindInterfaceForMember(ctx, 0, &member);
     MessageSetup(ctx, iface, member, NULL, AJ_MSG_METHOD_CALL);
     /*
      * Register function for actually calling this method
@@ -189,21 +214,38 @@ static int NativeMethod(duk_context* ctx)
 /*
  * Signals require an object path, interface, and member
  */
-static void InitSignal(duk_context* ctx)
+static void InitSignal(duk_context* ctx, const char* dest, uint32_t session)
 {
     const char* path = duk_require_string(ctx, 0);
-    const char* iface = duk_require_string(ctx, 1);
-    const char* member = duk_require_string(ctx, 2);
+    const char* iface;
+    const char* member;
 
-    if (*path != '/') {
-        duk_error(ctx, DUK_ERR_TYPE_ERROR, "First argument is an object path and must start with a '/'");
+    /*
+     * Build up a dummy service object
+     */
+    duk_push_object(ctx);
+    /*
+     * Get the interfaces from the object path
+     */
+    AJS_GetAllJoynProperty(ctx, "objectDefinition");
+    duk_get_prop_string(ctx, -1, path);
+    if (duk_is_undefined(ctx, -1)) {
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "Unknown object path '%s'", path);
     }
-    if (!AJ_StringFindFirstOf(iface, ".") == -1) {
-        duk_error(ctx, DUK_ERR_TYPE_ERROR, "Second argument is an interface name and be a dotted name");
-    }
-    if (AJ_StringFindFirstOf(member, "./") != -1) {
-        duk_error(ctx, DUK_ERR_TYPE_ERROR, "Third argument is an member name");
-    }
+    duk_get_prop_string(ctx, -1, "interfaces");
+    duk_put_prop_string(ctx, -4, "interfaces");
+    duk_pop_2(ctx);
+    /*
+     * Set the endpoint information
+     */
+    duk_push_string(ctx, dest);
+    duk_put_prop_string(ctx, -2, "dest");
+    duk_push_number(ctx, session);
+    duk_put_prop_string(ctx, -2, "session");
+    /*
+     * Resolve the interface name
+     */
+    iface = FindInterfaceForMember(ctx, 1, &member);
     MessageSetup(ctx, iface, member, path, AJ_MSG_SIGNAL);
     duk_dup(ctx, 0);
     duk_put_prop_string(ctx, -2, "path");
@@ -213,8 +255,17 @@ static void InitSignal(duk_context* ctx)
 
 static int NativeSignal(duk_context* ctx)
 {
+    const char* dest;
+    uint32_t session;
+
     duk_push_this(ctx);
-    InitSignal(ctx);
+    duk_get_prop_string(ctx, -1, "dest");
+    dest = duk_get_string(ctx, -1);
+    duk_pop(ctx);
+    duk_get_prop_string(ctx, -1, "session");
+    session = duk_get_int(ctx, -1);
+    duk_pop_2(ctx);
+    InitSignal(ctx, dest, session);
     return 1;
 }
 
@@ -223,12 +274,7 @@ static int NativeBroadcastSignal(duk_context* ctx)
     /*
      * Broadcast signals have an empty destination and no session
      */
-    duk_push_object(ctx);
-    duk_push_string(ctx, "");
-    duk_put_prop_string(ctx, -2, "dest");
-    duk_push_int(ctx, 0);
-    duk_put_prop_string(ctx, -2, "session");
-    InitSignal(ctx);
+    InitSignal(ctx, NULL, 0);
     return 1;
 }
 
@@ -243,10 +289,10 @@ static int NativeSetProp(duk_context* ctx)
     duk_push_c_function(ctx, AJS_MarshalMethodCall, 3);
     prop = duk_get_string(ctx, 0);
     duk_push_this(ctx);
-    iface = FindInterfaceForMember(ctx, -1, prop);
+    iface = FindInterfaceForMember(ctx, 0, &prop);
     MessageSetup(ctx, &AJ_PropertiesIface[0][1], "Set", NULL, AJ_MSG_METHOD_CALL);
     duk_push_string(ctx, iface);
-    duk_dup(ctx, 0);
+    duk_push_string(ctx, prop);
     duk_dup(ctx, 1);
     duk_call_method(ctx, 3);
     return 1;
@@ -263,10 +309,10 @@ static int NativeGetProp(duk_context* ctx)
     duk_push_c_function(ctx, AJS_MarshalMethodCall, 2);
     prop = duk_get_string(ctx, 0);
     duk_push_this(ctx);
-    iface = FindInterfaceForMember(ctx, -1, prop);
+    iface = FindInterfaceForMember(ctx, 0, &prop);
     MessageSetup(ctx, &AJ_PropertiesIface[0][1], "Get", NULL, AJ_MSG_METHOD_CALL);
     duk_push_string(ctx, iface);
-    duk_dup(ctx, 0);
+    duk_push_string(ctx, prop);
     duk_call_method(ctx, 2);
     return 1;
 }
@@ -288,7 +334,7 @@ void AJS_RegisterMsgFunctions(AJ_BusAttachment* bus, duk_context* ctx, duk_idx_t
 {
     duk_idx_t objIdx;
 
-    duk_push_c_function(ctx, NativeBroadcastSignal, 3);
+    duk_push_c_function(ctx, NativeBroadcastSignal, 2);
     duk_put_prop_string(ctx, ajIdx, "signal");
 
     duk_push_global_stash(ctx);
@@ -307,7 +353,7 @@ void AJS_RegisterMsgFunctions(AJ_BusAttachment* bus, duk_context* ctx, duk_idx_t
     duk_put_prop_string(ctx, objIdx, "session");
     duk_push_c_function(ctx, NativeMethod, 1);
     duk_put_prop_string(ctx, objIdx, "method");
-    duk_push_c_function(ctx, NativeSignal, 3);
+    duk_push_c_function(ctx, NativeSignal, 2);
     duk_put_prop_string(ctx, objIdx, "signal");
     duk_push_c_function(ctx, NativeGetAllProps, 1);
     duk_put_prop_string(ctx, objIdx, "getAllProps");

@@ -358,6 +358,7 @@ int AJS_MarshalSignal(duk_context* ctx)
     duk_idx_t numArgs = duk_get_top(ctx);
     AJ_BusAttachment* aj = AJS_GetBusAttachment();
     duk_idx_t idx;
+    const char* dest;
     uint8_t flags = 0;
     uint16_t ttl = 0;
 
@@ -396,13 +397,18 @@ int AJS_MarshalSignal(duk_context* ctx)
     if (msgInfo->secure) {
         flags |= AJ_FLAG_ENCRYPTED;
     }
-    /*
-     * If a signal has no session and no destination treat is as a global broadcast signal
-     */
-    if (!msgInfo->session && (msgInfo->dest[0] == 0)) {
-        flags |= AJ_FLAG_GLOBAL_BROADCAST;
+    if (msgInfo->dest[0] == 0) {
+        /*
+         * A signal with no destination and no session is as a global broadcast signal
+         */
+        if (!msgInfo->session) {
+            flags |= AJ_FLAG_GLOBAL_BROADCAST;
+        }
+        dest = NULL;
+    } else {
+        dest = msgInfo->dest;
     }
-    status = AJ_MarshalSignal(aj, &msg, msgInfo->msgId, msgInfo->dest, msgInfo->session, flags, ttl);
+    status = AJ_MarshalSignal(aj, &msg, msgInfo->msgId, dest, msgInfo->session, flags, ttl);
     for (idx = 0; (idx < numArgs) && (status == AJ_OK); ++idx) {
         status = MarshalJSArg(ctx, &msg, NULL, idx);
     }

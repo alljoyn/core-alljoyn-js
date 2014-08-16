@@ -91,9 +91,10 @@ function test7(svc)
 }
 
 function test8(svc){
-	AJ.objectDefinition['/pushbutton'] = { interfaces:['org.alljoyn.marshal_test'] };
-	var dingdong = AJ.signal('/pushbutton', 'org.alljoyn.marshal_test', 'test8');
-	dingdong.emit();
+	AJ.objectDefinition['/test8'] = { interfaces:['org.alljoyn.marshal_test'] };
+	var testSignal = AJ.signal('/test8', {test8:'org.alljoyn.marshal_test'});
+	testSignal.send();
+    print("test8 sent signal");
 }
 
 AJ.onAttach = function()

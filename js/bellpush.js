@@ -23,7 +23,7 @@ var pb = IO.digitalIn(IO.pin9, IO.pullDown);
 AJ.onAttach = function()
 {
     AJ.findService('org.allseen.DoorBell', function(svc) {
-        var dingdong = svc.signal('/pushbutton', 'org.allseen.DoorBell', 'ding_dong');
+        var dingdong = svc.signal('/pushbutton', 'ding_dong');
         pb.setTrigger(IO.fallingEdge, function() { dingdong.send() });
     });
 }

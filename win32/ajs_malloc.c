@@ -87,8 +87,10 @@ void* AJS_Realloc(void* userData, void* mem, size_t newSz)
     return realloc(mem, newSz);
 }
 
+#ifndef NDEBUG
 void AJS_HeapDump()
 {
 }
+#endif
 
 #endif

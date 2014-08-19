@@ -60,15 +60,14 @@ ajs_sources = [
 ]
 
 if os.environ.get('YUN_BUILD', '0') == '1':
-    ajs_sources += env['os'] + '/io/io_yun.c',
+    io_sources = [env['os'] + '/io/io_yun.c']
 else:
-    ajs_sources += env['os'] + '/io/io_info.c'
-    ajs_sources += env['os'] + '/io/io_simulation.c'
-    ajs_sources += env['os'] + '/io/io_stubs.c'
+    io_sources = [env['os'] + '/io/io_info.c', env['os'] + '/io/io_simulation.c', env['os'] + '/io/io_stubs.c']
 
 
 sources = []
 sources.append(ajs_sources)
+sources.append(io_sources)
 sources.append(svcs_sources)
 sources.append(duktape_sources)
 

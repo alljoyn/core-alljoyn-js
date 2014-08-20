@@ -38,6 +38,7 @@ class Pin(object):
     """Pin abstraction - common functionality across input and output pins"""
     trigger_rising = 1
     trigger_falling = 2
+    current_val = 255
 
     def __init__(self, val=0):
         #print "val: %s" % val
@@ -53,9 +54,10 @@ class Pin(object):
 
     def toggle(self):
         if self.getVal():
+            self.current_val = self.getVal()
             self.setVal(0)
         else:
-            self.setVal(1)
+            self.setVal(self.current_val)
 
     def setTrigger(self, trigger):
         #print "trigger: %s" % trigger
@@ -66,7 +68,7 @@ class Pin(object):
 
 class Led(Pin, Tk.Canvas):
     """Output pin displayed as a colored square"""
-    def __init__(self, master, val=1, color="black"):
+    def __init__(self, master, val=255, color="black"):
         Pin.__init__(self, val)
         Tk.Canvas.__init__(self, master, width=30, height=30)
         self.color = color
@@ -74,7 +76,14 @@ class Led(Pin, Tk.Canvas):
 
     def draw(self):
         if self.getVal():
-            color = self.color
+            if self.color == "red":
+                color = "#" + hex(self.getVal())[2:].zfill(2) + "0000"
+            elif self.color == "green":
+                color = "#00" + hex(self.getVal())[2:].zfill(2) + "00"
+            elif self.color == "yellow":
+                color = "#" + hex(self.getVal())[2:].zfill(2) + hex(self.getVal())[2:].zfill(2) + "00"
+            elif self.color == "blue":
+                color = "#0000" + hex(self.getVal())[2:].zfill(2)
         else:
             color = "black"
         self.create_rectangle(0, 0, 30, 30, fill=color)
@@ -137,7 +146,7 @@ class Simio(object):
     """
 
     server_name = "/tmp/ajs_gui"  # Path to socket
-    command_len = 3               # Bytes per incoming command
+    command_len = 4               # Bytes per incoming command
     columns = 4                   # Number of columns in pin display
     pipe_poll_ms = 50             # Milliseconds between pipe reads on Windows
     pipe_quick_poll_ms = 1        # Quick interval for consecutive incoming commands
@@ -301,6 +310,7 @@ class Simio(object):
         op = command[0]
         pin = ord(command[1])
         val = ord(command[2])
+        val2 = ord(command[3])
 
         if pin >= len(self.pins):
             return
@@ -317,6 +327,9 @@ class Simio(object):
         elif op == 'i':
             # Interrupt trigger
             self.pins[pin].setTrigger(val)
+        elif op == 'p':
+            # PWM
+            self.pins[pin].setVal(val2)
 
     def pipe_cb(self, *args):
         """Callback polling for incoming pipe connection and data"""

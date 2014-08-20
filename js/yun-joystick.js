@@ -47,6 +47,7 @@ var green    = IO.digitalIn(D4, IO.pullUp);
 var blue     = IO.digitalIn(D5, IO.pullUp);
 var yellow   = IO.digitalIn(D6, IO.pullUp);
 var joystick = IO.digitalIn(D7, IO.pullUp);
+var pin13LED = IO.digitalOut(D13);
 
 function readJoystick()
 {
@@ -89,7 +90,7 @@ function readJoystick()
 }
 
 //red.setTrigger(IO.risingEdge, function(){ print("RED button up"); });
-red.setTrigger(IO.fallingEdge, function(){ print("RED button down"); });
+red.setTrigger(IO.fallingEdge, function(){ print("RED button down"); pin13LED.toggle(); });
 
 //green.setTrigger(IO.risingEdge, function(){ print("GREEN button up"); });
 green.setTrigger(IO.fallingEdge, function(){ print("GREEN button down"); });
@@ -103,4 +104,4 @@ yellow.setTrigger(IO.fallingEdge, function(){ print("YELLOW button down"); });
 //joystick.setTrigger(IO.risingEdge, function(){ print("JOYSTICK button up"); });
 joystick.setTrigger(IO.fallingEdge, function(){ print("JOYSTICK button down"); });
 
-setInterval(readJoystick, 5000);
+setInterval(readJoystick, 1000);

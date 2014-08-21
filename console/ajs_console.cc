@@ -33,6 +33,10 @@
 #include <pthread.h>
 #endif
 
+#ifdef __MACH__
+#include <sys/time.h>
+#endif
+
 #include <alljoyn/BusAttachment.h>
 #include <alljoyn/DBusStd.h>
 #include <alljoyn/AllJoynStd.h>
@@ -46,6 +50,7 @@
 #define QCC_MODULE "ALLJOYN"
 
 #define METHODCALL_TIMEOUT 30000
+#define NANO_TO_SEC_CONVERSION 1e9
 
 using namespace std;
 using namespace qcc;
@@ -170,11 +175,16 @@ class Event {
     {
         struct timespec ts;
         int ret;
-
+    #ifdef __MACH__
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        ts.tv_sec = tv.tv_sec + 0;
+        ts.tv_nsec = 0;
+    #else
         clock_gettime(CLOCK_REALTIME, &ts);
+    #endif
         ts.tv_sec += ms / 1000;
         ts.tv_nsec += (ms % 1000) * 1000000;
-
         pthread_mutex_lock(&mutex);
         ret = pthread_cond_timedwait(&cond, &mutex, &ts);
         pthread_mutex_unlock(&mutex);

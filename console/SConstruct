@@ -72,9 +72,35 @@ if env['PLATFORM'] == 'win32':
        env.Append(CXXFLAGS=['/MD', '/Gy', '/O1', '/Ob2', '/W3'])
        # Linker flags for RELEASE builds
        env.Append(LINKFLAGS=['/opt:ref'])
- 
+
 if env['PLATFORM'] == 'posix':
+       env.Append(CPPDEFINES=['QCC_OS_GROUP_POSIX'])
+       env.Append(CPPDEFINES = ['_GLIBCXX_USE_C99_FP_MACROS_DYNAMIC'])
+       # Compiler flags
+       env.Append(CXXFLAGS = [
+                  '-Wall',
+                  '-Werror=non-virtual-dtor',
+                  '-pipe',
+                  '-std=gnu++0x',
+                  '-fno-exceptions',
+                  '-fno-strict-aliasing',
+                  '-fno-asynchronous-unwind-tables',
+                  '-fno-unwind-tables',
+                  '-ffunction-sections',
+                  '-fdata-sections',
+                  '-Wno-long-long',
+                  '-Wno-deprecated',
+                  '-Wno-unknown-pragmas'])
+       # Debug/Release Variants
+       if env['VARIANT'] == 'debug':
+          env.Append(CXXFLAGS = '-g')
+       else:
+          env.Append(CXXFLAGS = '-Os')
+
+if env['PLATFORM'] == 'darwin':
+    env.Append(LIBS=['crypto'])
     env.Append(CPPDEFINES=['QCC_OS_GROUP_POSIX'])
+    env.Append(CPPDEFINES=['QCC_OS_DARWIN'])
     env.Append(CPPDEFINES = ['_GLIBCXX_USE_C99_FP_MACROS_DYNAMIC'])
     # Compiler flags
     env.Append(CXXFLAGS = [

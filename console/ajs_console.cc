@@ -211,7 +211,7 @@ class AJS_Console : public BusListener, public SessionListener, public ajn::serv
         delete aj;
     }
 
-    QStatus Connect(const char* name);
+    QStatus Connect(const char* deviceName);
 
     QStatus Eval(const String script);
 
@@ -238,6 +238,7 @@ class AJS_Console : public BusListener, public SessionListener, public ajn::serv
     ProxyBusObject* proxy;
     BusAttachment* aj;
     Event ev;
+    String deviceName;
 
 };
 
@@ -248,6 +249,25 @@ void AJS_Console::Announce(uint16_t version, uint16_t port, const char* busName,
     qcc::String matchRule = "type='signal',sessionless='t',interface='org.alljoyn.Notification',member='notify'";
 
     if (!sessionId) {
+        /*
+         * If a device name was given it must match
+         */
+        if (deviceName != "") {
+            AboutData::const_iterator iter = aboutData.find("DeviceName");
+            /*
+             *
+             */
+            if (iter == std::end(aboutData)) {
+                QCC_LogError(ER_NO_SUCH_DEVICE, ("Missing device name in about data"));
+                return;
+            }
+            const MsgArg &arg = iter->second;
+            const char* name;
+            if ((arg.Get("s", &name) != ER_OK) || (deviceName != name)) {
+                QCC_SyncPrintf("Found device \"%s\" this is not the device you are looking for\n", name);
+                return;
+            }
+        }
         /*
          * Prevent concurrent JoinSession calls
          */
@@ -289,9 +309,14 @@ void AJS_Console::Announce(uint16_t version, uint16_t port, const char* busName,
     }
 }
 
-QStatus AJS_Console::Connect(const char* name)
+QStatus AJS_Console::Connect(const char* deviceName)
 {
     QStatus status;
+
+    /*
+     * The device we wil be looking for
+     */
+    this->deviceName = deviceName;
 
     aj = new BusAttachment("console", true);
     aj->Start();
@@ -467,11 +492,13 @@ static String ReadLine()
 {
     char inbuf[1024];
     char* inp = NULL;
-    while (!inp) {
+    while (!g_interrupt && !inp) {
         inp = fgets(inbuf, sizeof(inbuf), stdin);
     }
-    size_t len = strlen(inp);
-    inp[len - 1] = 0;
+    if (inp) {
+        size_t len = strlen(inp);
+        inp[len - 1] = 0;
+    }
     return inp;
 }
 
@@ -505,6 +532,7 @@ int main(int argc, char** argv)
     QStatus status;
     AJS_Console ajsConsole;
     const char* scriptName;
+    const char* deviceName;
     uint8_t* script;
     size_t scriptLen = 0;
 
@@ -515,9 +543,13 @@ int main(int argc, char** argv)
         if (*argv[i] == '-') {
             if (strcmp(argv[i], "--verbose") == 0) {
                 verbose = true;
+            } else if (strcmp(argv[i], "--name") == 0) {
+                if (++i == argc) {
+                    goto Usage;
+                }
+                deviceName = argv[i];
             } else {
-                QCC_SyncPrintf("usage: %s [--verbose] [javascript-file]\n", argv[0]);
-                return -1;
+                goto Usage;
             }
         } else {
             scriptName = argv[i];
@@ -529,7 +561,7 @@ int main(int argc, char** argv)
         }
     }
 
-    status = ajsConsole.Connect("org.allseen.scriptConsole");
+    status = ajsConsole.Connect(deviceName);
     if (status == ER_OK) {
         if (scriptLen) {
             status = ajsConsole.Install(scriptName, script, scriptLen);
@@ -561,4 +593,9 @@ int main(int argc, char** argv)
         QCC_SyncPrintf(("Interrupted by Ctrl-C\n"));
     }
     return -((int)status);
+
+Usage:
+
+    QCC_SyncPrintf("usage: %s [--verbose] [--name <device-name>] [javascript-file]\n", argv[0]);
+    return -1;
 }

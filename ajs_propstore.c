@@ -181,7 +181,7 @@ const char* AJSVC_PropertyStore_GetValueForLang(AJSVC_PropertyStoreFieldIndices 
         return NULL;
     }
     lang = GetLanguageIndexForProperty(lang, field);
-    if (lang <= AJSVC_PROPERTY_STORE_ERROR_LANGUAGE_INDEX || lang >= AJS_GetNumberOfLanguages(duktape)) {
+    if (lang && (lang <= AJSVC_PROPERTY_STORE_ERROR_LANGUAGE_INDEX || lang >= AJS_GetNumberOfLanguages(duktape))) {
         return NULL;
     }
     if (field < AJSVC_PROPERTY_STORE_NUMBER_OF_RUNTIME_KEYS &&
@@ -222,7 +222,7 @@ uint8_t AJSVC_PropertyStore_SetValueForLang(AJSVC_PropertyStoreFieldIndices fiel
         return FALSE;
     }
     lang = GetLanguageIndexForProperty(lang, field);
-    if (lang <= AJSVC_PROPERTY_STORE_ERROR_LANGUAGE_INDEX || lang >= AJS_GetNumberOfLanguages(duktape)) {
+    if (lang && (lang <= AJSVC_PROPERTY_STORE_ERROR_LANGUAGE_INDEX || lang >= AJS_GetNumberOfLanguages(duktape))) {
         return FALSE;
     }
     AJ_InfoPrintf(("Set key [%s] defaultValue [%s]\n", propDefs[field].keyName, value));

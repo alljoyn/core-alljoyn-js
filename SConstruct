@@ -27,11 +27,14 @@ if platform.system() == 'Linux':
 elif platform.system() == 'Windows':
     default_target = 'win32'
     default_msvc_version = '11.0'
+elif platform.system() == 'Darwin':
+    default_target = ' darwin'
+    default_msvc_version = None
 
 vars = Variables()
 
 # Common build variables
-vars.Add(EnumVariable('TARG', 'Target platform variant', default_target, allowed_values=('win32', 'linux')))
+vars.Add(EnumVariable('TARG', 'Target platform variant', default_target, allowed_values=('win32', 'linux', 'darwin')))
 vars.Add(EnumVariable('VARIANT', 'Build variant', 'debug', allowed_values=('debug', 'release')))
 vars.Add(PathVariable('GTEST_DIR', 'The path to googletest sources', os.environ.get('GTEST_DIR'), PathVariable.PathIsDir))
 vars.Add(EnumVariable('WS', 'Whitespace Policy Checker', 'off', allowed_values=('check', 'detail', 'fix', 'off')))
@@ -164,6 +167,56 @@ if env['TARG'] == 'linux':
         env.Append(CFLAGS=['-Os'])
         env.Append(LINKFLAGS=['-s'])
 
+
+if env['TARG'] == 'darwin':
+    if os.environ.has_key('CROSS_PREFIX'):
+        env.Replace(CC = os.environ['CROSS_PREFIX'] + 'gcc')
+        env.Replace(CXX = os.environ['CROSS_PREFIX'] + 'g++')
+        env.Replace(LINK = os.environ['CROSS_PREFIX'] + 'gcc')
+        env.Replace(AR = os.environ['CROSS_PREFIX'] + 'ar')
+        env.Replace(RANLIB = os.environ['CROSS_PREFIX'] + 'ranlib')
+        env['ENV']['STAGING_DIR'] = os.environ.get('STAGING_DIR', '')
+
+    if os.environ.has_key('CROSS_PATH'):
+        env['ENV']['PATH'] = ':'.join([ os.environ['CROSS_PATH'], env['ENV']['PATH'] ] )
+
+    if os.environ.has_key('CROSS_PATH'):
+        env['ENV']['PATH'] = ':'.join([ os.environ['CROSS_PATH'], env['ENV']['PATH'] ] )
+
+    if os.environ.has_key('CROSS_CFLAGS'):
+        env.Append(CFLAGS=os.environ['CROSS_CFLAGS'].split())
+
+    if os.environ.has_key('CROSS_LINKFLAGS'):
+        env.Append(LINKFLAGS=os.environ['CROSS_LINKFLAGS'].split())
+
+    # Platform libraries
+    env.Append(LIBS = ['libm', 'libcrypto', 'libpthread'])
+    # Compiler flags
+    env.Append(CFLAGS=['-Wall',
+                '-pipe',
+                '-static',
+                '-funsigned-char',
+                '-Wpointer-sign',
+                '-Wimplicit-function-declaration',
+                '-fno-strict-aliasing'])
+    if env['FORCE32'] == 'true':
+        env.Append(CFLAGS = ['-m32'])
+        env.Append(LINKFLAGS=['-m32'])
+
+    # Target variable
+    env['os'] = 'darwin'
+    # Debug/Release Variants
+    if env['VARIANT'] == 'debug':
+        env.Append(CFLAGS=['-g'])
+        env.Append(CFLAGS=['-ggdb'])
+        env.Append(CFLAGS=['-O0'])
+        env.Append(CPPDEFINES=['AJ_DEBUG_RESTRICT=5'])
+        env.Append(CPPDEFINES=['DBGAll'])
+    else:
+        env.Append(CPPDEFINES=['NDEBUG'])
+        env.Append(CFLAGS=['-Os'])
+        env.Append(LINKFLAGS=['-s'])
+
 #######################################################
 # Compile time options for duktape
 #######################################################
@@ -228,7 +281,8 @@ if env['PLATFORM'] == 'win32':
 if env['PLATFORM'] == 'posix':
     env.Append(LIBS = ['libajtcl'])
 
-
+if env['PLATFORM'] == 'darwin':
+    env.Append(LIBS = ['libajtcl_st'])
 
 progs = env.SConscript('SConscript', 'env', variant_dir='build/$VARIANT', duplicate=0)
 

@@ -267,7 +267,7 @@ void AJS_Console::Announce(uint16_t version, uint16_t port, const char* busName,
             /*
              *
              */
-            if (iter == std::end(aboutData)) {
+            if (iter == aboutData.end()) {
                 QCC_LogError(ER_NO_SUCH_DEVICE, ("Missing device name in about data"));
                 return;
             }

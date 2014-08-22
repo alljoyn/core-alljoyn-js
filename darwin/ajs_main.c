@@ -19,6 +19,7 @@
 
 #include "ajs.h"
 #include "ajs_target.h"
+#include <alljoyn/services_common/PropertyStore.h>
 
 typedef struct {
     FILE* file;
@@ -110,6 +111,8 @@ extern uint8_t dbgCONSOLE;
 
 int main(int argc, char* argv[])
 {
+    const char* deviceName = NULL;
+    int argn = 1;
     AJ_Status status = AJ_OK;
 #ifndef NDEBUG
     AJ_DbgLevel = 2;
@@ -128,20 +131,38 @@ int main(int argc, char* argv[])
 
     AJ_Initialize();
 
-    if (argc >= 2) {
-        if (argc != 2) {
-            AJ_Printf("Usage: %s [script_file]\n", argv[0]);
-            exit(-1);
+    if (argc > argn) {
+        if (strcmp(argv[argn], "--name") == 0) {
+            ++argn;
+            if (argn >= argc) {
+                goto Usage;
+            }
+            deviceName = argv[argn];
+            ++argn;
         }
-        status = InstallScript(argv[1]);
-        if (status != AJ_OK) {
-            AJ_Printf("Failed to install script %s\n", argv[1]);
-            exit(-1);
+        if (argc > argn) {
+            if (argc > (argn + 1)) {
+                goto Usage;
+            }
+            status = InstallScript(argv[argn]);
+            if (status != AJ_OK) {
+                AJ_Printf("Failed to install script %s\n", argv[argn]);
+                exit(-1);
+            }
         }
+    }
+
+    if (deviceName) {
+        AJSVC_PropertyStore_Update("DeviceName", 0, deviceName);
     }
 
     status = AJS_Main();
 
     return -((int)status);
+
+Usage:
+
+    AJ_Printf("Usage: %s [--name <device-name>] [script_file]\n", argv[0]);
+    exit(-1);
 }
 

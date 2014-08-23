@@ -43,6 +43,10 @@ env['VARIANT'] = ARGUMENTS.get('VARIANT', 'debug');
 
 CPU=platform.machine()
 
+#We do not support x86_64 on darwin, force to x86
+if env['PLATFORM'] == 'darwin' and CPU == 'x86_64':
+    CPU='x86'
+
 if CPU == 'x86_64':
     env.Append(CPPDEFINES=['QCC_CPU_X86_64'])
 else:
@@ -102,21 +106,34 @@ if env['PLATFORM'] == 'darwin':
     env.Append(CPPDEFINES=['QCC_OS_GROUP_POSIX'])
     env.Append(CPPDEFINES=['QCC_OS_DARWIN'])
     env.Append(CPPDEFINES = ['_GLIBCXX_USE_C99_FP_MACROS_DYNAMIC'])
+
+    env['PATH'] = '$IPHONE_OS_PLATFORM_DIR/Developer/usr/bin:$SYSTEM_DEVELOPER_DIR/usr/bin:$PATH'
+
+    env['CC'] = '$DT_TOOLCHAIN_DIR/usr/bin/clang'
+    env['CXX'] = '$DT_TOOLCHAIN_DIR/usr/bin/clang++'
+
     # Compiler flags
-    env.Append(CXXFLAGS = [
-               '-Wall',
-               '-Werror=non-virtual-dtor',
-               '-pipe',
-               '-std=gnu++0x',
-               '-fno-exceptions',
-               '-fno-strict-aliasing',
-               '-fno-asynchronous-unwind-tables',
-               '-fno-unwind-tables',
-               '-ffunction-sections',
-               '-fdata-sections',
-               '-Wno-long-long',
-               '-Wno-deprecated',
-               '-Wno-unknown-pragmas'])
+    env.Append(CFLAGS=[
+            '-fdiagnostics-show-category=id',
+            '-fdiagnostics-parseable-fixits',
+            '-fpascal-strings',
+            '-Wreturn-type',
+            '-Wparentheses',
+            '-Wswitch',
+            '-Wno-unused-parameter',
+            '-Wunused-variable', 
+            '-Wunused-value'])
+    env.Append(CXXFLAGS=[
+            '-fno-rtti',
+            '-fno-exceptions',
+            '-Wc++11-extensions'])
+
+    ccld = ['-arch', 'i386', '-arch', 'x86_64', '-mmacosx-version-min=10.5.4']
+
+    env.Append(CXXFLAGS=ccld)
+    env.Append(CFLAGS=ccld)
+    env.Append(LINKFLAGS=ccld)
+
     # Debug/Release Variants
     if env['VARIANT'] == 'debug':
        env.Append(CXXFLAGS = '-g')

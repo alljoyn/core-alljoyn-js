@@ -23,37 +23,39 @@
 #ifndef AJS_USE_NATIVE_MALLOC
 
 static const AJS_HeapConfig heapConfig[] = {
-    { 16,     200 },
-    { 24,     800 },
-    { 32,     800 },
-    { 48,     800 },
-    { 64,     800 },
-    { 96,     800 },
-    { 128,     64 },
-    { 256,     64 },
-    { 512,     16 },
-    { 1024,    16 },
-    { 2048,     8 },
-    { 3000,     8 },
-    { 4096,     2 },
-    { 16384,    2 }
+    { 16,     200, 0, 0 },
+    { 24,     800, 0, 0 },
+    { 32,     800, 0, 0 },
+    { 48,     800, 0, 0 },
+    { 64,     800, 0, 0 },
+    { 96,     800, 0, 0 },
+    { 128,     64, 0, 0 },
+    { 256,     64, 0, 0 },
+    { 512,     16, 0, 0 },
+    { 1024,    16, 0, 0 },
+    { 2048,     8, 0, 0 },
+    { 3000,     8, 0, 0 },
+    { 4096,     2, 0, 0 },
+    { 16384,    2, 0, 0 }
 };
 
 static uint32_t heap[500000 / 4];
 
 AJ_Status AJS_HeapCreate()
 {
-    size_t heapSz;
+    size_t heapSz[1];
+    uint8_t* heapPtr[1];
+    heapPtr[0] = &heap;
     /*
      * Allocate the heap pools
      */
-    heapSz = AJS_HeapRequired(heapConfig, ArraySize(heapConfig));
-    if (heapSz > sizeof(heap)) {
-        AJ_ErrPrintf(("Heap space is too small %d required %d\n", (int)sizeof(heap), (int)heapSz));
+    heapSz[0] = AJS_HeapRequired(heapConfig, ArraySize(heapConfig), 0);
+    if (heapSz[0] > sizeof(heap)) {
+        AJ_ErrPrintf(("Heap space is too small %d required %d\n", (int)sizeof(heap), (int)heapSz[0]));
         return AJ_ERR_RESOURCES;
     }
     AJ_Printf("Allocated heap %d bytes\n", (int)heapSz);
-    AJS_HeapInit(heap, heapSz, heapConfig, ArraySize(heapConfig));
+    AJS_HeapInit(heapPtr, heapSz, heapConfig, ArraySize(heapConfig), 1);
     return AJ_OK;
 }
 

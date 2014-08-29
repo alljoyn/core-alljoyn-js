@@ -350,13 +350,13 @@ static AJ_Status Install(duk_context* ctx, AJ_Message* msg)
         status = AJ_DeliverMsg(&reply);
     } else {
         ds = AJ_NVRAM_Open(AJS_SCRIPT_NVRAM_ID, "w", sizeof(len) + len);
+        if (AJ_NVRAM_Write(&len, sizeof(len), ds) != sizeof(len)) {
+            status = AJ_ERR_RESOURCES;
+            goto ErrorReply;
+        }
         while (len) {
             status = AJ_UnmarshalRaw(msg, &raw, len, &sz);
             if (status != AJ_OK) {
-                goto ErrorReply;
-            }
-            if (AJ_NVRAM_Write(&len, sizeof(len), ds) != sizeof(len)) {
-                status = AJ_ERR_RESOURCES;
                 goto ErrorReply;
             }
             if (AJ_NVRAM_Write(raw, sz, ds) != sz) {

@@ -464,7 +464,7 @@ void AJS_HeapDestroy();
 #ifndef NDEBUG
 void AJS_HeapDump();
 #else
-#define AJS_HeapDump() do { } while(0)
+#define AJS_HeapDump() do { } while (0)
 #endif
 
 #endif

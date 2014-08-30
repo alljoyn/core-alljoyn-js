@@ -271,7 +271,7 @@ void AJS_Console::Announce(uint16_t version, uint16_t port, const char* busName,
                 QCC_LogError(ER_NO_SUCH_DEVICE, ("Missing device name in about data"));
                 return;
             }
-            const MsgArg &arg = iter->second;
+            const MsgArg& arg = iter->second;
             const char* name;
             if ((arg.Get("s", &name) != ER_OK) || (deviceName != name)) {
                 QCC_SyncPrintf("Found device \"%s\" this is not the device you are looking for\n", name);

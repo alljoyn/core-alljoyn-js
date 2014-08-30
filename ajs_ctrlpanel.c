@@ -761,6 +761,20 @@ TypeError:
 
 }
 
+static AJ_Status OnClick(duk_context* ctx)
+{
+    int ret;
+    duk_get_prop_string(ctx, -1, "onClick");
+    ret = duk_pcall(ctx, 0);
+    duk_pop(ctx);
+    if (ret == DUK_EXEC_SUCCESS) {
+        return AJ_OK;
+    } else {
+        AJS_ConsoleSignalError(ctx);
+        return AJ_ERR_FAILURE;
+    }
+}
+
 AJ_Status AJS_CP_ExecuteAction(AJS_Widget* ajsWidget, uint8_t action)
 {
     AJ_Status status = AJ_ERR_NO_MATCH;
@@ -768,24 +782,20 @@ AJ_Status AJS_CP_ExecuteAction(AJS_Widget* ajsWidget, uint8_t action)
 
     GetWidgetObject(ctx, ajsWidget->index);
     AJ_InfoPrintf(("Execute action%d on %s\n", action, ajsWidget->path));
-    duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("buttons"));
-    if (duk_is_array(ctx, -1)) {
-        duk_get_prop_index(ctx, -1, action);
-        if (duk_is_object(ctx, -1)) {
-            int ret;
-            duk_get_prop_string(ctx, -1, "onClick");
-            ret = duk_pcall(ctx, 0);
-            duk_pop(ctx);
-            if (ret == DUK_EXEC_SUCCESS) {
-                status = AJ_OK;
-            } else {
-                AJS_ConsoleSignalError(ctx);
-                status = AJ_ERR_FAILURE;
+    if (action == 0) {
+        status = OnClick(ctx);
+    } else {
+        duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("buttons"));
+        if (duk_is_array(ctx, -1)) {
+            duk_get_prop_index(ctx, -1, action - 1);
+            if (duk_is_object(ctx, -1)) {
+                status = OnClick(ctx);
             }
+            duk_pop(ctx);
         }
         duk_pop(ctx);
     }
-    duk_pop_2(ctx);
+    duk_pop(ctx);
     return status;
 }
 

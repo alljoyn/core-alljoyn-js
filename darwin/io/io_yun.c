@@ -47,10 +47,18 @@ typedef struct {
     uint8_t pos;
 } CheckSum;
 
-static void CheckSumInit(CheckSum *chksum) { chksum->sum = 0; chksum->pos = 0; }
-static void AddByte(CheckSum *chksum, uint8_t b) { chksum->sum += (++chksum->pos * b); }
-static uint8_t GetSumMSB(const CheckSum *chksum) { return (chksum->sum >> 8) & 0xff; }
-static uint8_t GetSumLSB(const CheckSum *chksum) { return chksum->sum & 0xff; }
+static void CheckSumInit(CheckSum*chksum) {
+    chksum->sum = 0; chksum->pos = 0;
+}
+static void AddByte(CheckSum*chksum, uint8_t b) {
+    chksum->sum += (++chksum->pos * b);
+}
+static uint8_t GetSumMSB(const CheckSum*chksum) {
+    return (chksum->sum >> 8) & 0xff;
+}
+static uint8_t GetSumLSB(const CheckSum*chksum) {
+    return chksum->sum & 0xff;
+}
 
 
 static int WaitForMsg(int fd, uint32_t timeout)
@@ -191,7 +199,7 @@ static int WriteMsg(int fd, const uint8_t* buf, uint8_t len)
 static uint32_t trigSet;
 static uint32_t trigMode;
 
-#define BIT_IS_SET(i, b)  ((i)& (1 << (b)))
+#define BIT_IS_SET(i, b)  ((i) & (1 << (b)))
 #define BIT_SET(i, b)     ((i) |= (1 << (b)))
 #define BIT_CLR(i, b)     ((i) &= ~(1 << (b)))
 

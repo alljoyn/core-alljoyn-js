@@ -231,8 +231,10 @@ static AJSVC_ServiceStatus CPSMessageHandler(AJ_BusAttachment* bus, AJ_Message* 
         } else {
             status = AJCPS_GetAllWidgetProperties(msg, msg->msgId);
         }
+    } else if (strcmp(msg->member, "Exec") == 0) {
+        status = ExecuteAction(msg, 0, NULL);
     } else if ((strncmp(msg->member, "Action", 6) == 0) && !msg->member[7]) {
-        status = ExecuteAction(msg, msg->member[6] - '1', NULL);
+        status = ExecuteAction(msg, msg->member[6] - '0', NULL);
     } else if (strcmp(msg->member, "GetURL") == 0) {
         status = AJCPS_SendRootUrl(msg, msg->msgId);
     } else {

@@ -78,19 +78,19 @@ static int NativeSendNotification(duk_context* ctx)
     AJ_Status status = AJ_OK;
     AJNS_NotificationContent notif;
     AJ_BusAttachment* aj = AJS_GetBusAttachment();
-    uint16_t ttl = (uint16_t)duk_require_int(ctx, 0);
+    uint16_t ttl = duk_is_number(ctx, 0) ? (uint16_t)duk_get_int(ctx, 0) : AJS_DEFAULT_SLS_TTL;
     uint16_t notifType;
 
     if (!AJS_IsRunning()) {
         duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "notification.send: not attached to AllJoyn");
     }
-    memset(&notif, 0, sizeof(notif));
 
     duk_push_this(ctx);
     duk_get_prop_string(ctx, -1, "type");
     notifType = (uint16_t)duk_require_int(ctx, -1);
     duk_pop(ctx);
 
+    memset(&notif, 0, sizeof(notif));
     duk_push_pointer(ctx, &notif);
     duk_push_this(ctx);
     ret = duk_safe_call(ctx, SafeSendNotification, 2, 0);

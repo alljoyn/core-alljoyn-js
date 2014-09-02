@@ -383,6 +383,9 @@ int AJS_MarshalSignal(duk_context* ctx)
     duk_get_prop_string(ctx, -1, "sessionless");
     if (duk_get_boolean(ctx, -1)) {
         flags |= ALLJOYN_FLAG_SESSIONLESS;
+        if (!ttl) {
+            ttl = AJS_DEFAULT_SLS_TTL;
+        }
     }
     duk_pop(ctx);
     /*

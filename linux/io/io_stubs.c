@@ -48,39 +48,47 @@ AJ_Status AJS_TargetIO_DacClose(void* dacCtx)
 void AJS_TargetIO_DacWrite(void* dacCtx, uint32_t val)
 {
 }
+
 uint8_t AJS_TargetIO_SpiRead(void* ctx)
 {
     AJ_InfoPrintf(("AJS_TargetIO_SpiRead()"));
     return 0;
 }
+
 void AJS_TargetIO_SpiWrite(void* ctx, uint8_t data)
 {
     AJ_InfoPrintf(("AJS_TargetIO_SpiWrite(): Wrote %i\n", data));
     return;
 }
+
 AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t clk, uint32_t prescaler,
                                uint8_t master, uint8_t cpol, uint8_t cpha, uint8_t data, void** spiCtx)
 {
     return AJ_OK;
 }
+
 AJ_Status AJS_TargetIO_SpiClose(void* spiCtx)
 {
     return AJ_OK;
 }
+
 uint8_t AJS_TargetIO_UartRead(void* uartCtx)
 {
     AJ_InfoPrintf(("AJS_TargetIO_UartRead()"));
-    return 0
+    return 0;
 }
+
 AJ_Status AJS_TargetIO_UartWrite(void* uartCtx, uint8_t value)
 {
     AJ_InfoPrintf(("AJS_TargetIO_UartWrite(): Wrote %i\n", value));
     return 0;
 }
+
 AJ_Status AJS_TargetIO_UartOpen(uint8_t txPin, uint8_t rxPin, uint32_t baud, void** uartCtx)
 {
     return 0;
 }
+
 AJ_Status AJS_TargetIO_UartClose(void* uartCtx)
 {
     return AJ_OK;

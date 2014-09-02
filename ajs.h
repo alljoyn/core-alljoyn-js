@@ -55,6 +55,11 @@ extern uint8_t dbgAJS;
 #define AJS_PROPSTORE_NVRAM_MIN   (AJS_PROPSTORE_NVRAM_ID + 1)
 #define AJS_PROPSTORE_NVRAM_MAX   (AJS_PROPSTORE_NVRAM_MIN + 256)
 
+/*
+ * Default TTL for sessionless signals and notifications
+ */
+#define AJS_DEFAULT_SLS_TTL       30
+
 /**
  * The name of the AllJoyn object
  */

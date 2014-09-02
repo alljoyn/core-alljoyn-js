@@ -541,9 +541,9 @@ int main(int argc, char** argv)
 {
     QStatus status;
     AJS_Console ajsConsole;
-    const char* scriptName;
-    const char* deviceName;
-    uint8_t* script;
+    const char* scriptName = NULL;
+    const char* deviceName = NULL;
+    uint8_t* script = NULL;
     size_t scriptLen = 0;
 
     /* Install SIGINT handler */

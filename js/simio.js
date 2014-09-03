@@ -33,10 +33,19 @@ setInterval(function() {
     if (in1.level == 1) { led1.toggle() }
     if (in2.level == 1) { led2.toggle() }
     if (in3.level == 1) { led3.toggle() }
-    if (in4.level == 1) { led4.toggle() }
+    if (in4.level == 1) { led4.pwm(Math.round(saw()*100)/100, 1)  }
 }, 500);
 
 pb1.setTrigger(IO.fallingEdge, function(){ print(pb1.pin.info.description); led1.toggle()});
 pb2.setTrigger(IO.fallingEdge, function(){ print(pb2.pin.info.description); led2.toggle()});
 pb3.setTrigger(IO.risingEdge, function(){ print(pb3.pin.info.description); led3.toggle()});
 pb4.setTrigger(IO.risingEdge, function(){ print(pb4.pin.info.description); led4.toggle()});
+
+var saw = sawTooth(1.0, 0.1);
+function sawTooth(peak, step) {
+    var i = peak-step;
+    return function() {
+        return Math.abs((i += step)%(2*peak)-peak)
+    }
+}
+

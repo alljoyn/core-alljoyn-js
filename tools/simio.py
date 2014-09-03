@@ -39,9 +39,10 @@ class Pin(object):
     trigger_rising = 1
     trigger_falling = 2
 
-    def __init__(self, val=0):
+    def __init__(self, val=0, pwm=0):
         #print "val: %s" % val
         self.val = val
+        self.pwm = pwm;
         self.trigger = self.trigger_falling
 
     def setVal(self, val):
@@ -50,6 +51,13 @@ class Pin(object):
 
     def getVal(self):
         return self.val
+
+    def setPWM(self, pwm):
+        #print "PWM: %s" % pwm
+        self.pwm = pwm
+
+    def getPWM(self):
+        return self.pwm
 
     def toggle(self):
         if self.getVal():
@@ -66,15 +74,22 @@ class Pin(object):
 
 class Led(Pin, Tk.Canvas):
     """Output pin displayed as a colored square"""
-    def __init__(self, master, val=1, color="black"):
-        Pin.__init__(self, val)
+    def __init__(self, master, val=1, pwm=255, color="black"):
+        Pin.__init__(self, val, pwm)
         Tk.Canvas.__init__(self, master, width=30, height=30)
         self.color = color
         self.draw()
 
     def draw(self):
         if self.getVal():
-            color = self.color
+            if self.getPWM():
+                (r1, g1, b1) = self.winfo_rgb(self.color)
+                r1 = (r1*self.getPWM()/65535)
+                g1 = (g1*self.getPWM()/65535)
+                b1 = (b1*self.getPWM()/65535)
+                color = "#%02x%02x%02x" % (r1, g1, b1)
+            else:
+                color = "black"
         else:
             color = "black"
         self.create_rectangle(0, 0, 30, 30, fill=color)
@@ -83,10 +98,14 @@ class Led(Pin, Tk.Canvas):
         Pin.setVal(self, val)
         self.draw()
 
+    def setPWM(self, pwm):
+        Pin.setPWM(self, pwm)
+        self.draw()
+
 class InputPin(Pin, Tk.Checkbutton):
     """Input pin displayed as a check box"""
     def __init__(self, master, val=0, text=""):
-        Pin.__init__(self, val)
+        Pin.__init__(self, val, 0)
         self.tkint = Tk.IntVar()
         Tk.Checkbutton.__init__(self, master, text=text, variable=self.tkint)
         self.text = text
@@ -100,7 +119,7 @@ class InputPin(Pin, Tk.Checkbutton):
 class InputButton(Pin, Tk.Button):
     """Edge-triggered input button, displayed as a button. Events are sent to the registered server"""
     def __init__(self, master, server, val=0, text=""):
-        Pin.__init__(self, val)
+        Pin.__init__(self, val, 0)
         Tk.Button.__init__(self, master, text=text)
         self.server = server
         self.text = text
@@ -137,7 +156,7 @@ class Simio(object):
     """
 
     server_name = "/tmp/ajs_gui"  # Path to socket
-    command_len = 3               # Bytes per incoming command
+    command_len = 4               # Bytes per incoming command
     columns = 4                   # Number of columns in pin display
     pipe_poll_ms = 50             # Milliseconds between pipe reads on Windows
     pipe_quick_poll_ms = 1        # Quick interval for consecutive incoming commands
@@ -301,6 +320,7 @@ class Simio(object):
         op = command[0]
         pin = ord(command[1])
         val = ord(command[2])
+        val2 = ord(command[3])
 
         if pin >= len(self.pins):
             return
@@ -317,6 +337,9 @@ class Simio(object):
         elif op == 'i':
             # Interrupt trigger
             self.pins[pin].setTrigger(val)
+        elif op == 'p':
+            # PWM
+            self.pins[pin].setPWM(val2)
 
     def pipe_cb(self, *args):
         """Callback polling for incoming pipe connection and data"""

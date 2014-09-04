@@ -50,7 +50,6 @@ static const char aj_init[] =
     "METHOD:0,"
     "SIGNAL:1,"
     "PROPERTY:2,"
-    "defaultLanguage:'en'"
     "};"
     "print('AJ initialized\\n');";
 
@@ -202,7 +201,7 @@ static int NativeOverridePrint(duk_context* ctx)
     return 0;
 }
 
-AJ_Status AJS_Main()
+AJ_Status AJS_Main(const char* deviceName)
 {
     AJ_Status status = AJ_OK;
     duk_context* ctx;
@@ -249,7 +248,7 @@ AJ_Status AJS_Main()
         duk_gc(ctx, 0);
         AJS_HeapDump();
 
-        status = AJS_PropertyStoreInit(ctx);
+        status = AJS_PropertyStoreInit(ctx, deviceName);
         if (status != AJ_OK) {
             AJ_ErrPrintf(("Failed to initialize property store\n"));
         }

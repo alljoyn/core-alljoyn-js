@@ -20,7 +20,6 @@
 #include "ajs.h"
 #include "ajs_target.h"
 #include "aj_nvram.h"
-#include <alljoyn/services_common/PropertyStore.h>
 
 extern uint8_t dbgMSG;
 extern uint8_t dbgHELPER;
@@ -66,9 +65,8 @@ int AJ_Main()
     AJ_NVRAM_Clear();
 #endif
 
-    AJSVC_PropertyStore_Update("DeviceName", 0, "STM32");
     while (1) {
-        status = AJS_Main();
+        status = AJS_Main("STM32");
         if (status != AJ_ERR_RESTART) {
             AJ_Reboot();
         }

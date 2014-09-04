@@ -25,3 +25,12 @@ AJ.translations = {
           "blue":"blau",
           "yellow":"gelb" }
 };
+
+AJ.store("DefaultLanguage", "en");
+print(AJ.translate("red"));
+print(AJ.translate("red", "fr"));
+AJ.store("DefaultLanguage", "de");
+print(AJ.translate("red"));
+print(AJ.translate("green"));
+print(AJ.translate("purple"));
+print(AJ.load("DeviceName"));

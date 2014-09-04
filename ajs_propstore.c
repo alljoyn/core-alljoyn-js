@@ -15,6 +15,7 @@
  ******************************************************************************/
 
 #include "ajs.h"
+#include "ajs_util.h"
 #include "ajs_propstore.h"
 #include "ajs_translations.h"
 
@@ -26,187 +27,177 @@
 #include <aj_creds.h>
 #include <aj_config.h>
 
-#define LANG_VALUE_LENGTH         7
-#define KEY_VALUE_LENGTH          10
-#define MACHINE_ID_LENGTH         (UUID_LENGTH * 2)
-#define DEVICE_NAME_VALUE_LENGTH  32
+/*
+ * Compute NVRAM id for a given property key
+ */
+#define NVRAM_ID(key)  ((uint16_t)(key) + AJ_PROPERTIES_NV_ID_BEGIN)
 
-extern const uint8_t AJSVC_PROPERTY_STORE_NUMBER_OF_LANGUAGES;
+/*
+ * Maximum length of a predefined property string
+ */
+#define MAX_PROP_LENGTH     32
 
-/**
+#define  P_READONLY  0x01
+#define  P_ANNOUNCE  0x02
+#define  P_LOCALIZED 0x04
+#define  P_PRIVATE   0x08
+
+/*
  * property structure
  */
 typedef struct {
-    const char* keyName; /** The property key name as shown in About and Config documentation */
-    uint8_t writeable : 1;
-    uint8_t announce : 1;
-    uint8_t multiLang : 1;
-    uint8_t initialized : 1;
-    uint8_t public: 1;
-    const char** defaultVals;
+    const char* keyName;      /* The property key name as shown in About and Config documentation */
+    uint8_t flags;
+    const char* initialValue;
 } PropertyStoreEntry;
-
-/**
- * properties container for runtime values
- */
-typedef struct {
-    char** value;  // An array of size 1 or AJSVC_PROPERTY_STORE_NUMBER_OF_LANGUAGES mutable buffers depending on whether the property is multilingual
-    uint8_t size;  // The size of the value buffer(s)
-} PropertyStoreConfigEntry;
-
-#define AJ_PROPERTIES_NV_ID_END   (AJ_PROPERTIES_NV_ID_BEGIN + (int)AJSVC_PROPERTY_STORE_NUMBER_OF_RUNTIME_KEYS * (int)AJSVC_PROPERTY_STORE_NUMBER_OF_LANGUAGES - 1)
 
 #define FIRST_PROPERTY_INDEX ((AJSVC_PropertyStoreFieldIndices)0)
 
 static duk_context* duktape;
 
 /*
- * TODO - many of these strings need to be provisioned or initialized from JavaScript
- */
-
-static const char deviceManufactureName[] = "Manufacturer Name";
-static const char deviceProductName[] = "Product Name";
-
-/*
  * Default property strings
  */
-static const char* DEFAULT_PASSCODE[]            = { "303030303030" }; // HEX encoded { '0', '0', '0', '0', '0', '0' }
-static const char* DEFAULT_APP_NAME[]            = { "AllJoyn.js" };
-static const char* DEFAULT_DESCRIPTION[]         = { "AllJoyn.js" };
-static const char* DEFAULT_MANUFACTURER[]        = { "AllSeen Alliance" };
-static const char* DEFAULT_DEVICE_MODEL[]        = { "0.0.1" };
-static const char* DEFAULT_DATE_OF_MANUFACTURE[] = { "2014-07-07" };
-static const char* DEFAULT_SOFTWARE_VERSION[]    = { "0.0.1" };
-static const char* DEFAULT_HARDWARE_VERSION[]    = { "0.0.1" };
-static const char* DEFAULT_SUPPORT_URL[]         = { "www.allseenalliance.org" };
-static const char* DEFAULT_LANGUAGE[]            = { "en" };
+static const char DEFAULT_PASSCODE[]            = "303030303030"; // HEX encoded { '0', '0', '0', '0', '0', '0' }
+static const char DEFAULT_APP_NAME[]            = "AllJoyn.js";
+static const char DEFAULT_DESCRIPTION[]         = "AllJoyn.js";
+static const char DEFAULT_MANUFACTURER[]        = "AllSeen Alliance";
+static const char DEFAULT_DEVICE_MODEL[]        = "0.0.1";
+static const char DEFAULT_DATE_OF_MANUFACTURE[] = "2014-09-03";
+static const char DEFAULT_SOFTWARE_VERSION[]    = "0.0.1";
+static const char DEFAULT_HARDWARE_VERSION[]    = "0.0.1";
+static const char DEFAULT_SUPPORT_URL[]         = "www.allseenalliance.org";
+static const char DEFAULT_LANGUAGE[]            = "en";
+
+#define IS_VALID_FIELD_ID(f) \
+    (((f) > AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX) && ((f) < AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS))
 
 static const PropertyStoreEntry propDefs[AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS] =
 {
-    /* runtime keys */
-    { "DeviceId",             0, 1, 0, 1, 1, NULL },
-    { "AppId",                0, 1, 0, 1, 1, NULL },
-    { "DeviceName",           1, 1, 0, 1, 1, NULL },
-    { "DefaultLanguage",      1, 1, 0, 0, 1, DEFAULT_LANGUAGE },
-    { "Passcode",             1, 0, 0, 0, 0, DEFAULT_PASSCODE },
-    { "RealmName",            1, 0, 0, 0, 0, NULL },
-    /* fixed keys */
-    { "AppName",              0, 1, 0, 0, 1, DEFAULT_APP_NAME },
-    { "Description",          0, 0, 1, 0, 1, DEFAULT_DESCRIPTION },
-    { "Manufacturer",         0, 1, 1, 0, 1, DEFAULT_MANUFACTURER },
-    { "ModelNumber",          0, 1, 0, 0, 1, DEFAULT_DEVICE_MODEL },
-    { "DateOfManufacture",    0, 0, 0, 0, 1, DEFAULT_DATE_OF_MANUFACTURE },
-    { "SoftwareVersion",      0, 0, 0, 0, 1, DEFAULT_SOFTWARE_VERSION },
-    { "AJSoftwareVersion",    0, 0, 0, 0, 1, NULL },
-    { "MaxLength",            0, 1, 0, 0, 1, NULL },
+    /* config keys */
+    { "DeviceId",          P_READONLY | P_ANNOUNCE,                NULL },
+    { "AppId",             P_READONLY | P_ANNOUNCE,                NULL },
+    { "DeviceName",        P_ANNOUNCE | P_LOCALIZED,               NULL },
+    { "DefaultLanguage",   P_ANNOUNCE,                             DEFAULT_LANGUAGE },
+    { "Passcode",          P_PRIVATE,                              DEFAULT_PASSCODE },
+    { "RealmName",         P_PRIVATE,                              NULL },
+    /* regular keys */
+    { "AppName",           P_ANNOUNCE,                             DEFAULT_APP_NAME },
+    { "Description",       P_LOCALIZED,                            DEFAULT_DESCRIPTION },
+    { "Manufacturer",      P_ANNOUNCE | P_LOCALIZED,               DEFAULT_MANUFACTURER },
+    { "ModelNumber",       P_ANNOUNCE,                             DEFAULT_DEVICE_MODEL },
+    { "DateOfManufacture", P_READONLY,                             DEFAULT_DATE_OF_MANUFACTURE },
+    { "SoftwareVersion",   P_READONLY,                             DEFAULT_SOFTWARE_VERSION },
+    { "AJSoftwareVersion", P_READONLY,                             NULL },
+    { "MaxLength",         P_READONLY | P_ANNOUNCE,                NULL },
     /* optional keys */
-    { "HardwareVersion",      0, 0, 0, 0, 1, DEFAULT_HARDWARE_VERSION },
-    { "SupportUrl",           0, 0, 1, 0, 1, DEFAULT_SUPPORT_URL },
+    { "HardwareVersion",   P_READONLY,                             DEFAULT_HARDWARE_VERSION },
+    { "SupportUrl",        P_LOCALIZED,                            DEFAULT_SUPPORT_URL },
 };
 
-/**
- * properties array of runtime values' buffers
- */
-static char machineIdVar[MACHINE_ID_LENGTH + 1] = { 0 };
-static char* machineIdVars[] = { machineIdVar };
-static char deviceNameVar[DEVICE_NAME_VALUE_LENGTH + 1] = { 0 };
-static char* deviceNameVars[] = { deviceNameVar };
-static char defaultLanguageVar[LANG_VALUE_LENGTH + 1] = { 0 };
-static char* defaultLanguageVars[] = { defaultLanguageVar };
-static char passcodeVar[PASSWORD_VALUE_LENGTH + 1] = { 0 };
-static char* passcodeVars[] = { passcodeVar };
-static char realmNameVar[KEY_VALUE_LENGTH + 1] = { 0 };
-static char* realmNameVars[] = { realmNameVar };
-
-PropertyStoreConfigEntry propVals[AJSVC_PROPERTY_STORE_NUMBER_OF_RUNTIME_KEYS] =
-{
-    /*  {"Buffers for Values per language", "Buffer Size"},                  "Key Name" */
-    { machineIdVars,             MACHINE_ID_LENGTH + 1 },               /*DeviceId*/
-    { machineIdVars,             MACHINE_ID_LENGTH + 1 },               /*AppId*/
-    { deviceNameVars,            DEVICE_NAME_VALUE_LENGTH + 1 },        /*DeviceName*/
-    { defaultLanguageVars,       LANG_VALUE_LENGTH + 1 },               /*DefaultLanguage*/
-    { passcodeVars,              PASSWORD_VALUE_LENGTH + 1 },           /*Passcode*/
-    { realmNameVars,             KEY_VALUE_LENGTH + 1 },                /*RealmName*/
-};
-
-static const char* defaultLanguagesKeyName = "SupportedLanguages";
+static const char* SupportedLanguagesKey = "SupportedLanguages";
 
 uint8_t AJSVC_PropertyStore_GetMaxValueLength(AJSVC_PropertyStoreFieldIndices field)
 {
-    switch (field) {
-    case AJSVC_PROPERTY_STORE_DEVICE_NAME:
-        return DEVICE_NAME_VALUE_LENGTH;
-
-    case AJSVC_PROPERTY_STORE_DEFAULT_LANGUAGE:
-        return LANG_VALUE_LENGTH;
-
-    case AJSVC_PROPERTY_STORE_PASSCODE:
-        return PASSWORD_VALUE_LENGTH;
-
-    default:
-        return KEY_VALUE_LENGTH;
-    }
+    return MAX_PROP_LENGTH;
 }
 
 const char* AJSVC_PropertyStore_GetFieldName(AJSVC_PropertyStoreFieldIndices field)
 {
-    if ((int8_t)field <= (int8_t)AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX || (int8_t)field >= (int8_t)AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS) {
-        return "N/A";
-    }
-    return propDefs[field].keyName;
+    return IS_VALID_FIELD_ID(field) ? propDefs[field].keyName : "N/A";
 }
 
 AJSVC_PropertyStoreFieldIndices AJSVC_PropertyStore_GetFieldIndex(const char* fieldName)
 {
-    AJSVC_PropertyStoreFieldIndices field = FIRST_PROPERTY_INDEX;
-    for (; field < AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS; field++) {
-        if (!strcmp(propDefs[field].keyName, fieldName)) {
+    AJSVC_PropertyStoreFieldIndices field;
+
+    for (field = FIRST_PROPERTY_INDEX; field < AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS; field++) {
+        if (strcmp(propDefs[field].keyName, fieldName) == 0) {
             return field;
         }
     }
     return AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX;
 }
 
-static int8_t GetLanguageIndexForProperty(int8_t lang, AJSVC_PropertyStoreFieldIndices field)
+const char* PeekProp(AJSVC_PropertyStoreFieldIndices field) 
 {
-    if (propDefs[field].multiLang) {
-        return lang;
+    const char* prop = NULL;
+    AJ_NV_DATASET* handle = AJ_NVRAM_Open(NVRAM_ID(field), "r", 0);
+    if (handle) {
+        prop = AJ_NVRAM_Peek(handle);
+        AJ_NVRAM_Close(handle);
     }
-    return AJSVC_PROPERTY_STORE_NO_LANGUAGE_INDEX;
+    return prop;
 }
 
-const char* AJSVC_PropertyStore_GetValueForLang(AJSVC_PropertyStoreFieldIndices field, int8_t lang)
+const char* AJSVC_PropertyStore_GetLanguageName(int8_t index)
 {
-    if ((int8_t)field <= (int8_t)AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX || (int8_t)field >= (int8_t)AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS) {
-        return NULL;
-    }
-    lang = GetLanguageIndexForProperty(lang, field);
-    if (lang && (lang <= AJSVC_PROPERTY_STORE_ERROR_LANGUAGE_INDEX || lang >= AJS_GetNumberOfLanguages(duktape))) {
-        return NULL;
-    }
-    if (field < AJSVC_PROPERTY_STORE_NUMBER_OF_RUNTIME_KEYS &&
-        (propDefs[field].writeable || propDefs[field].initialized) &&
-        propVals[field].value != NULL &&
-        (propVals[field].value[lang]) != NULL &&
-        (propVals[field].value[lang])[0] != '\0') {
-        AJ_InfoPrintf(("Has key [%s] runtime Value [%s]\n", propDefs[field].keyName, propVals[field].value[lang]));
-        return propVals[field].value[lang];
-    } else if (propDefs[field].defaultVals != NULL && (propDefs[field].defaultVals)[lang] != NULL) {
-        AJ_InfoPrintf(("Has key [%s] default Value [%s]\n", propDefs[field].keyName, (propDefs[field].defaultVals)[lang]));
-        return (propDefs[field].defaultVals)[lang];
-    }
+    duk_context* ctx = duktape;
+    const char* language = NULL;
 
-    return NULL;
+    if (index < AJS_GetNumberOfLanguages(ctx)) {
+        language = AJS_GetLanguageName(ctx, index);
+    } else {
+        language = PeekProp(AJSVC_PROPERTY_STORE_DEFAULT_LANGUAGE);
+    }
+    return language ? language : DEFAULT_LANGUAGE;
+}
+
+const char* AJSVC_PropertyStore_GetValueForLang(AJSVC_PropertyStoreFieldIndices field, int8_t index)
+{
+    static char valBuf[MAX_PROP_LENGTH + 1];
+    const char* val = NULL;
+    const char* lang;
+    duk_context* ctx = duktape;
+
+    if (!IS_VALID_FIELD_ID(field)) {
+        return NULL;
+    }
+    if (propDefs[field].flags & P_PRIVATE) {
+        return NULL;
+    }
+    if (!(propDefs[field].flags & P_LOCALIZED)) {
+        return PeekProp(field);
+    }
+    lang = AJSVC_PropertyStore_GetLanguageName(index);
+    /*
+     * Expect JSON of form { <lang>:<string>, <lang>:<string>, ... }
+     */
+    duk_push_string(ctx, PeekProp(field));
+    duk_json_decode(ctx, -1);
+    /*
+     * First try lookup the language requested
+     * Second try lookup the current default language
+     * Third try lookup the compile time default language
+     */
+    duk_get_prop_string(ctx, -1, lang);
+    if (!duk_is_string(ctx, -1)) {
+        duk_pop(ctx);
+        lang = PeekProp(AJSVC_PROPERTY_STORE_DEFAULT_LANGUAGE);
+        duk_get_prop_string(ctx, -1, lang);
+        if (!duk_is_string(ctx, -1)) {
+            duk_pop(ctx);
+            lang = DEFAULT_LANGUAGE;
+            duk_get_prop_string(ctx, -1, lang);
+        }
+    }
+    if (duk_is_string(ctx, -1)) {
+        /*
+         * The value we want to return is on the duktape stack but is not stable to we copy it to a
+         * static buffer. The assumption that the caller will consume the string before calling this
+         * function again.
+         */
+        strncpy(valBuf, duk_get_string(ctx, -1), MAX_PROP_LENGTH);
+        valBuf[MAX_PROP_LENGTH] = 0;
+        val = valBuf;
+    }
+    duk_pop_2(ctx);
+    return val;
 }
 
 const char* AJSVC_PropertyStore_GetValue(AJSVC_PropertyStoreFieldIndices field)
 {
-    return AJSVC_PropertyStore_GetValueForLang(field, AJSVC_PROPERTY_STORE_NO_LANGUAGE_INDEX);
-}
-
-const char* AJSVC_PropertyStore_GetLanguageName(int8_t lang)
-{
-    return AJS_GetLanguageName(duktape, lang);
+    return AJSVC_PropertyStore_GetValueForLang(field, AJS_GetCurrentLanguage());
 }
 
 int8_t AJSVC_PropertyStore_GetLanguageIndex(const char* const language)
@@ -214,91 +205,60 @@ int8_t AJSVC_PropertyStore_GetLanguageIndex(const char* const language)
     return (int8_t)AJS_GetLanguageIndex(duktape, language);
 }
 
-uint8_t AJSVC_PropertyStore_SetValueForLang(AJSVC_PropertyStoreFieldIndices field, int8_t lang, const char* value)
-{
-    size_t var_size;
-    if ((int8_t)field <= (int8_t)AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX ||
-        (int8_t)field >= (int8_t)AJSVC_PROPERTY_STORE_NUMBER_OF_RUNTIME_KEYS) {
-        return FALSE;
-    }
-    lang = GetLanguageIndexForProperty(lang, field);
-    if (lang && (lang <= AJSVC_PROPERTY_STORE_ERROR_LANGUAGE_INDEX || lang >= AJS_GetNumberOfLanguages(duktape))) {
-        return FALSE;
-    }
-    AJ_InfoPrintf(("Set key [%s] defaultValue [%s]\n", propDefs[field].keyName, value));
-    var_size = propVals[field].size;
-    strncpy(propVals[field].value[lang], value, var_size - 1);
-    (propVals[field].value[lang])[var_size - 1] = '\0';
-
-    return TRUE;
-}
-
 uint8_t AJSVC_PropertyStore_SetValue(AJSVC_PropertyStoreFieldIndices field, const char* value)
 {
-    return AJSVC_PropertyStore_SetValueForLang(field, AJSVC_PROPERTY_STORE_NO_LANGUAGE_INDEX, value);
+    return AJSVC_PropertyStore_SetValueForLang(field, AJS_GetCurrentLanguage(), value);
 }
 
-int8_t AJSVC_PropertyStore_GetCurrentDefaultLanguageIndex()
+/*
+ * If mandatory properties have not been initialize set them to hardcoded default values
+ */
+static void InitProperties(const char* deviceName, uint8_t force)
 {
-    const char* curr = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEFAULT_LANGUAGE);
-    int8_t index = AJSVC_PropertyStore_GetLanguageIndex(curr);
-    if (index == AJSVC_PROPERTY_STORE_ERROR_LANGUAGE_INDEX) {
-        index = AJSVC_PROPERTY_STORE_NO_LANGUAGE_INDEX;
-        AJ_WarnPrintf(("Failed to find default language %s defaulting to %s", (curr ? curr : "NULL"), AJS_GetLanguageName(duktape, AJSVC_PROPERTY_STORE_NO_LANGUAGE_INDEX)));
-    }
-    return index;
-}
+    AJ_GUID guid;
+    char buffer[MAX_PROP_LENGTH + 1];
+    AJSVC_PropertyStoreFieldIndices field;
+    AJ_GetLocalGUID(&guid);
+    AJ_GUID_ToString(&guid, buffer, sizeof(buffer));
 
-static void ClearPropertiesInRAM()
-{
-    uint8_t lang;
-    char* buf;
-    AJSVC_PropertyStoreFieldIndices field = FIRST_PROPERTY_INDEX;
-    for (; field < AJSVC_PROPERTY_STORE_NUMBER_OF_RUNTIME_KEYS; field++) {
-        if (propVals[field].value) {
-            uint8_t numLangs = AJS_GetNumberOfLanguages(duktape);
-            lang = AJSVC_PROPERTY_STORE_NO_LANGUAGE_INDEX;
-            for (; lang < numLangs; lang++) {
-                if (propDefs[field].multiLang || lang == AJSVC_PROPERTY_STORE_NO_LANGUAGE_INDEX) {
-                    buf = propVals[field].value[lang];
-                    if (buf) {
-                        memset(buf, 0, propVals[field].size);
-                    }
-                }
-            }
-        }
-    }
-}
-
-static void InitMandatoryPropertiesInRAM()
-{
-    char* machineIdValue = propVals[AJSVC_PROPERTY_STORE_APP_ID].value[AJSVC_PROPERTY_STORE_NO_LANGUAGE_INDEX];
-    const char* currentAppIdValue = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_APP_ID);
-    const char* currentDeviceIdValue = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_ID);
-    const char* currentDeviceNameValue = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_DEVICE_NAME);
-    size_t serialIdLen = 0;
-    size_t machineIdLen = 0;
-    AJ_GUID theAJ_GUID;
-    AJ_Status status;
-    char deviceName[DEVICE_NAME_VALUE_LENGTH + 1] = { 0 };
-    if (currentAppIdValue == NULL || currentAppIdValue[0] == '\0') {
-        status = AJ_GetLocalGUID(&theAJ_GUID);
-        if (status == AJ_OK) {
-            AJ_GUID_ToString(&theAJ_GUID, machineIdValue, propVals[AJSVC_PROPERTY_STORE_APP_ID].size);
-        }
-    }
-    if (currentDeviceIdValue == NULL || currentDeviceIdValue[0] == '\0') {
-        AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_DEVICE_ID, machineIdValue);
-    }
-    if (currentDeviceNameValue == NULL || currentDeviceNameValue[0] == '\0') {
-        serialIdLen = AJOBS_DEVICE_SERIAL_ID_LEN;
-        machineIdLen = strlen(machineIdValue);
-#ifdef _WIN32
-        _snprintf(deviceName, DEVICE_NAME_VALUE_LENGTH + 1, "%s %s %s", deviceManufactureName, deviceProductName, &machineIdValue[machineIdLen - min(serialIdLen, machineIdLen)]);
-#else
-        snprintf(deviceName, DEVICE_NAME_VALUE_LENGTH + 1, "%s %s %s", deviceManufactureName, deviceProductName, &machineIdValue[machineIdLen - min(serialIdLen, machineIdLen)]);
-#endif
+    /*
+     * Special case initialization of device name
+     */
+    if (deviceName) {
         AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_DEVICE_NAME, deviceName);
+    }
+    /*
+     * Initialize properties that have not been set
+     */
+    for (field = FIRST_PROPERTY_INDEX; field < AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS; ++field) {
+        uint8_t ok = TRUE;
+        /*
+         * Don't overwrite existing value unless force is TRUE
+         */
+        if (!force && PeekProp(field)) {
+            continue;
+        }
+        switch (field) {
+            case AJSVC_PROPERTY_STORE_APP_ID:
+                ok = AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_APP_ID, buffer);
+                break;
+            case AJSVC_PROPERTY_STORE_DEVICE_ID:
+                ok = AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_DEVICE_ID, buffer);
+                break;
+            case AJSVC_PROPERTY_STORE_DEVICE_NAME:
+                memcpy(buffer, "AllJoyn.js.", 11);
+                buffer[18] = 0;
+                ok = AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_DEVICE_NAME, buffer);
+                break;
+            default:
+                if (propDefs[field].initialValue) {
+                    ok = AJSVC_PropertyStore_SetValue(field, propDefs[field].initialValue);
+                }
+                break;
+        }
+        if (!ok) {
+            AJ_WarnPrintf(("Failed to initialize property %s\n", AJSVC_PropertyStore_GetFieldName(field)));
+        }
     }
 }
 
@@ -328,159 +288,36 @@ static AJ_Status AboutPropGetter(AJ_Message* msg, const char* language)
     return status;
 }
 
-AJ_Status AJS_PropertyStoreInit(duk_context* ctx)
+AJ_Status AJS_PropertyStoreInit(duk_context* ctx, const char* deviceName)
 {
-    AJ_Status status;
-
     duktape = ctx;
-
-    status = AJSVC_PropertyStore_LoadAll();
-    if (status == AJ_OK) {
-        duktape = ctx;
-        InitMandatoryPropertiesInRAM();
-        /*
-         * About needs to get values from the property store
-         */
-        AJ_AboutRegisterPropStoreGetter(AboutPropGetter);
-    }
-    return status;
-}
-
-static AJ_Status PropertyStore_ReadConfig(uint16_t index, void* ptr, uint16_t size)
-{
-    AJ_Status status = AJ_OK;
-    uint16_t sizeRead = 0;
-
-    AJ_NV_DATASET* nvramHandle = AJ_NVRAM_Open(index, "r", 0);
-    if (nvramHandle != NULL) {
-        sizeRead = AJ_NVRAM_Read(ptr, size, nvramHandle);
-        status = AJ_NVRAM_Close(nvramHandle);
-        if (sizeRead != sizeRead) {
-            status = AJ_ERR_RANGE;
-        }
-    }
-
-    return status;
-}
-
-static AJ_Status PropertyStore_WriteConfig(uint16_t index, void* ptr, uint16_t size, char* mode)
-{
-    AJ_Status status = AJ_OK;
-    uint16_t sizeWritten = 0;
-
-    AJ_NV_DATASET* nvramHandle = AJ_NVRAM_Open(index, mode, size);
-    if (nvramHandle != NULL) {
-        sizeWritten = AJ_NVRAM_Write(ptr, size, nvramHandle);
-        status = AJ_NVRAM_Close(nvramHandle);
-        if (sizeWritten != size) {
-            status = AJ_ERR_RANGE;
-        }
-    }
-
-    return status;
+    InitProperties(deviceName, FALSE);
+    AJ_AboutRegisterPropStoreGetter(AboutPropGetter);
+    return AJ_OK;
 }
 
 AJ_Status AJSVC_PropertyStore_LoadAll()
 {
-    AJ_Status status = AJ_OK;
-    void* buf = NULL;
-    uint16_t size = 0;
-    uint16_t entry;
-
-    AJSVC_PropertyStoreFieldIndices lang = (AJSVC_PropertyStoreFieldIndices)AJSVC_PROPERTY_STORE_NO_LANGUAGE_INDEX;
-    uint8_t numLangs = AJS_GetNumberOfLanguages(duktape);
-
-    for (; lang < numLangs; lang++) {
-        AJSVC_PropertyStoreFieldIndices field = FIRST_PROPERTY_INDEX;
-        for (; field < AJSVC_PROPERTY_STORE_NUMBER_OF_RUNTIME_KEYS; field++) {
-            if (propVals[field].value == NULL ||
-                !propDefs[field].writeable ||
-                (lang != AJSVC_PROPERTY_STORE_NO_LANGUAGE_INDEX && !propDefs[field].multiLang)) {
-                continue;
-            }
-            buf = propVals[field].value[lang];
-            if (buf) {
-                size = propVals[field].size;
-                entry = (int)field + (int)lang * (int)AJSVC_PROPERTY_STORE_NUMBER_OF_RUNTIME_KEYS;
-                status = PropertyStore_ReadConfig(AJ_PROPERTIES_NV_ID_BEGIN + entry, buf, size);
-                AJ_InfoPrintf(("nvram read field=%d [%s] lang=%d [%s] entry=%d val=%s size=%u status=%s\n", (int)field, propDefs[field].keyName,
-                               (int)lang, AJS_GetLanguageName(duktape, lang), (int)entry, propVals[field].value[lang], (int)size, AJ_StatusText(status)));
-            }
-        }
-    }
-
-    return status;
+    return AJ_OK;
 }
 
 AJ_Status AJSVC_PropertyStore_SaveAll()
 {
-    AJ_Status status = AJ_OK;
-    void* buf = NULL;
-    uint16_t size = 0;
-    uint16_t entry;
-
-    AJSVC_PropertyStoreFieldIndices lang = (AJSVC_PropertyStoreFieldIndices)AJSVC_PROPERTY_STORE_NO_LANGUAGE_INDEX;
-    uint8_t numLangs = AJS_GetNumberOfLanguages(duktape);
-
-    for (; lang < numLangs; lang++) {
-        AJSVC_PropertyStoreFieldIndices field = FIRST_PROPERTY_INDEX;
-        for (; field < AJSVC_PROPERTY_STORE_NUMBER_OF_RUNTIME_KEYS; field++) {
-            if (propVals[field].value == NULL ||
-                !propDefs[field].writeable ||
-                (lang != AJSVC_PROPERTY_STORE_NO_LANGUAGE_INDEX && !propDefs[field].multiLang)) {
-                continue;
-            }
-            buf = propVals[field].value[lang];
-            if (buf) {
-                size = propVals[field].size;
-                entry = (int)field + (int)lang * (int)AJSVC_PROPERTY_STORE_NUMBER_OF_RUNTIME_KEYS;
-                status = PropertyStore_WriteConfig(AJ_PROPERTIES_NV_ID_BEGIN + entry, buf, size, "w");
-                AJ_InfoPrintf(("nvram write field=%d [%s] lang=%d [%s] entry=%d val=%s size=%u status=%s\n", (int)field, propDefs[field].keyName, (int)lang, AJS_GetLanguageName(duktape, lang), (int)entry, propVals[field].value[lang], (int)size, AJ_StatusText(status)));
-            }
-        }
-    }
-    AJ_AboutSetShouldAnnounce(); // Set flag for sending an updated Announcement
-
-    return status;
+    AJ_AboutSetShouldAnnounce();
+    return AJ_OK;
 }
 
-static uint8_t UpdateFieldInRAM(AJSVC_PropertyStoreFieldIndices field, int8_t lang, const char* fieldValue)
+uint8_t AJSVC_PropertyStore_IsReadOnly(AJSVC_PropertyStoreFieldIndices field)
 {
-    uint8_t ret = FALSE;
-
-    if (propDefs[field].writeable && propDefs[field].public) {
-        ret = AJSVC_PropertyStore_SetValueForLang(field, lang, fieldValue);
-    } else {
-        AJ_ErrPrintf(("UpdateFieldInRAM ERROR - field %s has read only attribute or is private\n", propDefs[field].keyName));
-    }
-
-    return ret;
-}
-
-static uint8_t DeleteFieldFromRAM(AJSVC_PropertyStoreFieldIndices field, int8_t lang)
-{
-    return UpdateFieldInRAM(field, lang, "");
-}
-
-uint8_t AJSVC_PropertyStore_IsReadOnly(AJSVC_PropertyStoreFieldIndices index)
-{
-    if (index < AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS) {
-        return (propDefs[index].writeable && propDefs[index].public) ? TRUE : FALSE;
-    } else {
-        return TRUE;
-    }
+    return !IS_VALID_FIELD_ID(field) || (propDefs[field].flags & P_READONLY);
 }
 
 AJ_Status AJSVC_PropertyStore_ReadAll(AJ_Message* msg, AJSVC_PropertyStoreCategoryFilter filter, int8_t lang)
 {
-    AJ_Status status = AJ_OK;
+    AJ_Status status;
     AJ_Arg array;
-    AJ_Arg array2;
     AJ_Arg dict;
-    const char* value;
-    uint8_t index;
-    const char* ajVersion;
-    AJSVC_PropertyStoreFieldIndices field = FIRST_PROPERTY_INDEX;
+    AJSVC_PropertyStoreFieldIndices field;
 
     AJ_InfoPrintf(("PropertyStore_ReadAll()\n"));
 
@@ -489,101 +326,94 @@ AJ_Status AJSVC_PropertyStore_ReadAll(AJ_Message* msg, AJSVC_PropertyStoreCatego
         return status;
     }
 
-    for (; field < AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS; field++) {
-        if (propDefs[field].public && (filter.bit0About || (filter.bit1Config && propDefs[field].writeable) || (filter.bit2Announce && propDefs[field].announce))) {
-            value = AJSVC_PropertyStore_GetValueForLang(field, lang);
+    for (field = FIRST_PROPERTY_INDEX; field < AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS; field++) {
 
-            if (value == NULL && (int8_t)field >= (int8_t)AJSVC_PROPERTY_STORE_NUMBER_OF_MANDATORY_KEYS) {     // Non existing values are skipped!
-                AJ_WarnPrintf(("PropertyStore_ReadAll - Failed to get value for field=(name=%s, index=%d) and language=(name=%s, index=%d), skipping.\n", AJSVC_PropertyStore_GetFieldName(field), (int)field, AJSVC_PropertyStore_GetLanguageName(lang), (int)lang));
-            } else {
-                if (field == AJSVC_PROPERTY_STORE_APP_ID) {
-                    /* Mandatory field always have a default value so should never be NULL */
-                    AJ_ASSERT(value != NULL);
+        if (propDefs[field].flags & P_PRIVATE) {
+            continue;
+        }
+        if (filter.bit0About || (filter.bit1Config && !(propDefs[field].flags & P_READONLY)) || (filter.bit2Announce && (propDefs[field].flags & P_ANNOUNCE))) {
+            const char* value;
+
+            switch(field) {
+                case AJSVC_PROPERTY_STORE_APP_ID:
                     status = AJ_MarshalContainer(msg, &dict, AJ_ARG_DICT_ENTRY);
                     if (status != AJ_OK) {
-                        return status;
+                        goto ExitReadAll;
                     }
                     status = AJ_MarshalArgs(msg, "s", propDefs[field].keyName);
                     if (status != AJ_OK) {
-                        return status;
+                        goto ExitReadAll;
                     }
+                    value = AJSVC_PropertyStore_GetValueForLang(field, lang);
                     status = AJSVC_MarshalAppIdAsVariant(msg, value);
                     if (status != AJ_OK) {
-                        return status;
+                        goto ExitReadAll;
                     }
                     status = AJ_MarshalCloseContainer(msg, &dict);
-                    if (status != AJ_OK) {
-                        return status;
+                    break;
+                case AJSVC_PROPERTY_STORE_MAX_LENGTH:
+                    status = AJ_MarshalArgs(msg, "{sv}", propDefs[field].keyName, "q", MAX_PROP_LENGTH);
+                    break;
+                case AJSVC_PROPERTY_STORE_AJ_SOFTWARE_VERSION:
+                    status = AJ_MarshalArgs(msg, "{sv}", propDefs[field].keyName, "s", AJ_GetVersion());
+                    break;
+                default:
+                    value = AJSVC_PropertyStore_GetValueForLang(field, lang);
+                    if (!value) {
+                        AJ_WarnPrintf(("PropertyStore_ReadAll - No value for field[%d] %s lang:%s\n", field, propDefs[field].keyName, AJSVC_PropertyStore_GetLanguageName(lang)));
+                    } else {
+                        status = AJ_MarshalArgs(msg, "{sv}", propDefs[field].keyName, "s", value);
                     }
-                } else if (field == AJSVC_PROPERTY_STORE_MAX_LENGTH) {
-                    status = AJ_MarshalArgs(msg, "{sv}", propDefs[field].keyName, "q", DEVICE_NAME_VALUE_LENGTH);
-                    if (status != AJ_OK) {
-                        return status;
-                    }
-                    AJ_InfoPrintf(("Has key [%s] runtime Value [%d]\n", propDefs[AJSVC_PROPERTY_STORE_MAX_LENGTH].keyName, DEVICE_NAME_VALUE_LENGTH));
-                } else if (field == AJSVC_PROPERTY_STORE_AJ_SOFTWARE_VERSION) {
-                    ajVersion = AJ_GetVersion();
-                    /* Mandatory field always have a default value so should never be NULL */
-                    AJ_ASSERT(ajVersion != NULL);
-                    status = AJ_MarshalArgs(msg, "{sv}", propDefs[field].keyName, "s", ajVersion);
-                    if (status != AJ_OK) {
-                        return status;
-                    }
-                    AJ_InfoPrintf(("Has key [%s] runtime Value [%s]\n", propDefs[AJSVC_PROPERTY_STORE_AJ_SOFTWARE_VERSION].keyName, ajVersion));
-                } else {
-                    /* Mandatory field always have a default value so should never be NULL */
-                    AJ_ASSERT(value != NULL);
-                    status = AJ_MarshalArgs(msg, "{sv}", propDefs[field].keyName, "s", value);
-                    if (status != AJ_OK) {
-                        return status;
-                    }
-                }
+            }
+            if (status != AJ_OK) {
+                goto ExitReadAll;
             }
         }
     }
-
+    if (status != AJ_OK) {
+        goto ExitReadAll;
+    }
+    /*
+     * About returns the array of supported languages
+     */
     if (filter.bit0About) {
+        uint8_t i;
+        AJ_Arg langs;
         uint8_t numLangs = AJS_GetNumberOfLanguages(duktape);
-
-        // Add supported languages
         status = AJ_MarshalContainer(msg, &dict, AJ_ARG_DICT_ENTRY);
         if (status != AJ_OK) {
-            return status;
+            goto ExitReadAll;
         }
-        status = AJ_MarshalArgs(msg, "s", defaultLanguagesKeyName);
+        status = AJ_MarshalArgs(msg, "s", SupportedLanguagesKey);
         if (status != AJ_OK) {
-            return status;
+            goto ExitReadAll;
         }
         status = AJ_MarshalVariant(msg, "as");
         if (status != AJ_OK) {
-            return status;
+            goto ExitReadAll;
         }
-        status = AJ_MarshalContainer(msg, &array2, AJ_ARG_ARRAY);
+        status = AJ_MarshalContainer(msg, &langs, AJ_ARG_ARRAY);
         if (status != AJ_OK) {
-            return status;
+            goto ExitReadAll;
         }
-
-        index = AJSVC_PROPERTY_STORE_NO_LANGUAGE_INDEX;
-        for (; index < numLangs; index++) {
-            status = AJ_MarshalArgs(msg, "s", AJS_GetLanguageName(duktape, index));
+        for (i = 0; i < numLangs; ++i) {
+            status = AJ_MarshalArgs(msg, "s", AJS_GetLanguageName(duktape, i));
             if (status != AJ_OK) {
-                return status;
+                goto ExitReadAll;
             }
         }
-
-        status = AJ_MarshalCloseContainer(msg, &array2);
+        status = AJ_MarshalCloseContainer(msg, &langs);
         if (status != AJ_OK) {
-            return status;
+            goto ExitReadAll;
         }
         status = AJ_MarshalCloseContainer(msg, &dict);
         if (status != AJ_OK) {
-            return status;
+            goto ExitReadAll;
         }
     }
     status = AJ_MarshalCloseContainer(msg, &array);
-    if (status != AJ_OK) {
-        return status;
-    }
+
+ExitReadAll:
 
     return status;
 }
@@ -591,31 +421,88 @@ AJ_Status AJSVC_PropertyStore_ReadAll(AJ_Message* msg, AJSVC_PropertyStoreCatego
 AJ_Status AJSVC_PropertyStore_Update(const char* key, int8_t lang, const char* value)
 {
     AJSVC_PropertyStoreFieldIndices field = AJSVC_PropertyStore_GetFieldIndex(key);
-    if (field == AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX || field >= AJSVC_PROPERTY_STORE_NUMBER_OF_RUNTIME_KEYS) {
-        return AJ_ERR_INVALID;
+    return AJSVC_PropertyStore_SetValueForLang(field, lang, value) ? AJ_OK : AJ_ERR_INVALID;
+}
+
+uint8_t AJSVC_PropertyStore_SetValueForLang(AJSVC_PropertyStoreFieldIndices field, int8_t lang, const char* value)
+{
+    duk_context* ctx = duktape;
+    const char* oldStr;
+    const char* str;
+
+    if (field == AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX) {
+        return FALSE;
     }
-    if (!UpdateFieldInRAM(field, lang, value)) {
-        return AJ_ERR_FAILURE;
+    if (!(propDefs[field].flags & P_LOCALIZED)) {
+        str = value;
+    } else {
+        const char* prop = PeekProp(field);
+        if (prop) {
+            duk_push_string(ctx, prop);
+            duk_json_decode(ctx, -1);
+        } else {
+            duk_push_object(ctx);
+        }
+        duk_push_string(ctx, value);
+        duk_put_prop_string(ctx, -2, AJSVC_PropertyStore_GetLanguageName(lang));
+        duk_json_encode(ctx, -1);
+        str = duk_get_string(ctx, -1);
     }
-    return AJ_OK;
+    /*
+     * Avoid setting a property to the same value
+     */
+    oldStr = PeekProp(field);
+    if (!oldStr || (strcmp(oldStr, str) != 0)) {
+        uint16_t len = strlen(str) + 1;
+        AJ_NV_DATASET* handle = AJ_NVRAM_Open(NVRAM_ID(field), "w", len);
+        if (handle) {
+            AJ_NVRAM_Write(str, len, handle); 
+            AJ_NVRAM_Close(handle);
+        } else {
+            AJ_ErrPrintf(("Failed to write property to NVRAM\n"));
+        }
+    }
+    if (str != value) {
+        duk_pop(ctx);
+    }
+    return TRUE;
 }
 
 AJ_Status AJSVC_PropertyStore_Reset(const char* key, int8_t lang)
 {
     AJSVC_PropertyStoreFieldIndices field = AJSVC_PropertyStore_GetFieldIndex(key);
-    if (field == AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX || field >= AJSVC_PROPERTY_STORE_NUMBER_OF_RUNTIME_KEYS) {
-        return AJ_ERR_INVALID;
+
+    if (IS_VALID_FIELD_ID(field)) {
+        /*
+         * TODO = handle language deletions
+         */
+        if (!AJ_NVRAM_Delete(field)) {
+            return AJ_ERR_FAILURE;
+        }
     }
-    if (!DeleteFieldFromRAM(field, lang)) {
-        return AJ_ERR_FAILURE;
-    }
-    InitMandatoryPropertiesInRAM();
+    InitProperties(NULL, FALSE);
     return AJ_OK;
 }
 
 AJ_Status AJSVC_PropertyStore_ResetAll()
 {
-    ClearPropertiesInRAM();
-    InitMandatoryPropertiesInRAM();
-    return AJSVC_PropertyStore_SaveAll();
+    InitProperties(NULL, TRUE);
+    AJ_AboutSetShouldAnnounce();
+    return AJ_OK;
+}
+
+const char* AJS_GetCurrentLanguageName()
+{
+    return PeekProp(AJSVC_PROPERTY_STORE_DEFAULT_LANGUAGE);
+}
+
+uint8_t AJS_GetCurrentLanguage()
+{
+    duk_context* ctx = duktape;
+    uint8_t langNum = 0;
+    const char* lang = PeekProp(AJSVC_PROPERTY_STORE_DEFAULT_LANGUAGE);
+    if (lang) {
+        langNum = AJS_GetLanguageIndex(ctx, lang);
+    }
+    return langNum;
 }

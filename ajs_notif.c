@@ -155,9 +155,7 @@ static int NativeNotification(duk_context* ctx)
     if (numArgs > 2) {
         lang = duk_require_string(ctx, 2);
     } else {
-        AJS_GetAllJoynProperty(ctx, "defaultLanguage");
-        lang = duk_require_string(ctx, -1);
-        duk_pop(ctx);
+        lang = AJS_GetCurrentLanguageName();
     }
     /*
      * Create the actual notification object. We could have done this in JavaScript but setting the

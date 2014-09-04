@@ -292,7 +292,7 @@ static void LoadPropFromNVRAM(duk_context* ctx, const char* propName)
         /*
          * Leave the undefined result on the stack
          */
-        duk_remove(ctx, -1);
+        duk_remove(ctx, -2);
     } else {
         const char* val;
         uint16_t nvId = duk_get_int(ctx, -1);

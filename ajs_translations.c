@@ -133,6 +133,8 @@ static int NativeTranslate(duk_context* ctx)
         trans = GetTranslatedString(ctx, 0, duk_get_int(ctx, 1), NULL);
     } else if (duk_is_string(ctx, 1)) {
         trans = GetTranslatedString(ctx, 0, 0, duk_get_string(ctx, 1));
+    } else {
+        trans = GetTranslatedString(ctx, 0, AJS_GetCurrentLanguage(), NULL);
     }
     duk_push_string(ctx, trans);
     return 1;
@@ -160,9 +162,7 @@ const char* AJS_GetLanguageName(duk_context* ctx, uint8_t langIndex)
     }
     duk_pop(ctx);
     if (!langName) {
-        AJS_GetAllJoynProperty(ctx, "defaultLanguage");
-        langName = duk_get_string(ctx, -1);
-        duk_pop(ctx);
+        langName = AJS_GetCurrentLanguageName();
     }
     return langName;
 }
@@ -172,7 +172,7 @@ uint8_t AJS_GetLanguageIndex(duk_context* ctx, const char* langName)
     uint8_t i;
 
     AJS_GetAllJoynProperty(ctx, "languages");
-    if (duk_is_array(ctx, -1)) {
+    if (!duk_is_array(ctx, -1)) {
         i = 0;
     } else {
         duk_uarridx_t num = duk_get_length(ctx, -1);

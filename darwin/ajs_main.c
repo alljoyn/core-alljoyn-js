@@ -19,7 +19,6 @@
 
 #include "ajs.h"
 #include "ajs_target.h"
-#include <alljoyn/services_common/PropertyStore.h>
 
 typedef struct {
     FILE* file;
@@ -152,11 +151,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    if (deviceName) {
-        AJSVC_PropertyStore_Update("DeviceName", 0, deviceName);
-    }
-
-    status = AJS_Main();
+    status = AJS_Main(deviceName);
 
     return -((int)status);
 

@@ -144,9 +144,11 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* bus);
 /**
  * Entry point for AllJoyn
  *
+ * @param deviceName  An optional device name that some platforms are able to provide a launch time.
+ *
  * @return   - AJ_OK if everything is ok
  */
-AJ_Status AJS_Main();
+AJ_Status AJS_Main(const char* deviceName);
 
 /**
  * Start running the scripting environment
@@ -201,6 +203,20 @@ void AJS_RegisterMsgFunctions(AJ_BusAttachment* bus, duk_context* ctx, duk_idx_t
  * @param ajIdx   Index in the duktape value stack for the AJ JavaScript object
  */
 void AJS_RegisterTranslations(duk_context* ctx, duk_idx_t ajIdx);
+
+/**
+ * Get the current language.
+ *
+ * @return The index for the current language
+ */
+uint8_t AJS_GetCurrentLanguage();
+
+/**
+ * Get the current language name
+ *
+ * @return The current language name string
+ */
+const char* AJS_GetCurrentLanguageName();
 
 /**
  * Function registered on method call for sending a reply
@@ -418,9 +434,10 @@ void AJS_PushReplyObject(duk_context* ctx, uint32_t replySerial);
 void AJS_AlertHandler(duk_context* ctx, uint8_t alert);
 
 /**
- * @param ctx    An opaque pointer to a duktape context structure
+ * @param ctx         An opaque pointer to a duktape context structure
+ * @param deviceName  If not NULL the device name to set in the property store.
  */
-AJ_Status AJS_PropertyStoreInit(duk_context* ctx);
+AJ_Status AJS_PropertyStoreInit(duk_context* ctx, const char* deviceName);
 
 /**
  * Allocate memory

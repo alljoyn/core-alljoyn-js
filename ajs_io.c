@@ -367,13 +367,67 @@ static int NativeSpiFinalizer(duk_context* ctx)
 }
 static int NativeSpiRead(duk_context* ctx)
 {
-    duk_push_int(ctx, AJS_TargetIO_SpiRead(PinCtxPtr(ctx)));
+    int size = duk_require_int(ctx, -1);
+    void* ptrIn = AJS_TargetIO_SpiRead(PinCtxPtr(ctx), size);
+    void* ptrOut = duk_push_fixed_buffer(ctx, size);
+    memcpy(ptrOut, ptrIn, size);
     return 1;
+}
+static void NativeSpiWriteHelper(duk_context* ctx, duk_idx_t idx)
+{
+    switch (duk_get_type(ctx, idx)) {
+    case (DUK_TYPE_BOOLEAN): {
+            uint8_t bool = duk_require_boolean(ctx, idx);
+            AJS_TargetIO_SpiWrite(PinCtxPtr(ctx), &bool, 1);
+            break;
+        }
+
+    case (DUK_TYPE_NUMBER): {
+            uint32_t number = duk_require_int(ctx, idx);
+            AJS_TargetIO_SpiWrite(PinCtxPtr(ctx), (uint8_t*)&number, 4);
+            break;
+        }
+
+    case (DUK_TYPE_STRING): {
+            const char* str = duk_require_string(ctx, idx);
+            AJS_TargetIO_SpiWrite(PinCtxPtr(ctx), (uint8_t*)str, strlen(str));
+            break;
+        }
+
+    case (DUK_TYPE_BUFFER): {
+            duk_size_t size;
+            void* buffer = duk_require_buffer(ctx, idx, &size);
+            AJS_TargetIO_SpiWrite(PinCtxPtr(ctx), buffer, size);
+            break;
+        }
+
+    case (DUK_TYPE_OBJECT): {
+            int i = 0;
+            if (duk_is_array(ctx, idx)) {
+                while (!duk_is_undefined(ctx, -1)) {
+                    uint8_t ret = duk_get_prop_index(ctx, idx, i++);
+                    if (!ret) {
+                        break;
+                    }
+                    NativeSpiWriteHelper(ctx, duk_get_top_index(ctx));
+                }
+            } else {
+                duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Only array objects can be sent over UART\n");
+                return;
+            }
+            break;
+        }
+
+    default:
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Cannot send type %u over UART\n", duk_get_type(ctx, idx));
+        break;
+    }
+    return;
 }
 static int NativeSpiWrite(duk_context* ctx)
 {
-    uint8_t value = duk_require_int(ctx, 0);
-    AJS_TargetIO_SpiWrite(PinCtxPtr(ctx), value);
+    NativeSpiWriteHelper(ctx, 0);
+    duk_pop(ctx);
     return 1;
 }
 
@@ -454,13 +508,71 @@ static int NativeUartFinalizer(duk_context* ctx)
 }
 static int NativeUartRead(duk_context* ctx)
 {
-    duk_push_int(ctx, AJS_TargetIO_UartRead(PinCtxPtr(ctx)));
+    int size = duk_require_int(ctx, -1);
+    void* ptrIn = AJS_TargetIO_UartRead(PinCtxPtr(ctx), size);
+    void* ptrOut = duk_push_fixed_buffer(ctx, size);
+    memcpy(ptrOut, ptrIn, size);
     return 1;
+}
+/*
+ * Recursively call this function to process arrays of types
+ * Boolean, number, string, buffer, or nested arrays
+ */
+static void NativeUartWriteHelper(duk_context* ctx, duk_idx_t idx)
+{
+    switch (duk_get_type(ctx, idx)) {
+    case (DUK_TYPE_BOOLEAN): {
+            uint8_t bool = duk_require_boolean(ctx, idx);
+            AJS_TargetIO_UartWrite(PinCtxPtr(ctx), &bool, 1);
+            break;
+        }
+
+    case (DUK_TYPE_NUMBER): {
+            uint32_t number = duk_require_int(ctx, idx);
+            AJS_TargetIO_UartWrite(PinCtxPtr(ctx), (uint8_t*)&number, 4);
+            break;
+        }
+
+    case (DUK_TYPE_STRING): {
+            const char* str = duk_require_string(ctx, idx);
+            AJS_TargetIO_UartWrite(PinCtxPtr(ctx), (uint8_t*)str, strlen(str));
+            break;
+        }
+
+    case (DUK_TYPE_BUFFER): {
+            duk_size_t size;
+            void* buffer = duk_require_buffer(ctx, idx, &size);
+            AJS_TargetIO_UartWrite(PinCtxPtr(ctx), buffer, size);
+            break;
+        }
+
+    case (DUK_TYPE_OBJECT): {
+            int i = 0;
+            if (duk_is_array(ctx, idx)) {
+                while (!duk_is_undefined(ctx, -1)) {
+                    uint8_t ret = duk_get_prop_index(ctx, idx, i++);
+                    if (!ret) {
+                        break;
+                    }
+                    NativeUartWriteHelper(ctx, duk_get_top_index(ctx));
+                }
+            } else {
+                duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Only array objects can be sent over UART\n");
+                return;
+            }
+            break;
+        }
+
+    default:
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Cannot send type %u over UART\n", duk_get_type(ctx, idx));
+        break;
+    }
+    return;
 }
 static int NativeUartWrite(duk_context* ctx)
 {
-    uint8_t value = duk_require_int(ctx, 0);
-    AJS_TargetIO_UartWrite(PinCtxPtr(ctx), value);
+    NativeUartWriteHelper(ctx, 0);
+    duk_pop(ctx);
     return 1;
 }
 

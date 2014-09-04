@@ -237,4 +237,92 @@ void AJS_TargetIO_DacWrite(void* dacCtx, uint32_t val);
  */
 AJ_Status AJS_TargetIO_System(const char* cmd);
 
+/**
+ * Read from the SPI peripheral
+ *
+ * @param ctx       Pointer to an opaque target specific data structure for the SPI channel
+ * @param length    Length in bytes that you want to read from the SPI peripheral
+ *
+ * @return          Pointer to the data that was read from the SPI peripheral
+ */
+uint8_t* AJS_TargetIO_SpiRead(void* ctx, uint32_t length);
+
+/**
+ * Write to the SPI peripheral
+ *
+ * @param ctx       Pointer to an opaque target specific data structure for the SPI channel
+ * @param data      Pointer to the data you want to write
+ * @param length    Length of the data you want to write
+ */
+void AJS_TargetIO_SpiWrite(void* ctx, uint8_t* data, uint32_t length);
+
+/**
+ * Open and configure a SPI peripheral
+ *
+ * @param mosi      Pin number of the MOSI (Master Out Slave In) SPI pin
+ * @param miso      Pin number of the MISO (Master In Slave Out) SPI pin
+ * @param cs        Pin number of the Chip Select SPI pin
+ * @param clk       Pin number of the Clock SPI pin
+ * @param prescaler A divisor value for the SPI clock speed (SPI Clock = CPU Clock / prescaler)
+ * @param master    Flag configuring the SPI device as master or slave
+ * @param cpol      Clock polarity for the SPI device (High or Low)
+ * @param cpha      Clock phase for the SPI device (1 Edge or 2 Edge)
+ * @param data      Number of data bits per transmission (8, 16, 32 etc)
+ * @param cpiCtx    Returns a pointer to an opaque target specific data structure the SPI device
+ *
+ * @return          AJ_OK if the device was configured successfully
+ */
+AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t clk, uint32_t prescaler,
+                               uint8_t master, uint8_t cpol, uint8_t cpha, uint8_t data, void** spiCtx);
+
+/**
+ * Close a SPI device
+ *
+ * @param spiCtx    Pointer to an opaque target specific data structure for the SPI channel
+ *
+ * @return          AJ_OK if the SPI device was closed successfully
+ */
+AJ_Status AJS_TargetIO_SpiClose(void* spiCtx);
+
+/**
+ * Read from the UART peripheral
+ *
+ * @param uartCtx   Pointer to an opaque target specific data structure for the UART channel
+ * @param length    Number of bytes requesting to be read
+ *
+ * @return          Pointer to the data that was read
+ */
+uint8_t* AJS_TargetIO_UartRead(void* uartCtx, uint32_t length);
+
+/**
+ * Write data to the UART peripheral
+ *
+ * @param uartCtx   Pointer to an opaque target specific data structure for the UART channel
+ * @param data      Pointer to the data buffer being written
+ * @param length    Length of the data buffer
+ *
+ * @return          AJ_OK if the data was written successfully
+ */
+AJ_Status AJS_TargetIO_UartWrite(void* uartCtx, uint8_t* data, uint32_t length);
+
+/**
+ * Open and configure the a UART peripheral
+ *
+ * @param txPin     Pin number for the pin designated as transmit
+ * @param rxPin     Pin number for the pin designated as receive
+ * @param baud      Desired baud rate for the UART peripheral
+ * @param uartCtx   Returns a pointer to an opaque target specific data structure the UART device
+ */
+AJ_Status AJS_TargetIO_UartOpen(uint8_t txPin, uint8_t rxPin, uint32_t baud, void** uartCtx);
+
+/**
+ * Close a UART device
+ *
+ * @param uartCtx   Pointer to an opaque target specific data structure for the UART channel
+ *
+ * @return          AJ_OK if the UART device was closed successfully
+ */
+AJ_Status AJS_TargetIO_UartClose(void* uartCtx);
+
+
 #endif

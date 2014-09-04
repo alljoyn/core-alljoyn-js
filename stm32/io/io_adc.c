@@ -36,7 +36,7 @@ uint32_t AJS_TargetIO_AdcRead(void* adcCtx)
 
     // Regular ADC read
     ADC_SoftwareStartConv(ADC1); //Start the conversion
-    while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET); //Processing the conversion
+    while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET) ;  //Processing the conversion
     return ADC_GetConversionValue(ADC1); //Return the converted data
 }
 AJ_Status AJS_TargetIO_AdcOpen(uint16_t pinIndex, void** adcCtx)
@@ -68,28 +68,32 @@ AJ_Status AJS_TargetIO_AdcOpen(uint16_t pinIndex, void** adcCtx)
      */
     switch (pinInfo[channel].pinNum) {
     case (16):
-            adc->ADCx = ADC1;
-            adc_channel = ADC_Channel_11;
-            RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
-            break;
+        adc->ADCx = ADC1;
+        adc_channel = ADC_Channel_11;
+        RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
+        break;
+
     case (17):
-            adc->ADCx = ADC1;
-            adc_channel = ADC_Channel_12;
-            RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
-            break;
+        adc->ADCx = ADC1;
+        adc_channel = ADC_Channel_12;
+        RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
+        break;
+
     case (34):
-            adc->ADCx = ADC1;
-            adc_channel = ADC_Channel_15;
-            RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
-            break;
+        adc->ADCx = ADC1;
+        adc_channel = ADC_Channel_15;
+        RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
+        break;
+
     case (33):
-            //Temperature sensor
-            adc->ADCx = ADC1;
-            adc_channel = ADC_Channel_TempSensor;
-            RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
-            RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-            ADC_TempSensorVrefintCmd(ENABLE);
-            break;
+        //Temperature sensor
+        adc->ADCx = ADC1;
+        adc_channel = ADC_Channel_TempSensor;
+        RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
+        RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+        ADC_TempSensorVrefintCmd(ENABLE);
+        break;
+
     default:
         AJ_ErrPrintf(("ADC is not supported for pin %u\n", pinInfo[channel].physicalPin));
         return AJ_ERR_INVALID;

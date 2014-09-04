@@ -42,16 +42,16 @@ typedef struct {
 } UART;
 
 UART_Info uartInfo[] = {
-    {GPIOB, USART1, GPIO_Pin_6,  92, }, //USART1 TX PB6
-    {GPIOA, USART1, GPIO_Pin_9,  68, }, //USART1 TX PA9
-    {GPIOB, USART3, GPIO_Pin_10, 47, }, //USART3 TX PB10
-    {GPIOD, USART3, GPIO_Pin_8,  55, }, //USART3 TX PD8
-    {GPIOC, USART3, GPIO_Pin_10, 78, }, //USART3 TX PC10
-    {GPIOB, USART1, GPIO_Pin_7,  93, }, //USART1 RX PB7
-    {GPIOA, USART1, GPIO_Pin_10, 69, }, //USART1 RX PA10
-    {GPIOB, USART3, GPIO_Pin_11, 48, }, //USART3 RX PB11
-    {GPIOD, USART3, GPIO_Pin_9,  56, }, //USART3 RX PD9
-    {GPIOC, USART3, GPIO_Pin_11, 79, }  //USART3 RX PC11
+    { GPIOB, USART1, GPIO_Pin_6,  92, }, //USART1 TX PB6
+    { GPIOA, USART1, GPIO_Pin_9,  68, }, //USART1 TX PA9
+    { GPIOB, USART3, GPIO_Pin_10, 47, }, //USART3 TX PB10
+    { GPIOD, USART3, GPIO_Pin_8,  55, }, //USART3 TX PD8
+    { GPIOC, USART3, GPIO_Pin_10, 78, }, //USART3 TX PC10
+    { GPIOB, USART1, GPIO_Pin_7,  93, }, //USART1 RX PB7
+    { GPIOA, USART1, GPIO_Pin_10, 69, }, //USART1 RX PA10
+    { GPIOB, USART3, GPIO_Pin_11, 48, }, //USART3 RX PB11
+    { GPIOD, USART3, GPIO_Pin_9,  56, }, //USART3 RX PD9
+    { GPIOC, USART3, GPIO_Pin_11, 79, }  //USART3 RX PC11
 };
 
 static uint8_t validatePins(uint8_t txPin, uint8_t rxPin)
@@ -63,26 +63,35 @@ static uint8_t validatePins(uint8_t txPin, uint8_t rxPin)
         ((rxPin != 93) || (rxPin != 69))) {
         return FALSE;
     } else if (((txPin == 47) || (txPin == 55) || (txPin == 78)) &&
-                ((rxPin != 48) || (rxPin != 56) || (rxPin != 79))) {
+               ((rxPin != 48) || (rxPin != 56) || (rxPin != 79))) {
         return FALSE;
     }
     return TRUE;
 }
-uint8_t AJS_TargetIO_UartRead(void* uartCtx)
+uint8_t* AJS_TargetIO_UartRead(void* uartCtx, uint32_t length)
 {
     UART* uart = (UART*)uartCtx;
-    while (USART_GetFlagStatus(uart->USARTx, USART_FLAG_TXE) == RESET) ;
+    uint8_t i = 0;
+    uint8_t* buffer = AJS_Alloc(NULL, length);
+    while (i < length) {
+        while (USART_GetFlagStatus(uart->USARTx, USART_FLAG_TXE) == RESET) ;
 
-    return USART_ReceiveData(uart->USARTx);
+        *(buffer + i) = USART_ReceiveData(uart->USARTx);
+        ++i;
+    }
+    return buffer;
 
 }
-AJ_Status AJS_TargetIO_UartWrite(void* uartCtx, uint8_t value)
+AJ_Status AJS_TargetIO_UartWrite(void* uartCtx, uint8_t* buffer, uint32_t length)
 {
     UART* uart = (UART*)uartCtx;
-    while (USART_GetFlagStatus(uart->USARTx, USART_FLAG_TXE) == RESET) ;
+    uint8_t i = 0;
+    while (i < length) {
+        while (USART_GetFlagStatus(uart->USARTx, USART_FLAG_TXE) == RESET) ;
 
-    USART_SendData(uart->USARTx, value);
-
+        USART_SendData(uart->USARTx, *(buffer + i));
+        ++i;
+    }
     return AJ_OK;
 }
 
@@ -101,7 +110,7 @@ AJ_Status AJS_TargetIO_UartOpen(uint8_t txPin, uint8_t rxPin, uint32_t baud, voi
     if (!validatePins(txPin, rxPin)) {
         return AJ_ERR_INVALID;
     }
-    for (pinTx = 0;pinTx < ArraySize(uartInfo);++pinTx) {
+    for (pinTx = 0; pinTx < ArraySize(uartInfo); ++pinTx) {
         if (uartInfo[pinTx].pinNum == physicalTxPin) {
             break;
         }
@@ -109,7 +118,7 @@ AJ_Status AJS_TargetIO_UartOpen(uint8_t txPin, uint8_t rxPin, uint32_t baud, voi
     if (pinTx >= ArraySize(uartInfo)) {
         return AJ_ERR_INVALID;
     }
-    for (pinRx = 0;pinRx < ArraySize(uartInfo);++pinRx) {
+    for (pinRx = 0; pinRx < ArraySize(uartInfo); ++pinRx) {
         if (uartInfo[pinRx].pinNum == physicalRxPin) {
             break;
         }

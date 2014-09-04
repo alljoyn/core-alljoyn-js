@@ -83,7 +83,8 @@ AJ_Status AJS_TargetIO_PinEnableTrigger(void* pinCtx, AJS_IO_PinTriggerMode trig
     case (GPIO_Pin_0):
         exti_pin = EXTI_PinSource0;
         exti_irqn = EXTI0_IRQn;
-    break;
+        break;
+
     case (GPIO_Pin_1):
         /*
          * EXTI1 is already used for WSL so return AJ_ERR_RESOURCES
@@ -91,92 +92,114 @@ AJ_Status AJS_TargetIO_PinEnableTrigger(void* pinCtx, AJS_IO_PinTriggerMode trig
         //exti_pin = EXTI_PinSource1;
         //exti_irqn = EXTI1_IRQn;
         return AJ_ERR_RESOURCES;
-    break;
+        break;
+
     case (GPIO_Pin_2):
         exti_pin = EXTI_PinSource2;
         exti_irqn = EXTI2_IRQn;
-    break;
+        break;
+
     case (GPIO_Pin_3):
         exti_pin = EXTI_PinSource3;
         exti_irqn = EXTI3_IRQn;
-    break;
+        break;
+
     case (GPIO_Pin_4):
         exti_pin = EXTI_PinSource4;
         exti_irqn = EXTI4_IRQn;
-    break;
+        break;
+
     case (GPIO_Pin_5):
         exti_pin = EXTI_PinSource5;
         exti_irqn = EXTI9_5_IRQn;
-    break;
+        break;
+
     case (GPIO_Pin_6):
         exti_pin = EXTI_PinSource6;
         exti_irqn = EXTI9_5_IRQn;
-    break;
+        break;
+
     case (GPIO_Pin_7):
         exti_pin = EXTI_PinSource7;
         exti_irqn = EXTI9_5_IRQn;
-    break;
+        break;
+
     case (GPIO_Pin_8):
         exti_pin = EXTI_PinSource8;
         exti_irqn = EXTI9_5_IRQn;
-    break;
+        break;
+
     case (GPIO_Pin_9):
         exti_pin = EXTI_PinSource9;
         exti_irqn = EXTI9_5_IRQn;
-    break;
+        break;
+
     case (GPIO_Pin_10):
         exti_pin = EXTI_PinSource10;
         exti_irqn = EXTI15_10_IRQn;
-    break;
+        break;
+
     case (GPIO_Pin_11):
         exti_pin = EXTI_PinSource11;
         exti_irqn = EXTI15_10_IRQn;
-    break;
+        break;
+
     case (GPIO_Pin_12):
         exti_pin = EXTI_PinSource12;
         exti_irqn = EXTI15_10_IRQn;
-    break;
+        break;
+
     case (GPIO_Pin_13):
         exti_pin = EXTI_PinSource13;
         exti_irqn = EXTI15_10_IRQn;
-    break;
+        break;
+
     case (GPIO_Pin_14):
         exti_pin = EXTI_PinSource14;
         exti_irqn = EXTI15_10_IRQn;
-    break;
+        break;
+
     case (GPIO_Pin_15):
         exti_pin = EXTI_PinSource15;
         exti_irqn = EXTI15_10_IRQn;
-    break;
+        break;
     }
     switch ((uint32_t)gpio->GPIOx) {
     case ((uint32_t)GPIOA):
         exti_gpio = EXTI_PortSourceGPIOA;
-    break;
+        break;
+
     case ((uint32_t)GPIOB):
         exti_gpio = EXTI_PortSourceGPIOB;
-    break;
+        break;
+
     case ((uint32_t)GPIOC):
         exti_gpio = EXTI_PortSourceGPIOC;
-    break;
+        break;
+
     case ((uint32_t)GPIOD):
         exti_gpio = EXTI_PortSourceGPIOD;
-    break;
+        break;
+
     case ((uint32_t)GPIOE):
         exti_gpio = EXTI_PortSourceGPIOE;
-    break;
+        break;
+
     case ((uint32_t)GPIOF):
         exti_gpio = EXTI_PortSourceGPIOF;
-    break;
+        break;
+
     case ((uint32_t)GPIOG):
         exti_gpio = EXTI_PortSourceGPIOG;
-    break;
+        break;
+
     case ((uint32_t)GPIOH):
         exti_gpio = EXTI_PortSourceGPIOH;
-    break;
+        break;
+
     case ((uint32_t)GPIOI):
         exti_gpio = EXTI_PortSourceGPIOI;
-    break;
+        break;
     }
 
     gpio->trigId = AllocTrigId(exti_pin);
@@ -285,7 +308,7 @@ AJ_Status AJS_TargetIO_PinOpen(uint16_t pinIndex, AJS_IO_PinConfig config, void*
     GPIO_InitTypeDef GPIO_Pin;
     size_t pin;
     uint16_t physicalPin = AJS_TargetIO_GetInfo(pinIndex)->physicalPin;
-    for (pin = 0;pin < ArraySize(pinInfo);++pin) {
+    for (pin = 0; pin < ArraySize(pinInfo); ++pin) {
         if (pinInfo[pin].pinNum == physicalPin) {
             break;
         }
@@ -338,7 +361,7 @@ AJ_Status AJS_TargetIO_PinOpen(uint16_t pinIndex, AJS_IO_PinConfig config, void*
 int8_t findTrigId(uint8_t pinSource)
 {
     int8_t i;
-    for (i = 0;i < MAX_TRIGGERS;i++) {
+    for (i = 0; i < MAX_TRIGGERS; i++) {
         if (pinIdToSource[i] == pinSource) {
             return i;
         }

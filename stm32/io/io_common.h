@@ -84,46 +84,46 @@ typedef struct {
 static uint8_t pinIdToSource[15];
 
 static const ADC_Info adcInfo[] = {
-        {ADC1, ADC_Channel_1},
-        {ADC1, ADC_Channel_0},
-        {ADC1, ADC_Channel_15},
-        {ADC1, ADC_Channel_14}
+    { ADC1, ADC_Channel_1 },
+    { ADC1, ADC_Channel_0 },
+    { ADC1, ADC_Channel_15 },
+    { ADC1, ADC_Channel_14 }
 };
 
 static const SPI_Info spiInfo[] = {
-        {SPI2, GPIOC, GPIO_Pin_3, 18},      //MOSI
-        {SPI2, GPIOC, GPIO_Pin_2, 19},      //MISO
-        {SPI2, GPIOB, GPIO_Pin_10, 47},     //SCK
-        {SPI2, GPIOB, GPIO_Pin_12, 51},     //SS
-        {SPI2, GPIOB, GPIO_Pin_13, 52},     //SCK
-        {SPI2, GPIOB, GPIO_Pin_14, 53},     //MISO
-        {SPI2, GPIOB, GPIO_Pin_15, 54},     //MOSI
-        {SPI2, GPIOB, GPIO_Pin_9, 96},      //SS
-        {SPI1, GPIOE, GPIO_Pin_3, 2},        //SS (accel)
-        {SPI1, GPIOA, GPIO_Pin_5, 30},      //SCK SPI1
-        {SPI1, GPIOA, GPIO_Pin_7, 32},      //MOSI SPI1
-        {SPI1, GPIOA, GPIO_Pin_6, 31}       //MISO SPI1
+    { SPI2, GPIOC, GPIO_Pin_3, 18 },        //MOSI
+    { SPI2, GPIOC, GPIO_Pin_2, 19 },        //MISO
+    { SPI2, GPIOB, GPIO_Pin_10, 47 },       //SCK
+    { SPI2, GPIOB, GPIO_Pin_12, 51 },       //SS
+    { SPI2, GPIOB, GPIO_Pin_13, 52 },       //SCK
+    { SPI2, GPIOB, GPIO_Pin_14, 53 },       //MISO
+    { SPI2, GPIOB, GPIO_Pin_15, 54 },       //MOSI
+    { SPI2, GPIOB, GPIO_Pin_9, 96 },        //SS
+    { SPI1, GPIOE, GPIO_Pin_3, 2 },          //SS (accel)
+    { SPI1, GPIOA, GPIO_Pin_5, 30 },        //SCK SPI1
+    { SPI1, GPIOA, GPIO_Pin_7, 32 },        //MOSI SPI1
+    { SPI1, GPIOA, GPIO_Pin_6, 31 }         //MISO SPI1
 };
 
 static uint8_t pinIdToSource[15];
 
 static const PIN_Info pinInfo[] = {
-        {GPIOD, GPIO_Pin_12, 0xFF,          59},    //LED1
-        {GPIOD, GPIO_Pin_13, 0xFF,          60},    //LED2
-        {GPIOD, GPIO_Pin_14, 0xFF,          61},    //LED3
-        {GPIOD, GPIO_Pin_15, 0xFF,          62},    //LED4
-        {GPIOA, GPIO_Pin_0,  0xFF,          23},    //Push button
-        {GPIOC, GPIO_Pin_6,  GPIO_AF_TIM3,  63},    //PWM1
-        {GPIOC, GPIO_Pin_7,  GPIO_AF_TIM3,  64},    //PWM2
-        {GPIOB, GPIO_Pin_0,  GPIO_AF_TIM3,  35},    //PWM3
-        {GPIOB, GPIO_Pin_1,  GPIO_AF_TIM3,  36},    //PWM4
-        {GPIOC, GPIO_Pin_1,  0xFF,          16},    //ADC1
-        {GPIOC, GPIO_Pin_0,  0xFF,          17},    //ADC2
-        {GPIOC, GPIO_Pin_5,  0xFF,          34},    //ADC3
-        {GPIOC, GPIO_Pin_4,  0xFF,          33},    //ADC4 - Temp
-        {0,              0,  0xFF,          97},    //Sudo ADC - MEMS X Axis
-        {0,              0,  0xFF,          98},    //Sudo ADC - MEMS X Axis
-        {0,              0,  0xFF,          99},    //Sudo ADC - MEMS X Axis
+    { GPIOD, GPIO_Pin_12, 0xFF,          59 },      //LED1
+    { GPIOD, GPIO_Pin_13, 0xFF,          60 },      //LED2
+    { GPIOD, GPIO_Pin_14, 0xFF,          61 },      //LED3
+    { GPIOD, GPIO_Pin_15, 0xFF,          62 },      //LED4
+    { GPIOA, GPIO_Pin_0,  0xFF,          23 },      //Push button
+    { GPIOC, GPIO_Pin_6,  GPIO_AF_TIM3,  63 },      //PWM1
+    { GPIOC, GPIO_Pin_7,  GPIO_AF_TIM3,  64 },      //PWM2
+    { GPIOB, GPIO_Pin_0,  GPIO_AF_TIM3,  35 },      //PWM3
+    { GPIOB, GPIO_Pin_1,  GPIO_AF_TIM3,  36 },      //PWM4
+    { GPIOC, GPIO_Pin_1,  0xFF,          16 },      //ADC1
+    { GPIOC, GPIO_Pin_0,  0xFF,          17 },      //ADC2
+    { GPIOC, GPIO_Pin_5,  0xFF,          34 },      //ADC3
+    { GPIOC, GPIO_Pin_4,  0xFF,          33 },      //ADC4 - Temp
+    { 0,              0,  0xFF,          97 },      //Sudo ADC - MEMS X Axis
+    { 0,              0,  0xFF,          98 },      //Sudo ADC - MEMS X Axis
+    { 0,              0,  0xFF,          99 },      //Sudo ADC - MEMS X Axis
 };
 
 uint8_t pinToSource(uint16_t pin);

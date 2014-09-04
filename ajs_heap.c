@@ -148,7 +148,7 @@ AJ_Status AJS_HeapInit(void** heap, size_t* heapSz, const AJS_HeapConfig* poolCo
         uint8_t poolsInHeap;
         /* Calculate the end for this heap */
         poolsInHeap = 0;
-        for (k = 0;k < num;k++) {
+        for (k = 0; k < num; k++) {
             if (poolConfig[k].heapIndex == j) {
                 poolsInHeap++;
             }
@@ -369,7 +369,7 @@ void AJS_HeapDump(void)
             for (i = 0; i < numPools; ++i) {
                 if (k == heapConfig[i].heapIndex) {
                     AJ_AlwaysPrintf(("pool[%4d] used=%4d free=%4d high-water=%4d max-alloc=%4d heap=%2d\n",
-                            heapConfig[i].size, p->use, heapConfig[i].entries - p->use, p->hwm, p->max, heapConfig[i].heapIndex));
+                                     heapConfig[i].size, p->use, heapConfig[i].entries - p->use, p->hwm, p->max, heapConfig[i].heapIndex));
                     memUse += p->use * heapConfig[i].size;
                     memHigh += p->hwm * heapConfig[i].size;
                     memTotal += p->hwm * p->max;

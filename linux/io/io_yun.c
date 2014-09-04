@@ -630,13 +630,13 @@ AJ_Status AJS_TargetIO_System(const char* cmd)
     }
 }
 
-uint8_t AJS_TargetIO_SpiRead(void* ctx)
+uint8_t* AJS_TargetIO_SpiRead(void* ctx, uint32_t length)
 {
     AJ_InfoPrintf(("AJS_TargetIO_SpiRead()"));
     return 0;
 }
 
-void AJS_TargetIO_SpiWrite(void* ctx, uint8_t data)
+void AJS_TargetIO_SpiWrite(void* ctx, uint8_t* data, uint32_t length)
 {
     AJ_InfoPrintf(("AJS_TargetIO_SpiWrite(): Wrote %i\n", data));
     return;
@@ -653,13 +653,13 @@ AJ_Status AJS_TargetIO_SpiClose(void* spiCtx)
     return AJ_OK;
 }
 
-uint8_t AJS_TargetIO_UartRead(void* uartCtx)
+uint8_t* AJS_TargetIO_UartRead(void* uartCtx, uint32_t length)
 {
     AJ_InfoPrintf(("AJS_TargetIO_UartRead()"));
     return 0;
 }
 
-AJ_Status AJS_TargetIO_UartWrite(void* uartCtx, uint8_t value)
+AJ_Status AJS_TargetIO_UartWrite(void* uartCtx, uint8_t* data, uint32_t length)
 {
     AJ_InfoPrintf(("AJS_TargetIO_UartWrite(): Wrote %i\n", value));
     return AJ_OK;

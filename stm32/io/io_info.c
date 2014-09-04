@@ -25,7 +25,7 @@ static const AJS_IO_Info info[] = {
     { AJS_IO_FUNCTION_SPI_MISO,                          19, "SPI2_MISO_1",         "PC2",      "SPI2 MISO line" },     //pin2
     { AJS_IO_FUNCTION_UART_RX,                           24, "UART2_RX",            "PA3",      "UART RX" },            //pin3
     { AJS_IO_FUNCTION_UART_TX,                           25, "UART2_TX",            "PA2",      "UART RX" },            //pin4
-    { AJS_IO_FUNCTION_DIGITAL_IN,                        23, "GPIO_PA0",            "PA0",      "Push button"},         //pin5
+    { AJS_IO_FUNCTION_DIGITAL_IN,                        23, "GPIO_PA0",            "PA0",      "Push button" },         //pin5
     { AJS_IO_FUNCTION_DIGITAL_IO,                        77, "GPIO_PD7",            "PD7",      "General purpose" },    //pin6
     { AJS_IO_FUNCTION_DIGITAL_IO,                        86, "GPIO_PD5",            "PD5",      "General purpose" },    //pin7
     { AJS_IO_FUNCTION_DIGITAL_IO,                        87, "GPIO_PD6",            "PD6",      "General purpose" },    //pin8
@@ -37,10 +37,10 @@ static const AJS_IO_Info info[] = {
     { AJS_IO_FUNCTION_DIGITAL_OUT,                       60, "GPIO_PD13",           "PD13",     "Orange LED" },         //pin14
     { AJS_IO_FUNCTION_DIGITAL_OUT,                       61, "GPIO_PD14",           "PD14",     "Red LED" },            //pin15
     { AJS_IO_FUNCTION_DIGITAL_OUT,                       62, "GPIO_PD15",           "PD15",     "Blue LED" },           //pin16
-    { AJS_IO_FUNCTION_PWM | AJS_IO_FUNCTION_DIGITAL_OUT, 63, "GPIO_PC6",            "PC6",      "PWM 1"},               //pin17
-    { AJS_IO_FUNCTION_PWM | AJS_IO_FUNCTION_DIGITAL_OUT, 64, "GPIO_PC7",            "PC7",      "PWM 2"},               //pin18
-    { AJS_IO_FUNCTION_PWM | AJS_IO_FUNCTION_DIGITAL_OUT, 35, "GPIO_PB0",            "PB0",      "PWM 3"},               //pin19
-    { AJS_IO_FUNCTION_PWM | AJS_IO_FUNCTION_DIGITAL_OUT, 36, "GPIO_PB1",            "PB1",      "PWM 4"},               //pin20
+    { AJS_IO_FUNCTION_PWM | AJS_IO_FUNCTION_DIGITAL_OUT, 63, "GPIO_PC6",            "PC6",      "PWM 1" },               //pin17
+    { AJS_IO_FUNCTION_PWM | AJS_IO_FUNCTION_DIGITAL_OUT, 64, "GPIO_PC7",            "PC7",      "PWM 2" },               //pin18
+    { AJS_IO_FUNCTION_PWM | AJS_IO_FUNCTION_DIGITAL_OUT, 35, "GPIO_PB0",            "PB0",      "PWM 3" },               //pin19
+    { AJS_IO_FUNCTION_PWM | AJS_IO_FUNCTION_DIGITAL_OUT, 36, "GPIO_PB1",            "PB1",      "PWM 4" },               //pin20
     { AJS_IO_FUNCTION_ANALOG_IN,                         16, "ADC_IN_11",           "PC1",      "Analog In" },          //pin21
     { AJS_IO_FUNCTION_ANALOG_IN,                         17, "ADC_IN_12",           "PC2",      "Analog In" },          //pin22
     { AJS_IO_FUNCTION_ANALOG_IN,                         34, "ADC_IN_15",           "PC5",      "Analog In" },          //pin23
@@ -48,14 +48,14 @@ static const AJS_IO_Info info[] = {
     { AJS_IO_FUNCTION_ANALOG_IN,                         97, "MEMS_X_AXIS",         "MEMX",     "Accelerometer X" },    //pin25
     { AJS_IO_FUNCTION_ANALOG_IN,                         98, "MEMS_Y_AXIS",         "MEMY",     "Accelerometer Y" },    //pin26
     { AJS_IO_FUNCTION_ANALOG_IN,                         99, "MEMS_Z_AXIS",         "MEMZ",     "Accelerometer Z" },    //pin27
-    { AJS_IO_FUNCTION_SPI_SCK | AJS_IO_FUNCTION_UART_TX, 47, "SPI2_SCK_1",          "PB10",     "SPI2 SCK / USART3 TX" },//pin28
+    { AJS_IO_FUNCTION_SPI_SCK | AJS_IO_FUNCTION_UART_TX, 47, "SPI2_SCK_1",          "PB10",     "SPI2 SCK / USART3 TX" }, //pin28
     { AJS_IO_FUNCTION_SPI_SS,                            51, "SPI2_SS_1",           "PB12",     "SPI2 SS line" },       //pin29
     { AJS_IO_FUNCTION_SPI_SCK,                           52, "SPI2_SCK_2",          "PB13",     "SPI2 SCK line" },      //pin30
     { AJS_IO_FUNCTION_SPI_MISO,                          53, "SPI2_MISO_2",         "PB14",     "SPI2 MISO line" },     //pin31
     { AJS_IO_FUNCTION_SPI_MOSI,                          54, "SPI2_MOSI_2",         "PB15",     "SPI2 MOSI line" },     //pin32
     { AJS_IO_FUNCTION_SPI_SS,                            96, "SPI2_SS_2",           "PB9",      "SPI2 SS line" },       //pin33
-    { AJS_IO_FUNCTION_SPI_SCK,                           30, "SPI1_SCK_1",          "PA5",      "SPI1 SCK line"},       //pin34
-    { AJS_IO_FUNCTION_SPI_SS,                             2, "SPI1_SS_2",           "PE3",      "SPI1 SS line (accel)"},//pin35
+    { AJS_IO_FUNCTION_SPI_SCK,                           30, "SPI1_SCK_1",          "PA5",      "SPI1 SCK line" },       //pin34
+    { AJS_IO_FUNCTION_SPI_SS,                             2, "SPI1_SS_2",           "PE3",      "SPI1 SS line (accel)" }, //pin35
     { AJS_IO_FUNCTION_SPI_MOSI,                          32, "SPI1_MOSI_1",         "PA7",      "SPI1 MOSI line" },     //pin36
     { AJS_IO_FUNCTION_SPI_MISO,                          31, "SPI1_MISO_1",         "PA6",      "SPI1 MISO line" },     //pin37
     { AJS_IO_FUNCTION_UART_TX,                           92, "USART1_TX_1",         "PB6",      "USART1 TX line" },     //pin38

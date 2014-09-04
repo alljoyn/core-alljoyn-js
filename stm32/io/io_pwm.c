@@ -109,7 +109,7 @@ AJ_Status AJS_HW_TimerSet(uint32_t freq, void* context)
 
         GPIO_PinAFConfig(gpio->GPIOx, pinSource, GPIO_AF_TIM3);
 
-        prescaler = (uint16_t)((SystemCoreClock /2) / 28000000) - 1;
+        prescaler = (uint16_t)((SystemCoreClock / 2) / 28000000) - 1;
         period = (TIMER_CLK / freq) - 1;
         pulse = gpio->pwm.dutyCycle * (TIMER_CLK / (freq * 100));
 

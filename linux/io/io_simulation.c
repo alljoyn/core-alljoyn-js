@@ -150,7 +150,7 @@ static int SendCmd(uint8_t op, GPIO* gpio, uint8_t arg1, double arg2)
         buf[0] = op;
         buf[1] = gpio->pinId;
         buf[2] = arg1;
-		buf[3] = (uint8_t)(arg2*255.0);
+        buf[3] = (uint8_t)(arg2 * 255.0);
         ret = send(sock, buf, sizeof(buf), 0);
         if (ret == -1) {
             AJ_ErrPrintf(("Failed to send cmd - closing socket\n"));
@@ -234,12 +234,12 @@ int32_t AJS_TargetIO_PinTrigId()
 
 AJ_Status AJS_TargetIO_PinPWM(void* pinCtx, double dutyCycle, uint32_t freq)
 {
-	GPIO* gpio = (GPIO*)pinCtx;
-	if(!SendCmd('p', gpio, (uint32_t)freq, (double)dutyCycle)) {
-		AJ_ErrPrintf(("AJS_TargetIO_PinPWM(%d, %d, %d)\n", gpio->pinId, dutyCycle, freq));
-    	return AJ_ERR_DRIVER;
-	}
-	return AJ_OK;
+    GPIO* gpio = (GPIO*)pinCtx;
+    if (!SendCmd('p', gpio, (uint32_t)freq, (double)dutyCycle)) {
+        AJ_ErrPrintf(("AJS_TargetIO_PinPWM(%d, %d, %d)\n", gpio->pinId, dutyCycle, freq));
+        return AJ_ERR_DRIVER;
+    }
+    return AJ_OK;
 }
 
 AJ_Status AJS_TargetIO_PinEnableTrigger(void* pinCtx, AJS_IO_PinTriggerMode trigger, int32_t* trigId, uint8_t debounce)

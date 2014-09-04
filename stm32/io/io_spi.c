@@ -30,40 +30,39 @@
 
 #include "io_common.h"
 
-uint8_t AJS_TargetIO_SpiRead(void* ctx)
+uint8_t* AJS_TargetIO_SpiRead(void* ctx, uint32_t length)
 {
-    //uint8_t addr = 0xf0;
-    GPIO_ResetBits(GPIOE, GPIO_Pin_3);
-    //addr = 0x80 | addr;
-    /*
-    while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
-    SPI_I2S_SendData(SPI1, addr);
-    while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET);
-    SPI_I2S_ReceiveData(SPI1);
-    */
-    while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
-    SPI_I2S_SendData(SPI1, 0x00);
-    while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET);
-
-    GPIO_SetBits(GPIOE, GPIO_Pin_3);
-
-    return SPI_I2S_ReceiveData(SPI1);
+    SPI_Pin* spi = (SPI_Pin*)ctx;
+    uint8_t* buffer = AJS_Alloc(NULL, length);
+    int i = 0;
+    AJ_EnterCriticalRegion();
+    GPIO_ResetBits(spi->SS_GPIO, spi->SS_Pin);
+    while (i < length) {
+        while (!SPI_I2S_GetFlagStatus(spi->SPIx, SPI_I2S_FLAG_TXE)) ;
+        SPI_I2S_SendData(spi->SPIx, 0x00);
+        while (SPI_I2S_GetFlagStatus(spi->SPIx, SPI_I2S_FLAG_RXNE) == RESET) ;
+        *(buffer + i) = SPI_I2S_ReceiveData(spi->SPIx);
+        ++i;
+    }
+    GPIO_SetBits(spi->SS_GPIO, spi->SS_Pin);
+    AJ_LeaveCriticalRegion();
+    return buffer;
 }
-void AJS_TargetIO_SpiWrite(void* ctx, uint8_t data)
+void AJS_TargetIO_SpiWrite(void* ctx, uint8_t* data, uint32_t length)
 {
-    GPIO_ResetBits(GPIOE, GPIO_Pin_3);
-    while (!SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE)) ;
-    SPI_I2S_SendData(SPI1, data);
-    while (!SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE)) ;
-    SPI_I2S_ReceiveData(SPI1);
-    /*
-    while (!SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE)) ;
-    SPI_I2S_SendData(SPI1, data);
-    while (!SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE)) ;
-    SPI_I2S_ReceiveData(SPI1);
-    */
-    GPIO_SetBits(GPIOE, GPIO_Pin_3);
-
+    SPI_Pin* spi = (SPI_Pin*)ctx;
+    int i = 0;
+    AJ_EnterCriticalRegion();
+    GPIO_ResetBits(spi->SS_GPIO, spi->SS_Pin);
+    while (i < length) {
+        while (!SPI_I2S_GetFlagStatus(spi->SPIx, SPI_I2S_FLAG_TXE)) ;
+        SPI_I2S_SendData(spi->SPIx, *(data + i));
+        while (!SPI_I2S_GetFlagStatus(spi->SPIx, SPI_I2S_FLAG_RXNE)) ;
+        SPI_I2S_ReceiveData(spi->SPIx);
+        ++i;
+    }
+    GPIO_SetBits(spi->SS_GPIO, spi->SS_Pin);
+    AJ_LeaveCriticalRegion();
 }
 AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t clk, uint32_t prescaler,
                                uint8_t master, uint8_t cpol, uint8_t cpha, uint8_t data, void** spiCtx)
@@ -84,22 +83,22 @@ AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t c
     /*
      * Get the pin information for all the SPI pins
      */
-    for (indexMosi = 0;indexMosi < ArraySize(spiInfo);++indexMosi) {
+    for (indexMosi = 0; indexMosi < ArraySize(spiInfo); ++indexMosi) {
         if (spiInfo[indexMosi].pinNum == mosiPin) {
             break;
         }
     }
-    for (indexMiso = 0;indexMiso < ArraySize(spiInfo);++indexMiso) {
+    for (indexMiso = 0; indexMiso < ArraySize(spiInfo); ++indexMiso) {
         if (spiInfo[indexMiso].pinNum == misoPin) {
             break;
         }
     }
-    for (indexCs = 0;indexCs < ArraySize(spiInfo);++indexCs) {
+    for (indexCs = 0; indexCs < ArraySize(spiInfo); ++indexCs) {
         if (spiInfo[indexCs].pinNum == csPin) {
             break;
         }
     }
-    for (indexClk = 0;indexClk < ArraySize(spiInfo);++indexClk) {
+    for (indexClk = 0; indexClk < ArraySize(spiInfo); ++indexClk) {
         if (spiInfo[indexClk].pinNum == clkPin) {
             break;
         }

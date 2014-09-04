@@ -31,55 +31,70 @@
 
 uint8_t pinToSource(uint16_t pin) {
     uint8_t pinSource;
-    switch(pin) {
+    switch (pin) {
     case (GPIO_Pin_0):
-                    pinSource = GPIO_PinSource0;
-    break;
+        pinSource = GPIO_PinSource0;
+        break;
+
     case (GPIO_Pin_1):
-                    pinSource = GPIO_PinSource1;
-    break;
+        pinSource = GPIO_PinSource1;
+        break;
+
     case (GPIO_Pin_2):
-                    pinSource = GPIO_PinSource2;
-    break;
+        pinSource = GPIO_PinSource2;
+        break;
+
     case (GPIO_Pin_3):
-                    pinSource = GPIO_PinSource3;
-    break;
+        pinSource = GPIO_PinSource3;
+        break;
+
     case (GPIO_Pin_4):
-                    pinSource = GPIO_PinSource4;
-    break;
+        pinSource = GPIO_PinSource4;
+        break;
+
     case (GPIO_Pin_5):
-                    pinSource = GPIO_PinSource5;
-    break;
+        pinSource = GPIO_PinSource5;
+        break;
+
     case (GPIO_Pin_6):
-                    pinSource = GPIO_PinSource6;
-    break;
+        pinSource = GPIO_PinSource6;
+        break;
+
     case (GPIO_Pin_7):
-                    pinSource = GPIO_PinSource7;
-    break;
+        pinSource = GPIO_PinSource7;
+        break;
+
     case (GPIO_Pin_8):
-                    pinSource = GPIO_PinSource8;
-    break;
+        pinSource = GPIO_PinSource8;
+        break;
+
     case (GPIO_Pin_9):
-                    pinSource = GPIO_PinSource9;
-    break;
+        pinSource = GPIO_PinSource9;
+        break;
+
     case (GPIO_Pin_10):
-                    pinSource = GPIO_PinSource10;
-    break;
+        pinSource = GPIO_PinSource10;
+        break;
+
     case (GPIO_Pin_11):
-                    pinSource = GPIO_PinSource11;
-    break;
+        pinSource = GPIO_PinSource11;
+        break;
+
     case (GPIO_Pin_12):
-                    pinSource = GPIO_PinSource12;
-    break;
+        pinSource = GPIO_PinSource12;
+        break;
+
     case (GPIO_Pin_13):
-                    pinSource = GPIO_PinSource13;
-    break;
+        pinSource = GPIO_PinSource13;
+        break;
+
     case (GPIO_Pin_14):
-                    pinSource = GPIO_PinSource14;
-    break;
+        pinSource = GPIO_PinSource14;
+        break;
+
     case (GPIO_Pin_15):
-                    pinSource = GPIO_PinSource15;
-    break;
+        pinSource = GPIO_PinSource15;
+        break;
     }
     return pinSource;
 }

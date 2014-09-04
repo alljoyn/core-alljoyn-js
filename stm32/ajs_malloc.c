@@ -54,7 +54,7 @@ static const AJS_HeapConfig heapConfig[] = {
  * Special section of RAM on the STM32F4. It is not in a continuous address space
  * as normal ram so it must have its own heap in the pool allocator
  */
-static uint32_t heapCCM[63928 / 4]__attribute__ ((section (".ccm")));
+static uint32_t heapCCM[63928 / 4] __attribute__ ((section(".ccm")));
 /*
  * Regular RAM section. This can be dynamically allocated out of the FreeRTOS heap
  */

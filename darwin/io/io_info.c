@@ -23,9 +23,9 @@
 
 static const AJS_IO_Info info[] = {
     {  AJS_IO_FUNCTION_DIGITAL_OUT, 1,  "LED_1",   "",  "Red LED" },
-    {  AJS_IO_FUNCTION_DIGITAL_OUT, 2,  "LED_2",   "",  "Green LED" },
-    {  AJS_IO_FUNCTION_DIGITAL_OUT, 3,  "LED_3",   "",  "Yellow LED" },
-    {  AJS_IO_FUNCTION_DIGITAL_OUT, 4,  "LED_4",   "",  "Blue LED" },
+    {  AJS_IO_FUNCTION_DIGITAL_OUT | AJS_IO_FUNCTION_PWM, 2,  "LED_2",   "",  "Green LED" },
+    {  AJS_IO_FUNCTION_DIGITAL_OUT | AJS_IO_FUNCTION_PWM, 3,  "LED_3",   "",  "Yellow LED" },
+    {  AJS_IO_FUNCTION_DIGITAL_OUT | AJS_IO_FUNCTION_PWM, 4,  "LED_4",   "",  "Blue LED" },
     {  AJS_IO_FUNCTION_DIGITAL_IN,  5,  "GPIO_1",  "",  "Digital input 1" },
     {  AJS_IO_FUNCTION_DIGITAL_IN,  6,  "GPIO_2",  "",  "Digital input 2" },
     {  AJS_IO_FUNCTION_DIGITAL_IN,  7,  "GPIO_3",  "",  "Digital input 3" },

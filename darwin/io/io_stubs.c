@@ -48,6 +48,7 @@ AJ_Status AJS_TargetIO_DacClose(void* dacCtx)
 void AJS_TargetIO_DacWrite(void* dacCtx, uint32_t val)
 {
 }
+
 uint8_t* AJS_TargetIO_SpiRead(void* ctx, uint32_t length)
 {
     AJ_InfoPrintf(("AJS_TargetIO_SpiRead()"));

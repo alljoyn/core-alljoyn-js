@@ -194,7 +194,8 @@ ajs_sources = [
      'io/io_adc.c',
      'io/io_spi.c',
      'io/io_uart.c',
-     'io/io_common.c'
+     'io/io_common.c',
+     'io/io_i2c.c'
 ]
 
 srcs = env.Object(env['aj_srcs'] + env['aj_sw_crypto'] + env['aj_malloc'] + env['aj_crypto_ecc'] + env['aj_external_sha2'])

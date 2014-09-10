@@ -45,9 +45,9 @@ static const AJS_IO_Info info[] = {
     { AJS_IO_FUNCTION_ANALOG_IN,                         17, "ADC_IN_12",           "PC2",      "Analog In" },          //pin22
     { AJS_IO_FUNCTION_ANALOG_IN,                         34, "ADC_IN_15",           "PC5",      "Analog In" },          //pin23
     { AJS_IO_FUNCTION_ANALOG_IN,                         33, "ADC_IN_14",           "PC4",      "Temperature Sensor" }, //pin24
-    { AJS_IO_FUNCTION_ANALOG_IN,                         97, "MEMS_X_AXIS",         "MEMX",     "Accelerometer X" },    //pin25
-    { AJS_IO_FUNCTION_ANALOG_IN,                         98, "MEMS_Y_AXIS",         "MEMY",     "Accelerometer Y" },    //pin26
-    { AJS_IO_FUNCTION_ANALOG_IN,                         99, "MEMS_Z_AXIS",         "MEMZ",     "Accelerometer Z" },    //pin27
+    { AJS_IO_FUNCTION_ANALOG_IN,                        200, "MEMS_X_AXIS",         "MEMX",     "Accelerometer X" },    //pin25
+    { AJS_IO_FUNCTION_ANALOG_IN,                        201, "MEMS_Y_AXIS",         "MEMY",     "Accelerometer Y" },    //pin26
+    { AJS_IO_FUNCTION_ANALOG_IN,                        202, "MEMS_Z_AXIS",         "MEMZ",     "Accelerometer Z" },    //pin27
     { AJS_IO_FUNCTION_SPI_SCK | AJS_IO_FUNCTION_UART_TX, 47, "SPI2_SCK_1",          "PB10",     "SPI2 SCK / USART3 TX" }, //pin28
     { AJS_IO_FUNCTION_SPI_SS,                            51, "SPI2_SS_1",           "PB12",     "SPI2 SS line" },       //pin29
     { AJS_IO_FUNCTION_SPI_SCK,                           52, "SPI2_SCK_2",          "PB13",     "SPI2 SCK line" },      //pin30
@@ -67,7 +67,11 @@ static const AJS_IO_Info info[] = {
     { AJS_IO_FUNCTION_UART_RX,                           69, "USART1_RX_2",         "PA10",     "USART1 RX line" },     //pin44
     { AJS_IO_FUNCTION_UART_RX,                           48, "USART3_RX_1",         "PB11",     "USART3 RX line" },     //pin45
     { AJS_IO_FUNCTION_UART_RX,                           56, "USART3_RX_2",         "PD9",      "USART3 RX line" },     //pin46
-    { AJS_IO_FUNCTION_UART_RX,                           79, "USART3_RX_3",         "PC11",     "USART3 RX line" }      //pin47
+    { AJS_IO_FUNCTION_UART_RX,                           79, "USART3_RX_3",         "PC11",     "USART3 RX line" },      //pin47
+    { AJS_IO_FUNCTION_I2C_SDC,                           92, "I2C_SCL_1",           "PB6",      "I2C SCL line"  },      //pin48
+    { AJS_IO_FUNCTION_I2C_SDA,                           96, "I2C_SDA_1",           "PB9",      "I2C SDA line" },       //pin49
+    { AJS_IO_FUNCTION_I2C_SDC,                           95, "I2C_SCL_2",           "PB8",      "I2C SCL line" },       //pin50
+    { AJS_IO_FUNCTION_I2C_SDA,                           93, "I2C SDA_2",           "PB7",      "I2C SDA line" }        //pin51
 };
 
 uint8_t AJS_ValidateSpiPins(uint16_t mosi, uint16_t miso, uint16_t clk)

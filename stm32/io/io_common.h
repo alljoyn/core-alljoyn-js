@@ -38,6 +38,7 @@
 #include "aj_target_platform.h"
 #include "stm32f4xx_adc.h"
 #include "stm32f4xx_usart.h"
+#include "stm32f4xx_i2c.h"
 
 typedef struct {
     GPIO_TypeDef* GPIOx;    //STM32 GPIO structure

@@ -602,7 +602,70 @@ static int NativeIoUart(duk_context* ctx)
 
     return 1;
 }
+static int NativeI2cWrite(duk_context* ctx)
+{
+    uint8_t value = duk_require_int(ctx, 0);
+    AJS_TargetIO_I2cWrite(PinCtxPtr(ctx), value);
+    duk_pop(ctx);
+    return 1;
+}
+static int NativeI2cRead(duk_context* ctx)
+{
+    uint8_t value = AJS_TargetIO_I2cRead(PinCtxPtr(ctx));
+    duk_push_number(ctx, value);
+    return 1;
+}
+static int NativeI2cStart(duk_context* ctx)
+{
+    uint8_t addr = duk_require_int(ctx, 0);
+    AJS_TargetIO_I2cStart(PinCtxPtr(ctx), addr);
+}
+static int NativeI2cStop(duk_context* ctx)
+{
+    AJS_TargetIO_I2cStop(PinCtxPtr(ctx));
+    return 1;
+}
 
+static int NativeI2cFinalizer(duk_context* ctx)
+{
+    return 0;
+}
+static int NativeIoI2c(duk_context* ctx)
+{
+    AJ_Status status;
+    uint8_t sda, scl, mode, address;
+    uint32_t clock;
+    int idx;
+    void* i2cCtx;
+    sda = GetPinId(ctx, 0, AJS_IO_FUNCTION_I2C_SDA);
+    scl = GetPinId(ctx, 1, AJS_IO_FUNCTION_I2C_SDC);
+
+    clock = duk_require_int(ctx, 2);
+    mode = duk_require_int(ctx, 3);
+    address = duk_require_int(ctx, 4);
+
+    duk_pop(ctx);
+
+    status = AJS_TargetIO_I2cOpen(sda, scl, clock, mode, address);
+    if (status != AJ_OK) {
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Failed to open I2C device\n");
+    }
+    idx = NewIOObject(ctx, i2cCtx, NativeI2cFinalizer);
+
+    duk_push_c_function(ctx, NativeI2cWrite, 2);
+    duk_put_prop_string(ctx, idx, "write");
+
+    duk_push_c_function(ctx, NativeI2cRead, 1);
+    duk_put_prop_string(ctx, idx, "read");
+
+    duk_push_c_function(ctx, NativeI2cStart, 1);
+    duk_put_prop_string(ctx, idx, "start");
+
+    duk_push_c_function(ctx, NativeI2cStop, 0);
+    duk_put_prop_string(ctx, idx, "stop");
+
+    return 1;
+}
 /*
  * Returns the IO functions supported by this pin
  */
@@ -712,6 +775,9 @@ AJ_Status AJS_RegisterIO(duk_context* ctx)
 
     duk_push_c_function(ctx, NativeIoUart, 3);
     duk_put_prop_string(ctx, ioIdx, "uart");
+
+    duk_push_c_function(ctx, NativeIoI2c, 5);
+    duk_put_prop_string(ctx, ioIdx, "i2c");
     /*
      * GPIO attribute constants
      */

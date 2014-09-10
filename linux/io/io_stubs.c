@@ -64,12 +64,12 @@ void AJS_TargetIO_SpiWrite(void* ctx, uint8_t* data, uint32_t length)
 AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t clk, uint32_t prescaler,
                                uint8_t master, uint8_t cpol, uint8_t cpha, uint8_t data, void** spiCtx)
 {
-    return AJ_OK;
+    return AJ_ERR_UNEXPECTED;
 }
 
 AJ_Status AJS_TargetIO_SpiClose(void* spiCtx)
 {
-    return AJ_OK;
+    return AJ_ERR_UNEXPECTED;
 }
 
 uint8_t* AJS_TargetIO_UartRead(void* uartCtx, uint32_t length)
@@ -90,5 +90,26 @@ AJ_Status AJS_TargetIO_UartOpen(uint8_t txPin, uint8_t rxPin, uint32_t baud, voi
 
 AJ_Status AJS_TargetIO_UartClose(void* uartCtx)
 {
-    return AJ_OK;
+    return AJ_ERR_UNEXPECTED;
+}
+void AJS_TargetIO_I2cStart(void* ctx, uint8_t addr)
+{
+}
+void AJS_TargetIO_I2cStop(void* ctx)
+{
+}
+uint8_t AJS_TargetIO_I2cRead(void* ctx, uint8_t address, uint32_t length)
+{
+    return 0;
+}
+void AJS_TargetIO_I2cWrite(void* ctx, uint8_t data)
+{
+}
+AJ_Status AJS_TargetIO_I2cOpen(uint8_t sda, uint8_t scl, uint32_t clock, uint8_t mode, uint8_t ownAddress)
+{
+    return AJ_ERR_UNEXPECTED;
+}
+AJ_Status AJS_TargetIO_I2cClose(void* ctx)
+{
+    return AJ_ERR_UNEXPECTED;
 }

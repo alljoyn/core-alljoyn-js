@@ -209,8 +209,8 @@ static void StoreNVRAMPropList(duk_context* ctx, duk_idx_t idx)
     }
 }
 
-#define SET_BIT(m, n)   (m)[(n) / 8] |= (1 << ((n) % 8))
-#define TEST_BIT(m, n)  (m)[(n) / 8] & (1 << ((n) % 8))
+#define SET_BIT(m, n)   (((m)[(n) / 8]) |= (1 << ((n) % 8)))
+#define TEST_BIT(m, n)  (((m)[(n) / 8]) & (1 << ((n) % 8)))
 
 static void StorePropInNVRAM(duk_context* ctx, const char* propName, duk_idx_t idx)
 {
@@ -357,7 +357,7 @@ static int NativeStoreProperty(duk_context* ctx)
      * First check for built-in (config/about) properties
      */
     if (index != AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX) {
-        if (!AJSVC_PropertyStore_IsReadOnly(index)) {
+        if (!AJS_PropertyStore_IsReadOnly(index)) {
             /*
              * Ignore attempts to set a readonly property
              */

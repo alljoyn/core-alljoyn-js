@@ -31,6 +31,14 @@
 const char* AJS_GetTranslatedString(duk_context* ctx, duk_idx_t idx, uint16_t lang);
 
 /**
+ * Lookup a string and find a translation to the current default language if one exists
+ *
+ * @param ctx  An opaque pointer to a duktape context structure
+ * @param idx  The index on the stack for the string to be translated
+ */
+const char* AJS_GetDefaultTranslatedString(duk_context* ctx, duk_idx_t idx);
+
+/**
  * Get the language name for a give language index
  *
  * @param ctx        An opaque pointer to a duktape context structure

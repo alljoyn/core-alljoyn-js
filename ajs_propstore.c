@@ -27,6 +27,10 @@
 #include <aj_creds.h>
 #include <aj_config.h>
 
+#ifndef CONFIG_SERVICE
+#error CONFIG_SERVICE is required
+#endif
+
 /*
  * Compute NVRAM id for a given property key
  */
@@ -119,15 +123,34 @@ AJSVC_PropertyStoreFieldIndices AJSVC_PropertyStore_GetFieldIndex(const char* fi
     return AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX;
 }
 
-const char* PeekProp(AJSVC_PropertyStoreFieldIndices field) 
+static char valBuf[MAX_PROP_LENGTH + 1];
+
+static const char* PeekProp(AJSVC_PropertyStoreFieldIndices field)
 {
-    const char* prop = NULL;
     AJ_NV_DATASET* handle = AJ_NVRAM_Open(NVRAM_ID(field), "r", 0);
     if (handle) {
-        prop = AJ_NVRAM_Peek(handle);
+        const char* prop = AJ_NVRAM_Peek(handle);
+        strncpy(valBuf, prop, MAX_PROP_LENGTH);
+        valBuf[MAX_PROP_LENGTH] = 0;
+        AJ_NVRAM_Close(handle);
+        return valBuf;
+    } else {
+        return NULL;
+    }
+}
+
+static uint8_t PropChanged(AJSVC_PropertyStoreFieldIndices field, const char* str)
+{
+    uint8_t changed = TRUE;
+    AJ_NV_DATASET* handle = AJ_NVRAM_Open(NVRAM_ID(field), "r", 0);
+    if (handle) {
+        const char* prop = AJ_NVRAM_Peek(handle);
+        if (strcmp(prop, str) == 0) {
+            changed = FALSE;
+        }
         AJ_NVRAM_Close(handle);
     }
-    return prop;
+    return changed;
 }
 
 const char* AJSVC_PropertyStore_GetLanguageName(int8_t index)
@@ -145,10 +168,10 @@ const char* AJSVC_PropertyStore_GetLanguageName(int8_t index)
 
 const char* AJSVC_PropertyStore_GetValueForLang(AJSVC_PropertyStoreFieldIndices field, int8_t index)
 {
-    static char valBuf[MAX_PROP_LENGTH + 1];
     const char* val = NULL;
     const char* lang;
     duk_context* ctx = duktape;
+    AJ_NV_DATASET* handle;
 
     if (!IS_VALID_FIELD_ID(field)) {
         return NULL;
@@ -163,35 +186,39 @@ const char* AJSVC_PropertyStore_GetValueForLang(AJSVC_PropertyStoreFieldIndices 
     /*
      * Expect JSON of form { <lang>:<string>, <lang>:<string>, ... }
      */
-    duk_push_string(ctx, PeekProp(field));
-    duk_json_decode(ctx, -1);
-    /*
-     * First try lookup the language requested
-     * Second try lookup the current default language
-     * Third try lookup the compile time default language
-     */
-    duk_get_prop_string(ctx, -1, lang);
-    if (!duk_is_string(ctx, -1)) {
-        duk_pop(ctx);
-        lang = PeekProp(AJSVC_PROPERTY_STORE_DEFAULT_LANGUAGE);
+    handle = AJ_NVRAM_Open(NVRAM_ID(field), "r", 0);
+    if (handle) {
+        duk_push_string(ctx, AJ_NVRAM_Peek(handle));
+        AJ_NVRAM_Close(handle);
+        duk_json_decode(ctx, -1);
+        /*
+         * First try lookup the language requested
+         * Second try lookup the current default language
+         * Third try lookup the compile time default language
+         */
         duk_get_prop_string(ctx, -1, lang);
         if (!duk_is_string(ctx, -1)) {
             duk_pop(ctx);
-            lang = DEFAULT_LANGUAGE;
+            lang = PeekProp(AJSVC_PROPERTY_STORE_DEFAULT_LANGUAGE);
             duk_get_prop_string(ctx, -1, lang);
+            if (!duk_is_string(ctx, -1)) {
+                duk_pop(ctx);
+                lang = DEFAULT_LANGUAGE;
+                duk_get_prop_string(ctx, -1, lang);
+            }
         }
+        if (duk_is_string(ctx, -1)) {
+            /*
+             * The value we want to return is on the duktape stack but is not stable to we copy it to a
+             * static buffer. The assumption that the caller will consume the string before calling this
+             * function again.
+             */
+            strncpy(valBuf, duk_get_string(ctx, -1), MAX_PROP_LENGTH);
+            valBuf[MAX_PROP_LENGTH] = 0;
+            val = valBuf;
+        }
+        duk_pop_2(ctx);
     }
-    if (duk_is_string(ctx, -1)) {
-        /*
-         * The value we want to return is on the duktape stack but is not stable to we copy it to a
-         * static buffer. The assumption that the caller will consume the string before calling this
-         * function again.
-         */
-        strncpy(valBuf, duk_get_string(ctx, -1), MAX_PROP_LENGTH);
-        valBuf[MAX_PROP_LENGTH] = 0;
-        val = valBuf;
-    }
-    duk_pop_2(ctx);
     return val;
 }
 
@@ -235,7 +262,7 @@ static void InitProperties(const char* deviceName, uint8_t force)
         /*
          * Don't overwrite existing value unless force is TRUE
          */
-        if (!force && PeekProp(field)) {
+        if (!force && AJ_NVRAM_Exist(NVRAM_ID(field))) {
             continue;
         }
         switch (field) {
@@ -307,9 +334,9 @@ AJ_Status AJSVC_PropertyStore_SaveAll()
     return AJ_OK;
 }
 
-uint8_t AJSVC_PropertyStore_IsReadOnly(AJSVC_PropertyStoreFieldIndices field)
+uint8_t AJS_PropertyStore_IsReadOnly(AJSVC_PropertyStoreFieldIndices field)
 {
-    return !IS_VALID_FIELD_ID(field) || (propDefs[field].flags & P_READONLY);
+    return !IS_VALID_FIELD_ID(field) || (propDefs[field].flags & (P_READONLY | P_PRIVATE));
 }
 
 AJ_Status AJSVC_PropertyStore_ReadAll(AJ_Message* msg, AJSVC_PropertyStoreCategoryFilter filter, int8_t lang)
@@ -427,19 +454,17 @@ AJ_Status AJSVC_PropertyStore_Update(const char* key, int8_t lang, const char* v
 uint8_t AJSVC_PropertyStore_SetValueForLang(AJSVC_PropertyStoreFieldIndices field, int8_t lang, const char* value)
 {
     duk_context* ctx = duktape;
-    const char* oldStr;
-    const char* str;
+    const char* str = value;
 
     if (field == AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX) {
         return FALSE;
     }
-    if (!(propDefs[field].flags & P_LOCALIZED)) {
-        str = value;
-    } else {
-        const char* prop = PeekProp(field);
-        if (prop) {
-            duk_push_string(ctx, prop);
+    if (propDefs[field].flags & P_LOCALIZED) {
+        AJ_NV_DATASET* handle = AJ_NVRAM_Open(NVRAM_ID(field), "r", 0);
+        if (handle) {
+            duk_push_string(ctx, AJ_NVRAM_Peek(handle));
             duk_json_decode(ctx, -1);
+            AJ_NVRAM_Close(handle);
         } else {
             duk_push_object(ctx);
         }
@@ -451,8 +476,7 @@ uint8_t AJSVC_PropertyStore_SetValueForLang(AJSVC_PropertyStoreFieldIndices fiel
     /*
      * Avoid setting a property to the same value
      */
-    oldStr = PeekProp(field);
-    if (!oldStr || (strcmp(oldStr, str) != 0)) {
+    if (PropChanged(field, str)) {
         uint16_t len = strlen(str) + 1;
         AJ_NV_DATASET* handle = AJ_NVRAM_Open(NVRAM_ID(field), "w", len);
         if (handle) {
@@ -505,4 +529,25 @@ uint8_t AJS_GetCurrentLanguage()
         langNum = AJS_GetLanguageIndex(ctx, lang);
     }
     return langNum;
+}
+
+uint32_t AJS_PasswordCallback(uint8_t* buffer, uint32_t bufLen)
+{
+    AJ_Status status = AJ_OK;
+    const char* hexPassword;
+    size_t hexPasswordLen;
+    uint32_t len = 0;
+
+    hexPassword = PeekProp(AJSVC_PROPERTY_STORE_PASSCODE);
+    if (hexPassword == NULL) {
+        AJ_ErrPrintf(("Password is NULL!\n"));
+        return len;
+    }
+    hexPasswordLen = strlen(hexPassword);
+    len = hexPasswordLen / 2;
+    status = AJ_HexToRaw(hexPassword, hexPasswordLen, buffer, bufLen);
+    if (status == AJ_ERR_RESOURCES) {
+        len = 0;
+    }
+    return len;
 }

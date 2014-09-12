@@ -286,9 +286,6 @@ static void* CallInvolvesWidget(uint32_t identifier, uint16_t* widgetType, uint1
     } else {
         *propType = 0;
     }
-    /*
-     * TODO - implement muli-language support
-     */
     *language = 0;
     return (void*)widget;
 }

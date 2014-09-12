@@ -309,13 +309,18 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj)
 
         /* Introspection messages */
         case AJ_METHOD_PING:
+        case AJ_METHOD_BUS_PING:
         case AJ_METHOD_GET_MACHINE_ID:
         case AJ_METHOD_INTROSPECT:
         case AJ_METHOD_GET_DESCRIPTION_LANG:
         case AJ_METHOD_INTROSPECT_WITH_DESC:
         /* About messages */
+        case AJ_METHOD_ABOUT_GET_PROP:
+        case AJ_METHOD_ABOUT_SET_PROP:
+        case AJ_METHOD_ABOUT_GET_ABOUT_DATA:
         case AJ_METHOD_ABOUT_GET_OBJECT_DESCRIPTION:
         case AJ_METHOD_ABOUT_ICON_GET_PROP:
+        case AJ_METHOD_ABOUT_ICON_SET_PROP:
         case AJ_METHOD_ABOUT_ICON_GET_URL:
         case AJ_METHOD_ABOUT_ICON_GET_CONTENT:
         /* Authentication messages and replies */
@@ -336,7 +341,11 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj)
         /* Replies the app ignores */
         case AJ_REPLY_ID(AJ_METHOD_ADD_MATCH):
         case AJ_REPLY_ID(AJ_METHOD_REMOVE_MATCH):
+        case AJ_REPLY_ID(AJ_METHOD_PING):
+        case AJ_REPLY_ID(AJ_METHOD_BUS_PING):
         /* Signals the app ignores */
+        case AJ_SIGNAL_PROBE_ACK:
+        case AJ_SIGNAL_PROBE_REQ:
         case AJ_SIGNAL_NAME_OWNER_CHANGED:
             status = AJ_BusHandleBusMessage(&msg);
             break;

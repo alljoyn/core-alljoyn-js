@@ -57,7 +57,6 @@ static const char* GetTranslatedString(duk_context* ctx, duk_idx_t idx, uint16_t
                 translation = duk_get_string(ctx, -1);
                 duk_pop(ctx);
             }
-            duk_pop(ctx);
         }
         duk_pop(ctx);
     }
@@ -68,6 +67,11 @@ static const char* GetTranslatedString(duk_context* ctx, duk_idx_t idx, uint16_t
     } else {
         return original;
     }
+}
+
+const char* AJS_GetDefaultTranslatedString(duk_context* ctx, duk_idx_t idx)
+{
+    return GetTranslatedString(ctx, idx, 0, AJS_GetCurrentLanguageName());
 }
 
 const char* AJS_GetTranslatedString(duk_context* ctx, duk_idx_t idx, uint16_t langNum)
@@ -122,6 +126,10 @@ static int NativeTranslationsSetter(duk_context* ctx)
     duk_pop(ctx);
 
     AJ_RegisterDescriptionLanguages((const char* const*)languagesList);
+    /*
+     * Announce the change
+     */
+    AJ_AboutSetShouldAnnounce();
     return 0;
 }
 
@@ -134,7 +142,7 @@ static int NativeTranslate(duk_context* ctx)
     } else if (duk_is_string(ctx, 1)) {
         trans = GetTranslatedString(ctx, 0, 0, duk_get_string(ctx, 1));
     } else {
-        trans = GetTranslatedString(ctx, 0, AJS_GetCurrentLanguage(), NULL);
+        trans = GetTranslatedString(ctx, 0, 0, AJS_GetCurrentLanguageName());
     }
     duk_push_string(ctx, trans);
     return 1;
@@ -157,7 +165,9 @@ const char* AJS_GetLanguageName(duk_context* ctx, uint8_t langIndex)
     AJS_GetAllJoynProperty(ctx, "languages");
     if (duk_is_array(ctx, -1)) {
         duk_get_prop_index(ctx, -1, langIndex);
-        langName = duk_get_string(ctx, -1);
+        if (duk_is_string(ctx, -1)) {
+            langName = duk_get_string(ctx, -1);
+        }
         duk_pop(ctx);
     }
     duk_pop(ctx);
@@ -195,9 +205,11 @@ uint8_t AJS_GetLanguageIndex(duk_context* ctx, const char* langName)
 
 uint8_t AJS_GetNumberOfLanguages(duk_context* ctx)
 {
-    uint8_t num;
+    uint8_t num = 0;
     AJS_GetAllJoynProperty(ctx, "languages");
-    num = duk_get_length(ctx, -1);
+    if (duk_is_array(ctx, -1)) {
+        num = duk_get_length(ctx, -1);
+    }
     duk_pop(ctx);
     return num ? num : 1;
 }

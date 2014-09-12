@@ -30,28 +30,6 @@
 #include <alljoyn/notification/NotificationProducer.h>
 #include <alljoyn/services_common/PropertyStore.h>
 
-static uint32_t PasswordCallback(uint8_t* buffer, uint32_t bufLen)
-{
-    AJ_Status status = AJ_OK;
-    const char* hexPassword;
-    size_t hexPasswordLen;
-    uint32_t len = 0;
-
-    hexPassword = AJSVC_PropertyStore_GetValue(AJSVC_PROPERTY_STORE_PASSCODE);
-    if (hexPassword == NULL) {
-        AJ_AlwaysPrintf(("Password is NULL!\n"));
-        return len;
-    }
-    AJ_AlwaysPrintf(("Retrieved password=%s\n", hexPassword));
-    hexPasswordLen = strlen(hexPassword);
-    len = hexPasswordLen / 2;
-    status = AJ_HexToRaw(hexPassword, hexPasswordLen, buffer, bufLen);
-    if (status == AJ_ERR_RESOURCES) {
-        len = 0;
-    }
-    return len;
-}
-
 static AJ_Status SetPasscode(const char* routerRealm, const uint8_t* newPasscode, uint8_t newPasscodeLen)
 {
     AJ_Status status = AJ_OK;
@@ -62,7 +40,6 @@ static AJ_Status SetPasscode(const char* routerRealm, const uint8_t* newPasscode
         return status;
     }
     if (AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_REALM_NAME, routerRealm) && AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_PASSCODE, newStringPasscode)) {
-
         status = AJSVC_PropertyStore_SaveAll();
         if (status != AJ_OK) {
             return status;
@@ -70,13 +47,11 @@ static AJ_Status SetPasscode(const char* routerRealm, const uint8_t* newPasscode
         AJ_ClearCredentials();
         status = AJ_ERR_READ;     //Force disconnect of AJ and services to refresh current sessions
     } else {
-
         status = AJSVC_PropertyStore_LoadAll();
         if (status != AJ_OK) {
             return status;
         }
     }
-
     return status;
 }
 
@@ -109,7 +84,7 @@ AJ_Status AJS_ServicesInit(AJ_BusAttachment* aj)
 {
     AJ_Status status = AJ_OK;
 
-    AJ_BusSetPasswordCallback(aj, PasswordCallback);
+    AJ_BusSetPasswordCallback(aj, AJS_PasswordCallback);
     status = AJCFG_Start(FactoryReset, Restart, SetPasscode, IsValueValid);
     if (status != AJ_OK) {
         goto Exit;

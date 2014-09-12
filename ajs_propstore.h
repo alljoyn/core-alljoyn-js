@@ -25,11 +25,21 @@
 /**
  * Initialize the property store
  */
-AJ_Status PropertyStore_Init();
+AJ_Status AJS_PropertyStore_Init();
 
 /**
- * TODO - this function should be declared in PropertyStory.h
+ * Returns TRUE is the property is read only
  */
-uint8_t AJSVC_PropertyStore_IsReadOnly(AJSVC_PropertyStoreFieldIndices index);
+uint8_t AJS_PropertyStore_IsReadOnly(AJSVC_PropertyStoreFieldIndices index);
+
+/**
+ * Function to retrieve a password from the property store.
+ *
+ * @param buffer Buffer to return the password
+ * @param bufLen The size of the buffer
+ *
+ * @return  Returns the actual length of the password
+ */
+uint32_t AJS_PasswordCallback(uint8_t* buffer, uint32_t bufLen);
 
 #endif //_AJS_PROPSTORE_H

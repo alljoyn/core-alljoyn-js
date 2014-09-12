@@ -53,8 +53,6 @@ AJ_Status AJS_DetachAllJoyn(AJ_BusAttachment* aj, AJ_Status reason)
 static const char softAPSSID[] = "AJ_AllJoyn.js";
 
 static AJOBS_Settings obSettings = AJOBS_DEFAULT_SETTINGS;
-const char* deviceManufactureName = "Manufacturer Name";
-const char* deviceProductName = "Product Name";
 
 AJ_Status AJS_AttachAllJoyn(AJ_BusAttachment* aj)
 {

@@ -116,7 +116,7 @@ static const char* GetLabel(BaseWidget* widget, uint16_t language)
     AJ_InfoPrintf(("GetLabel from %s\n", ajsWidget->path));
     GetWidgetObject(ctx, ajsWidget->index);
     duk_get_prop_string(ctx, -1, "label");
-    label = AJS_GetTranslatedString(ctx, -1, language);
+    label = AJS_GetDefaultTranslatedString(ctx, -1);
     duk_pop_2(ctx);
     /*
      * String pointers are stable so we can simply return it
@@ -452,7 +452,7 @@ static const char* GetUnits(PropertyWidget* widget, uint16_t language)
 
     GetWidgetObject(ctx, ajsWidget->index);
     duk_get_prop_string(ctx, -1, "units");
-    units = AJS_GetTranslatedString(ctx, -1, language);
+    units = AJS_GetDefaultTranslatedString(ctx, -1);
     duk_pop_2(ctx);
     return units;
 }
@@ -467,7 +467,7 @@ static const char* GetChoice(PropertyWidget* widget, uint16_t index, const void*
     GetWidgetObject(ctx, ajsWidget->index);
     duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("choices"));
     duk_get_prop_index(ctx, -1, index);
-    choice = AJS_GetTranslatedString(ctx, -1, language);
+    choice = AJS_GetDefaultTranslatedString(ctx, -1);
     duk_pop_3(ctx);
     choiceVal = index;
     *val = &choiceVal;
@@ -693,7 +693,7 @@ static const char* DialogLabel(DialogWidget* widget, uint8_t action, uint16_t la
         duk_get_prop_index(ctx, -1, action);
         if (duk_is_object(ctx, -1)) {
             duk_get_prop_string(ctx, -1, "label");
-            label = AJS_GetTranslatedString(ctx, -1, language);
+            label = AJS_GetDefaultTranslatedString(ctx, -1);
             duk_pop(ctx);
         } else {
             AJ_ErrPrintf(("DialogLabel no action%d\n", action));
@@ -810,7 +810,7 @@ static const char* GetDialogMessage(DialogWidget* widget, uint16_t language)
      * String pointers are stable so we can simply return it
      */
     duk_get_prop_string(ctx, -1, "message");
-    message = AJS_GetTranslatedString(ctx, -1, language);
+    message = AJS_GetDefaultTranslatedString(ctx, -1);
     duk_pop_2(ctx);
     return message;
 }

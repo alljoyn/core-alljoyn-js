@@ -304,6 +304,7 @@ AJ_Status AJS_Main(const char* deviceName)
                 AJ_NVRAM_Read(&len, sizeof(len), ds);
                 js = AJ_NVRAM_Peek(ds);
                 ret = duk_pcompile_lstring_filename(ctx, 0, (const char*)js, len);
+                AJ_NVRAM_Close(ds);
                 if (ret == DUK_EXEC_SUCCESS) {
                     ret = duk_pcall(ctx, 0);
                 }
@@ -316,7 +317,6 @@ AJ_Status AJS_Main(const char* deviceName)
                     AJ_ErrPrintf(("ajIdx == %d, top_index == %d\n", (int)ajIdx, (int)duk_get_top_index(ctx)));
                     AJ_ASSERT(duk_get_top_index(ctx) == ajIdx);
                 }
-                AJ_NVRAM_Close(ds);
                 AJS_HeapDump();
                 if (status == AJ_OK) {
                     AJ_InfoPrintf(("Installed script from NVRAM\n"));

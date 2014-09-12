@@ -17,15 +17,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <qcc/platform.h>
-#include <qcc/Debug.h>
-#include <qcc/String.h>
-
-#include <errno.h>
-#include <time.h>
-#include <signal.h>
-#include <stdio.h>
-#include <assert.h>
+#include "ajs_console.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -35,19 +27,8 @@
 
 #ifdef __MACH__
 #include <sys/time.h>
+#include <sys/errno.h>
 #endif
-
-#include <alljoyn/BusAttachment.h>
-#include <alljoyn/DBusStd.h>
-#include <alljoyn/AllJoynStd.h>
-#include <alljoyn/version.h>
-#include <alljoyn/about/AnnounceHandler.h>
-#include <alljoyn/about/AboutClient.h>
-#include <alljoyn/about/AnnouncementRegistrar.h>
-
-#include <alljoyn/Status.h>
-
-#define QCC_MODULE "ALLJOYN"
 
 #define METHODCALL_TIMEOUT 30000
 #define NANO_TO_SEC_CONVERSION 1e9
@@ -55,7 +36,6 @@
 using namespace std;
 using namespace qcc;
 using namespace ajn;
-
 
 static const char* interfaces[] = { "org.allseen.scriptConsole" };
 /*
@@ -109,14 +89,6 @@ static const char consoleXML[] =
     "   </signal> "
     " </interface> "
     " </node> ";
-
-static bool verbose = false;
-static volatile sig_atomic_t g_interrupt = false;
-
-static void SigIntHandler(int sig)
-{
-    g_interrupt = true;
-}
 
 #ifdef _WIN32
 class Event {
@@ -211,52 +183,20 @@ class Event {
 };
 #endif
 
-class AJS_Console : public BusListener, public SessionListener, public ajn::services::AnnounceHandler {
-  public:
+AJS_Console::AJS_Console() : BusListener(), sessionId(0), proxy(NULL), connectedBusName(NULL), aj(NULL), ev(new Event()), verbose(false), deviceName() { }
 
-    AJS_Console() : BusListener(), sessionId(0), proxy(NULL), aj(NULL) { }
-
-    ~AJS_Console() {
-        delete proxy;
-        delete aj;
-    }
-
-    QStatus Connect(const char* deviceName);
-
-    QStatus Eval(const String script);
-
-    QStatus Reboot();
-
-    QStatus Install(qcc::String name, const uint8_t* script, size_t len);
-
-    void SessionLost(SessionId sessionId, SessionLostReason reason) {
-        QCC_SyncPrintf("SessionLost(%08x) was called. Reason=%u.\n", sessionId, reason);
-        _exit(1);
-    }
-
-    void Notification(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg);
-
-    void Print(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg);
-
-    void Alert(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg);
-
-    void Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData);
-
-  private:
-
-    uint32_t sessionId;
-    ProxyBusObject* proxy;
-    BusAttachment* aj;
-    Event ev;
-    String deviceName;
-
-};
+AJS_Console::~AJS_Console() {
+     delete proxy;
+     delete aj;
+     delete ev;
+     free(connectedBusName);
+}
 
 void AJS_Console::Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData)
 {
     SessionOpts opts;
     QStatus status;
-    qcc::String matchRule = "type='signal',sessionless='t',interface='org.alljoyn.Notification',member='notify'";
+    char* context;
 
     if (!sessionId) {
         /*
@@ -274,7 +214,7 @@ void AJS_Console::Announce(uint16_t version, uint16_t port, const char* busName,
             const MsgArg& arg = iter->second;
             const char* name;
             if ((arg.Get("s", &name) != ER_OK) || (deviceName != name)) {
-                QCC_SyncPrintf("Found device \"%s\" this is not the device you are looking for\n", name);
+                Print("Found device \"%s\" this is not the device you are looking for\n", name);
                 return;
             }
         }
@@ -282,44 +222,48 @@ void AJS_Console::Announce(uint16_t version, uint16_t port, const char* busName,
          * Prevent concurrent JoinSession calls
          */
         sessionId = -1;
-        /*
-         * Enable concurrent callbacks because we make blocking calls below
-         */
-        aj->EnableConcurrentCallbacks();
 
-        QCC_SyncPrintf("Found script console service: %s\n", busName);
+        Print("Found script console service: %s\n", busName);
         /*
          * Join the session
          */
-        status = aj->JoinSession(busName, SCRIPT_CONSOLE_PORT, this, sessionId, opts);
+        context = strdup(busName);
+        status = aj->JoinSessionAsync(busName, SCRIPT_CONSOLE_PORT, this, opts, this, context);
+
         if (status != ER_OK) {
             sessionId = 0;
-            QCC_LogError(status, ("JoinSession(%s) failed", busName));
-            if (status == ER_ALLJOYN_JOINSESSION_REPLY_REJECTED) {
-                /*
-                 * TODO - maybe a blacklist this responder so we don't keep getting rejected
-                 */
-                ev.Set(status);
-            }
-            return;
+            free(context);
+            QCC_LogError(status, ("JoinSession failed"));
+            ev->Set(status);
         }
-        QCC_SyncPrintf("Joined session: %u\n", sessionId);
-        /*
-         * Add a match rule to receive notifications from the script service
-         */
-        matchRule += "sender='" + qcc::String(busName) + "'";
-        aj->AddMatch(matchRule.c_str());
-        /*
-         * Create the proxy object from the XML
-         */
-        proxy = new ProxyBusObject(*aj, busName, "/ScriptConsole", sessionId, false);
-        status = proxy->ParseXml(consoleXML);
-        assert(status == ER_OK);
-        ev.Set(ER_OK);
     }
 }
 
-QStatus AJS_Console::Connect(const char* deviceName)
+void AJS_Console::JoinSessionCB(QStatus status, SessionId sid, const SessionOpts& opts, void* context)
+{
+    char* busName = (char*)context;
+
+    if (status != ER_OK) {
+        sessionId = 0;
+        QCC_LogError(status, ("JoinSession failed"));
+        if (status == ER_ALLJOYN_JOINSESSION_REPLY_REJECTED) {
+            /*
+             * TODO - maybe a blacklist this responder so we don't keep getting rejected
+             */
+            ev->Set(status);
+        }
+        free(busName);
+    } else {
+        sessionId = sid;
+        Print("Joined session: %u\n", sessionId);
+        free(connectedBusName);
+        connectedBusName = busName;
+        ev->Set(status);
+    }
+
+}
+
+QStatus AJS_Console::Connect(const char* deviceName, volatile sig_atomic_t* interrupt)
 {
     QStatus status;
 
@@ -341,8 +285,8 @@ QStatus AJS_Console::Connect(const char* deviceName)
         ajn::services::AnnouncementRegistrar::RegisterAnnounceHandler(*aj, *this, interfaces, 1);
     }
     do {
-        status = ev.Wait(1000);
-        if (g_interrupt) {
+        status = ev->Wait(1000);
+        if (interrupt != NULL && *interrupt) {
             status = ER_OS_ERROR;
         }
     } while (status == ER_TIMEOUT);
@@ -350,30 +294,46 @@ QStatus AJS_Console::Connect(const char* deviceName)
     ajn::services::AnnouncementRegistrar::UnRegisterAllAnnounceHandlers(*aj);
 
     if (status == ER_OK) {
-        const InterfaceDescription* ifc;
+        qcc::String matchRule = "type='signal',sessionless='t',interface='org.alljoyn.Notification',member='notify'";
+        /*
+         * Add a match rule to receive notifications from the script service
+         */
+        matchRule += "sender='" + qcc::String(connectedBusName) + "'";
+        aj->AddMatch(matchRule.c_str());
+        /*
+         * Create the proxy object from the XML
+         */
+        proxy = new ProxyBusObject(*aj, connectedBusName, "/ScriptConsole", sessionId, false);
+        status = proxy->ParseXml(consoleXML);
+        assert(status == ER_OK);
 
-        ifc = aj->GetInterface("org.allseen.scriptConsole");
-        aj->RegisterSignalHandler(this,
-                                  static_cast<MessageReceiver::SignalHandler>(&AJS_Console::Print),
-                                  ifc->GetMember("print"),
-                                  "/ScriptConsole");
-        aj->RegisterSignalHandler(this,
-                                  static_cast<MessageReceiver::SignalHandler>(&AJS_Console::Alert),
-                                  ifc->GetMember("alert"),
-                                  "/ScriptConsole");
-
-        ifc = aj->GetInterface("org.alljoyn.Notification");
-        aj->RegisterSignalHandler(this,
-                                  static_cast<MessageReceiver::SignalHandler>(&AJS_Console::Notification),
-                                  ifc->GetMember("notify"),
-                                  NULL);
-
-
+        RegisterHandlers(aj);
     } else {
         delete aj;
         aj = NULL;
     }
     return status;
+}
+
+void AJS_Console::RegisterHandlers(BusAttachment* ajb)
+{
+    const InterfaceDescription* ifc;
+
+    ifc = ajb->GetInterface("org.allseen.scriptConsole");
+    ajb->RegisterSignalHandler(this,
+                               static_cast<MessageReceiver::SignalHandler>(&AJS_Console::PrintMsg),
+                               ifc->GetMember("print"),
+                               "/ScriptConsole");
+    ajb->RegisterSignalHandler(this,
+                               static_cast<MessageReceiver::SignalHandler>(&AJS_Console::AlertMsg),
+                               ifc->GetMember("alert"),
+                               "/ScriptConsole");
+
+    ifc = ajb->GetInterface("org.alljoyn.Notification");
+    ajb->RegisterSignalHandler(this,
+                               static_cast<MessageReceiver::SignalHandler>(&AJS_Console::Notification),
+                               ifc->GetMember("notify"),
+                               NULL);
 }
 
 QStatus AJS_Console::Eval(const String script)
@@ -382,14 +342,14 @@ QStatus AJS_Console::Eval(const String script)
     Message reply(*aj);
     MsgArg arg("ay", script.size() + 1, script.c_str());
 
-    QCC_SyncPrintf("Eval: %s\n", script.c_str());
+    Print("Eval: %s\n", script.c_str());
     status = proxy->MethodCall("org.allseen.scriptConsole", "eval", &arg, 1, reply);
     if (status == ER_OK) {
         uint8_t result;
         const char* output;
 
         reply->GetArgs("ys", &result, &output);
-        QCC_SyncPrintf("Eval result=%d: %s\n", result, output);
+        Print("Eval result=%d: %s\n", result, output);
     } else {
         QCC_LogError(status, ("MethodCall(\"eval\") failed\n"));
     }
@@ -419,7 +379,7 @@ QStatus AJS_Console::Install(qcc::String name, const uint8_t* script, size_t scr
     if (pos != qcc::String::npos) {
         name = name.substr(pos + 1);
     }
-    QCC_SyncPrintf("Installing script %s\n", name.c_str());
+    Print("Installing script %s\n", name.c_str());
 
     args[0].Set("s", name.c_str());
     args[1].Set("ay", scriptLen, script);
@@ -430,7 +390,7 @@ QStatus AJS_Console::Install(qcc::String name, const uint8_t* script, size_t scr
         return status;
     }
 
-    QCC_SyncPrintf("Installing script of length %d\n", scriptLen);
+    Print("Installing script of length %d\n", scriptLen);
 
     status = proxy->MethodCall("org.allseen.scriptConsole", "install", args, 2, reply);
     if (status == ER_OK) {
@@ -438,13 +398,18 @@ QStatus AJS_Console::Install(qcc::String name, const uint8_t* script, size_t scr
         const char* output;
 
         reply->GetArgs("ys", &result, &output);
-        QCC_SyncPrintf("Eval result=%d: %s\n", result, output);
+        Print("Eval result=%d: %s\n", result, output);
     } else {
         QCC_LogError(status, ("MethodCall(\"install\") failed\n"));
     }
     return status;
 }
 
+void AJS_Console::SessionLost(SessionId sessionId, SessionLostReason reason)
+{
+    Print("SessionLost(%08x) was called. Reason=%u.\n", sessionId, reason);
+    _exit(1);
+}
 
 void AJS_Console::Notification(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
 {
@@ -461,8 +426,8 @@ void AJS_Console::Notification(const InterfaceDescription::Member* member, const
     const MsgArg* cust;
     const MsgArg* strings;
 
-    if (verbose) {
-        QCC_SyncPrintf("NOTIFICATION:\n%s\n", msg->ToString().c_str());
+    if (GetVerbose()) {
+        Print("NOTIFICATION:\n%s\n", msg->ToString().c_str());
     }
 
     QStatus status = msg->GetArgs("qiqssays***", &version, &notifId, &notifType, &deviceId, &deviceName, &appIdLen, &appId, &appName, &attrs, &cust, &strings);
@@ -473,7 +438,7 @@ void AJS_Console::Notification(const InterfaceDescription::Member* member, const
     if (notifType > 2) {
         notifType = 3;
     }
-    QCC_SyncPrintf("%s Notification from app:%s on device:%s\n", TYPES[notifType], appName, deviceName);
+    Print("%s Notification from app:%s on device:%s\n", TYPES[notifType], appName, deviceName);
     /*
      * Unpack the notification strings
      */
@@ -484,128 +449,16 @@ void AJS_Console::Notification(const InterfaceDescription::Member* member, const
         char*lang;
         char*txt;
         entries[i].Get("(ss)", &lang, &txt);
-        QCC_SyncPrintf("%s: %s\n", lang, txt);
+        Print("%s: %s\n", lang, txt);
     }
 }
 
-void AJS_Console::Print(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
+void AJS_Console::PrintMsg(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
 {
-    QCC_SyncPrintf("%s\n", msg->GetArg()->v_string.str);
+    Print("%s\n", msg->GetArg()->v_string.str);
 }
 
-void AJS_Console::Alert(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
+void AJS_Console::AlertMsg(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
 {
-    QCC_SyncPrintf("%s\n", msg->GetArg()->v_string.str);
-}
-
-static String ReadLine()
-{
-    char inbuf[1024];
-    char* inp = NULL;
-    while (!g_interrupt && !inp) {
-        inp = fgets(inbuf, sizeof(inbuf), stdin);
-    }
-    if (inp) {
-        size_t len = strlen(inp);
-        inp[len - 1] = 0;
-    }
-    return inp;
-}
-
-static QStatus ReadScriptFile(const char* fname, uint8_t** data, size_t* len)
-{
-    FILE*scriptf;
-#ifdef WIN32
-    errno_t ret = fopen_s(&scriptf, fname, "rb");
-    if (ret != 0) {
-        return ER_OPEN_FAILED;
-    }
-#else
-    scriptf = fopen(fname, "rb");
-    if (!scriptf) {
-        return ER_OPEN_FAILED;
-    }
-#endif
-    if (fseek((FILE*)scriptf, 0, SEEK_END) == 0) {
-        *len = ftell((FILE*)scriptf);
-        *data = (uint8_t*)malloc(*len);
-        fseek((FILE*)scriptf, 0, SEEK_SET);
-        fread(*data, *len, 1, (FILE*)scriptf);
-        return ER_OK;
-    } else {
-        return ER_READ_ERROR;
-    }
-}
-
-int main(int argc, char** argv)
-{
-    QStatus status;
-    AJS_Console ajsConsole;
-    const char* scriptName = NULL;
-    const char* deviceName = NULL;
-    uint8_t* script = NULL;
-    size_t scriptLen = 0;
-
-    /* Install SIGINT handler */
-    signal(SIGINT, SigIntHandler);
-
-    for (int i = 1; i < argc; ++i) {
-        if (*argv[i] == '-') {
-            if (strcmp(argv[i], "--verbose") == 0) {
-                verbose = true;
-            } else if (strcmp(argv[i], "--name") == 0) {
-                if (++i == argc) {
-                    goto Usage;
-                }
-                deviceName = argv[i];
-            } else {
-                goto Usage;
-            }
-        } else {
-            scriptName = argv[i];
-            status = ReadScriptFile(scriptName, &script, &scriptLen);
-            if (status != ER_OK) {
-                QCC_LogError(status, ("Failed to load script file %s\n", argv[1]));
-                return -1;
-            }
-        }
-    }
-
-    status = ajsConsole.Connect(deviceName);
-    if (status == ER_OK) {
-        if (scriptLen) {
-            status = ajsConsole.Install(scriptName, script, scriptLen);
-            free(script);
-        }
-        while (!g_interrupt && (status == ER_OK)) {
-            String input = ReadLine();
-            if (input.size() > 0) {
-                if (input == "quit") {
-                    break;
-                }
-                if (input == "reboot") {
-                    break;
-                }
-                if (input[input.size() - 1] != ';') {
-                    input += ';';
-                }
-                status = ajsConsole.Eval(input);
-            }
-        }
-    } else {
-        if (status == ER_ALLJOYN_JOINSESSION_REPLY_REJECTED) {
-            QCC_SyncPrintf("Connection was rejected\n");
-        } else {
-            QCC_SyncPrintf("Failed to connect to script console\n");
-        }
-    }
-    if (g_interrupt) {
-        QCC_SyncPrintf(("Interrupted by Ctrl-C\n"));
-    }
-    return -((int)status);
-
-Usage:
-
-    QCC_SyncPrintf("usage: %s [--verbose] [--name <device-name>] [javascript-file]\n", argv[0]);
-    return -1;
+    Print("%s\n", msg->GetArg()->v_string.str);
 }

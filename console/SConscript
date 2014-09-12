@@ -16,6 +16,6 @@
 
 Import('env')
 
-prog = env.Program('ajs_console', 'ajs_console.cc')
+prog = env.Program('ajs_console', ['ajs_console.cc', 'ajs_textconsole.cc'])
 
 Return('prog')

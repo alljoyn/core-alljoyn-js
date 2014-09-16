@@ -129,11 +129,8 @@ env.Append(CPPPATH = [env['ajtcl_root'] + '/bsp',
                   '../../',
                   '../../external/duktape/dist/src'])
 # Add platform dependent defines
-env.Append(CPPDEFINES = ['STM32F407xx', 'USE_STDPERIPH_DRIVER','HAL_UART_MODULE_ENABLED', 'HAL_RCC_MODULE_ENABLED', 
-                         'HAL_GPIO_MODULE_ENABLED', 'HAL_USART_MODULE_ENABLED', 'HAL_FLASH_MODULE_ENABLED', 'DUK_F_BCC',
-                         'AJ_CONFIGURE_WIFI_UPON_START',
-                         'WIFI_SSID=\\"SEAQUIC-AP3\\"',
-                         'WIFI_PASSPHRASE=\\"12345678\\"'])
+env.Append(CPPDEFINES = ['STM32F407xx', 'USE_STDPERIPH_DRIVER','HAL_UART_MODULE_ENABLED', 'HAL_RCC_MODULE_ENABLED', 'AJ_HEAP4',
+                         'HAL_GPIO_MODULE_ENABLED', 'HAL_USART_MODULE_ENABLED', 'HAL_FLASH_MODULE_ENABLED', 'DUK_F_BCC'])
 
 env.Append(LINKFLAGS = ['-mthumb', '-Wl,--start-group', '-lm', '-lc',
                         '-Wl,--end-group', '-Wl,--gc-sections', '-Wl,-Map,${TARGET.base}.map',
@@ -165,7 +162,7 @@ svcs_sources.append(Glob(env['svcs_root'] + '/config/src/*.c'))
 svcs_sources.append(Glob(env['svcs_root'] + '/controlpanel/src/CPSControllee/*.c'))
 svcs_sources.append(Glob(env['svcs_root'] + '/controlpanel/src/CPSControllee/Common/*.c'))
 svcs_sources.append(Glob(env['svcs_root'] + '/controlpanel/src/CPSControllee/Widgets/*.c'))
-#svcs_sources.append(Glob(env['svcs_root'] + '/onboarding/src/*.c'))
+svcs_sources.append(Glob(env['svcs_root'] + '/onboarding/src/*.c'))
 #svcs_sources.append(Glob(env['svcs_root'] + '/notification/src/NotificationConsumer/*.c'))
 
 ajs_sources = [
@@ -189,7 +186,6 @@ ajs_sources = [
      '../../ajs_util.c',
      '../../ajs_unmarshal.c',
      'ajs_main.c',
-     'ajs_obs_stubs.c',
      'ajs_malloc.c',
      'io/io_info.c',
      'io/io_stubs.c',

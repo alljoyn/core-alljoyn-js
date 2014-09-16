@@ -18,7 +18,7 @@ AJ.interfaceDefinition['org.allseen.DoorBell'] = { ding_dong:{ type:AJ.SIGNAL } 
 
 AJ.objectDefinition['/pushbutton'] = { interfaces:['org.allseen.DoorBell'] };
 
-var pb = IO.digitalIn(IO.pin9, IO.pullDown);
+var pb = IO.digitalIn(IO.pin[8], IO.pullDown);
 
 AJ.onAttach = function()
 {

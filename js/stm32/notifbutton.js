@@ -14,7 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-var pbA=IO.digitalIn(IO.pin7, IO.pullDown);
+var pbA=IO.digitalIn(IO.pin[6], IO.pullDown);
 
 AJ.onAttach = function()
 {

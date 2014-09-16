@@ -14,20 +14,20 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-var led1=IO.digitalOut(IO.pin1);
-var led2=IO.digitalOut(IO.pin2, 0);
-var led3=IO.digitalOut(IO.pin3);
-var led4=IO.digitalOut(IO.pin4, 0);
+var led1=IO.digitalOut(IO.pin[0]);
+var led2=IO.digitalOut(IO.pin[1], 0);
+var led3=IO.digitalOut(IO.pin[2]);
+var led4=IO.digitalOut(IO.pin[3], 0);
 
-var in1=IO.digitalIn(IO.pin5, IO.pullUp);
-var in2=IO.digitalIn(IO.pin6, IO.pullUp);
-var in3=IO.digitalIn(IO.pin7, IO.pullUp);
-var in4=IO.digitalIn(IO.pin8, IO.pullUp);
+var in1=IO.digitalIn(IO.pin[4], IO.pullUp);
+var in2=IO.digitalIn(IO.pin[5], IO.pullUp);
+var in3=IO.digitalIn(IO.pin[6], IO.pullUp);
+var in4=IO.digitalIn(IO.pin[7], IO.pullUp);
 
-var pb1=IO.digitalIn(IO.pin9, IO.pullUp);
-var pb2=IO.digitalIn(IO.pin10, IO.pullUp);
-var pb3=IO.digitalIn(IO.pin11, IO.pullUp);
-var pb4=IO.digitalIn(IO.pin12, IO.pullUp);
+var pb1=IO.digitalIn(IO.pin[8], IO.pullUp);
+var pb2=IO.digitalIn(IO.pin[9], IO.pullUp);
+var pb3=IO.digitalIn(IO.pin[10], IO.pullUp);
+var pb4=IO.digitalIn(IO.pin[11], IO.pullUp);
 
 setInterval(function() {
     if (in1.level == 1) { led1.toggle() }

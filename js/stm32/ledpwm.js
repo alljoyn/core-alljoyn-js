@@ -23,7 +23,7 @@ var duty = c1.propertyWidget(cp.SLIDER, 50, "Duty Cycle:");
 freq.range = {min:100, max:100000, increment:100, units:"Hz"};
 duty.range = {min:1, max:100, increment:5, units:"%"};
 
-var led = IO.digitalOut(IO.pin17);
+var led = IO.digitalOut(IO.pin[16]);
 
 var bright = led.pwm(duty.value / 100, freq.value);
 

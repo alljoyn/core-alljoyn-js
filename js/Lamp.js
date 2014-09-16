@@ -224,9 +224,9 @@ AJ.onPeerConnected = function(svc) {
 
 AJ.onAttach = function() {
     print("AJ.onAttach");
-    R = IO.digitalOut(IO.pin2);
-    G = IO.digitalOut(IO.pin3);
-    B = IO.digitalOut(IO.pin4);	
+    R = IO.digitalOut(IO.pin[1]);
+    G = IO.digitalOut(IO.pin[2]);
+    B = IO.digitalOut(IO.pin[3]);	
     var RGB = convertHSBtoRGB(LampStateProperties.Hue, LampStateProperties.Saturation, LampStateProperties.Brightness);
     sendInfoToLightBulb(RGB);
 }

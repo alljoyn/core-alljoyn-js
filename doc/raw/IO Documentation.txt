@@ -155,6 +155,87 @@ num: the number to set
 motor.value(2);```
 
 
+###IO.uart()
+**IO.uart(IO.pin#1, IO.pin#2, baud)-** Create a new uart peripheral object
+
+\#1: The pin number of the TX pin on the AllJoyn JS device.
+
+\#2: The pin number of the RX pin on the AllJony JS device.
+
+baud: The baud rate for the UART peripheral
+
+uart() has 2 functions: write() and read(). The write() function will support many data types: Booleans, numbers, strings, buffers, and arrays of any of the previous types. The read() function takes a length parameter and returns a Duktape Buffer.
+
+```javascript
+var u = IO.uart(IO.pin4, IO.pin5, 115200);
+
+u.write("Hello World");
+u.write(["this", "is", "an", "array", "of", "strings"]);
+
+/*Read 10 bytes*/
+var r = IO.read(10);```
+
+
+###IO.spi()
+**IO.spi(IO.pin#1, IO.pin#2, IO.pin#3, IO.pin#4, prescaler, master, polarity, phase, data_bits)-** Create a new SPI peripheral object
+
+\#1: MOSI pin (Master Out Slave In)
+
+\#2: MISO pin (Master In Slave Out)
+
+\#3: CS pin (Chip Select)
+
+\#4: Clock pin
+
+prescaler: The divisor of the CPU clock that will run the SPI peripheral. SPI Clock = (CPU Clock / prescaler)
+
+master: Boolean specifying if the device is a slave or master in the SPI setup
+
+polarity: The clock polarity. Values can be 0 (low) or 1 (high)
+
+phase: The clock phase. Values can be 1 (1 Edge) or 2 (2 Edge)
+
+data_bits: Number of data bits per SPI transfer. Can be 8, 16, 32 depending on the platform.
+
+The spi object has two functions: read() and write(). The write() function will support many data types: Booleans, numbers, strings, buffers, and arrays of any of the previous types. The read() function takes a length parameter and returns a Duktape Buffer.
+
+```javascript
+var s = IO.spi(IO.pin4, IO.pin5, IO.pin6, IO.pin7, 4, true, 0, 1, 8);
+
+s.write("Write to SPI");
+
+/* Print out 40 bytes read back*/
+print(s.read(40));
+```
+
+###IO.i2c()
+**IO.i2c(IO.pin#1, IO.pin#2, clock, master, address)-** Create a new I2C peripheral object
+
+\#1: SDA pin
+
+\#2: SCL pin
+
+clock: The clock rate for the I2C device
+
+master: Mode for the I2C device. true for master, false for slave
+
+address: The AllJoyn.js device address. If master this can be any value as it is not used.
+
+The i2c object has 4 functions: read(), write(), start(), and stop(). The functions read() and write() only work with 1 byte at a time. You cannot provide arrays or buffers to them. The start() function takes an address of the device on the i2c line that you want to talk to. This is called at the beginning of transmission followed by writes or reads. After all writes or reads have been completed the stop() function is called to signal that the transaction has completed.
+
+```javascript
+var i = IO.i2c(IO.pin5, IO.pin6, 100000, true, 0x00);
+
+/*Talk to device at address 0x4A*/
+i.start(0x4A);
+/*Devices sub address*/
+i.write(0x06);
+/*Read the register 0x06 from the device*/
+var ret = i.read();
+/*Stop the transmission*/
+i.stop();
+```
+
 
 ###IO.system(String cmmd)  
 

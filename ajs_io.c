@@ -688,7 +688,6 @@ AJ_Status AJS_RegisterIO(duk_context* ctx)
         duk_push_int(ctx, i);
         duk_put_prop_string(ctx, -2, "id");
         duk_put_prop_index(ctx, -2, i);
-        --numPins;
     }
     duk_put_prop_string(ctx, ioIdx, "pin");
     duk_pop(ctx);

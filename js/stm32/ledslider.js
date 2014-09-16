@@ -20,7 +20,7 @@ var c1 = cp.containerWidget(cp.VERTICAL, cp.HORIZONTAL);
 var rate = c1.propertyWidget(cp.SLIDER, 500, "Flash rate:");
 rate.range = { min:20, max:1000, increment:50, units:"milliseconds" };
 
-var led = IO.digitalOut(IO.pin16);
+var led = IO.digitalOut(IO.pin[15]);
 var blinky = setInterval(function(){led.toggle();}, rate.value);
 
 rate.onValueChanged = function(val) { resetInterval(blinky, val); }

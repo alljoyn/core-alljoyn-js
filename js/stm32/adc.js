@@ -13,7 +13,7 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-var adc= IO.analogIn(IO.pin21);
+var adc= IO.analogIn(IO.pin[20]);
 
 function printADC() {
     print(adc.value);

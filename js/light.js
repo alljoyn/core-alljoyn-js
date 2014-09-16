@@ -17,8 +17,8 @@
 /* 
  * Configure light sensor ADC
  */
-var pin = IO.digitalOut(IO.pin11, 1)
-var lightSensor = IO.analogIn(IO.pin12);
+var pin = IO.digitalOut(IO.pin[10], 1)
+var lightSensor = IO.analogIn(IO.pin[11]);
 
 function lightCheck()
 {

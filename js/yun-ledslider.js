@@ -15,7 +15,7 @@
  ******************************************************************************/
 
 // IO pin 14 is Arduino digital pin 13 - also the onboard LED
-var D13 = IO.pin14;
+var D13 = IO.pin[13];
 
 var cp = AJ.controlPanel();
 

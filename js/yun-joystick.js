@@ -16,27 +16,27 @@
 
 /* Map AllJoyn-JS IO pins to Arduino Yun nomenclature. */
 
-var D0 = IO.pin1;
-var D1 = IO.pin2;
-var D2 = IO.pin3;
-var D3 = IO.pin4;
-var D4 = IO.pin5;
-var D5 = IO.pin6;
-var D6 = IO.pin7;
-var D7 = IO.pin8;
-var D8 = IO.pin9;
-var D9 = IO.pin10;
-var D10 = IO.pin11;
-var D11 = IO.pin12;
-var D12 = IO.pin13;
-var D13 = IO.pin14;
+var D0 = IO.pin[0];
+var D1 = IO.pin[1];
+var D2 = IO.pin[2];
+var D3 = IO.pin[3];
+var D4 = IO.pin[4];
+var D5 = IO.pin[5];
+var D6 = IO.pin[6];
+var D7 = IO.pin[7];
+var D8 = IO.pin[8];
+var D9 = IO.pin[9];
+var D10 = IO.pin[10];
+var D11 = IO.pin[11];
+var D12 = IO.pin[12];
+var D13 = IO.pin[13];
 
-var A0 = IO.pin15;
-var A1 = IO.pin16;
-var A2 = IO.pin17;
-var A3 = IO.pin18;
-var A4 = IO.pin19;
-var A5 = IO.pin20;
+var A0 = IO.pin[14];
+var A1 = IO.pin[15];
+var A2 = IO.pin[16];
+var A3 = IO.pin[17];
+var A4 = IO.pin[18];
+var A5 = IO.pin[19];
 
 
 /* Joystick pin mapping for Open Jumper Joystick shield */
@@ -47,7 +47,7 @@ var green    = IO.digitalIn(D4, IO.pullUp);
 var blue     = IO.digitalIn(D5, IO.pullUp);
 var yellow   = IO.digitalIn(D6, IO.pullUp);
 var joystick = IO.digitalIn(D7, IO.pullUp);
-var pin13LED = IO.digitalOut(D13);
+var pin[12]LED = IO.digitalOut(D13);
 
 function readJoystick()
 {
@@ -90,7 +90,7 @@ function readJoystick()
 }
 
 //red.setTrigger(IO.risingEdge, function(){ print("RED button up"); });
-red.setTrigger(IO.fallingEdge, function(){ print("RED button down"); pin13LED.toggle(); });
+red.setTrigger(IO.fallingEdge, function(){ print("RED button down"); pin[12]LED.toggle(); });
 
 //green.setTrigger(IO.risingEdge, function(){ print("GREEN button up"); });
 green.setTrigger(IO.fallingEdge, function(){ print("GREEN button down"); });

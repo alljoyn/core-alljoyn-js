@@ -15,11 +15,11 @@
  ******************************************************************************/
 
 function blinky() {
-    var led0 = IO.digitalOut(IO.pin13, 1);
-    var led1 = IO.digitalOut(IO.pin14, 0);
-    var led2 = IO.digitalOut(IO.pin15, 0);
-    var led3 = IO.digitalOut(IO.pin16, 0);
-    var led4 = IO.digitalOut(IO.pin17, 1);
+    var led0 = IO.digitalOut(IO.pin[12], 1);
+    var led1 = IO.digitalOut(IO.pin[13], 0);
+    var led2 = IO.digitalOut(IO.pin[14], 0);
+    var led3 = IO.digitalOut(IO.pin[15], 0);
+    var led4 = IO.digitalOut(IO.pin[16], 1);
 
     return function() { led0.toggle(); 
                         led1.toggle();

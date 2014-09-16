@@ -20,7 +20,7 @@ var c1 = cp.containerWidget(cp.VERTICAL, cp.HORIZONTAL);
 var rate = c1.propertyWidget(cp.SLIDER, 50, "Brightness:");
 rate.range = { min:0, max:100, increment:1 };
 
-var led = IO.digitalOut(IO.pin1);
+var led = IO.digitalOut(IO.pin[0]);
 
 rate.onValueChanged = function(val) { led.pwm((100 - val) / 100, 100); }
 

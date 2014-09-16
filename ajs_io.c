@@ -164,7 +164,7 @@ static uint32_t GetPinId(duk_context* ctx, int idx, uint32_t function)
      * Get pin id
      */
     duk_get_prop_string(ctx, idx, "id");
-    id = duk_require_int(ctx, -1) - 1;
+    id = duk_require_int(ctx, -1);
     duk_pop(ctx);
     /*
      * Check that the required I/O function is supported
@@ -667,6 +667,7 @@ AJ_Status AJS_RegisterIO(duk_context* ctx)
 {
     duk_idx_t ioIdx;
     duk_idx_t pinIdx;
+    duk_idx_t i;
     uint16_t numPins = AJS_TargetIO_GetNumPins();
 
     duk_push_global_object(ctx);
@@ -681,14 +682,15 @@ AJ_Status AJS_RegisterIO(duk_context* ctx)
     /*
      * Create the pin objects
      */
-    while (numPins) {
-        duk_push_sprintf(ctx, "pin%d", numPins);
+    duk_push_array(ctx);
+    for (i = 0; i < numPins; ++i) {
         AJS_CreateObjectFromPrototype(ctx, pinIdx);
-        duk_push_int(ctx, numPins);
+        duk_push_int(ctx, i);
         duk_put_prop_string(ctx, -2, "id");
-        duk_put_prop(ctx, ioIdx);
+        duk_put_prop_index(ctx, -2, i);
         --numPins;
     }
+    duk_put_prop_string(ctx, ioIdx, "pin");
     duk_pop(ctx);
 
     duk_push_c_function(ctx, NativeIoDigitalIn, 2);

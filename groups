@@ -1,4 +1,0 @@
-# UUID                                  	Group Name
-#
-31950f1fbc66fbbf03dc02d1c658f3b3cd9436df	Non-Interactive Users
-ldap:cn=gerrit_core_committers,ou=groups,cn=allseen,dc=codeaurora,dc=org	ldap/gerrit_core_committers

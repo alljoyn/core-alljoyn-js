@@ -194,6 +194,30 @@ size_t AJS_NumProps(duk_context* ctx, duk_idx_t idx)
     return num;
 }
 
+static uint8_t stashedStrings = FALSE;
+
+const char* AJS_StashString(duk_context* ctx, const char* str)
+{
+    const char* stableStr;
+
+    AJS_GetGlobalStashArray(ctx, "string-stash");
+    stableStr = duk_push_string(ctx, str);
+    duk_put_prop_index(ctx, -2, duk_get_length(ctx, -2));
+    duk_pop(ctx);
+    stashedStrings = TRUE;
+    return stableStr;
+}
+
+void AJS_ClearStringStash(duk_context* ctx)
+{
+    if (stashedStrings) {
+        duk_push_global_stash(ctx);
+        duk_del_prop_string(ctx, -1, "string-stash");
+        duk_pop(ctx);
+        stashedStrings = FALSE;
+    }
+}
+
 void AJS_DumpJX(duk_context* ctx, const char* tag, duk_idx_t idx)
 {
 #ifndef NDEBUG

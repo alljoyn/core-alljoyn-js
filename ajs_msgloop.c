@@ -259,6 +259,10 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj)
             AJ_ASSERT(duk_get_top_index(ctx) == AJ_Idx);
         }
         /*
+         * The string stash is only valid while running script
+         */
+        AJS_ClearStringStash(ctx);
+        /*
          * Check if there are any pending I/O operations to perform.
          */
         status = AJS_ServiceIO(ctx);

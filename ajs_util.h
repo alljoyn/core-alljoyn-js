@@ -128,6 +128,24 @@ void AJS_GetGlobalStashObject(duk_context* ctx, const char* name);
 void AJS_GetGlobalStashArray(duk_context* ctx, const char* name);
 
 /**
+ * Temporarily stabilize a string by storing it in the global stash. The returned string pointer
+ * will remain stable until AJ_ClearStringStash() is called.
+ *
+ * @param ctx   An opaque pointer to a duktape context structure
+ * @param str   The string to be stabilized
+ *
+ * @return  Returns a pointer to the stable string.
+ */
+const char* AJS_StashString(duk_context* ctx, const char* str);
+
+/**
+ * Clear the string stash. Pointers to previous stashed strings become invalid.
+ *
+ * @param ctx   An opaque pointer to a duktape context structure
+ */
+void AJS_ClearStringStash(duk_context* ctx);
+
+/**
  * Get a property of the global AllJoyn object.
  *
  * @param ctx   An opaque pointer to a duktape context structure

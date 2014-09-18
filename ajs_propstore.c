@@ -123,17 +123,13 @@ AJSVC_PropertyStoreFieldIndices AJSVC_PropertyStore_GetFieldIndex(const char* fi
     return AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX;
 }
 
-static char valBuf[MAX_PROP_LENGTH + 1];
-
 static const char* PeekProp(AJSVC_PropertyStoreFieldIndices field)
 {
     AJ_NV_DATASET* handle = AJ_NVRAM_Open(NVRAM_ID(field), "r", 0);
     if (handle) {
         const char* prop = AJ_NVRAM_Peek(handle);
-        strncpy(valBuf, prop, MAX_PROP_LENGTH);
-        valBuf[MAX_PROP_LENGTH] = 0;
         AJ_NVRAM_Close(handle);
-        return valBuf;
+        return prop;
     } else {
         return NULL;
     }
@@ -209,13 +205,9 @@ const char* AJSVC_PropertyStore_GetValueForLang(AJSVC_PropertyStoreFieldIndices 
         }
         if (duk_is_string(ctx, -1)) {
             /*
-             * The value we want to return is on the duktape stack but is not stable to we copy it to a
-             * static buffer. The assumption that the caller will consume the string before calling this
-             * function again.
+             * Stabilize the string
              */
-            strncpy(valBuf, duk_get_string(ctx, -1), MAX_PROP_LENGTH);
-            valBuf[MAX_PROP_LENGTH] = 0;
-            val = valBuf;
+            val = AJS_StashString(ctx, duk_get_string(ctx, -1));
         }
         duk_pop_2(ctx);
     }

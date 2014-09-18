@@ -1,0 +1,83 @@
+This work is licensed under a Creative Commons Attribution 4.0 International License.
+http://creativecommons.org/licenses/by/4.0/
+
+#Debugging AllJoyn.js
+***
+
+JavaScipt may be easy to write but can sometimes be hard to debug without tools like GDB. Since AllJoyn.js abstracts the underlying implementation it is sometimes difficult to find out why your AllJoyn.js script is not working properly. There are some tools that you can leverage to find out what is going wrong.
+
+###Print Debugging
+There is always the classic print debugging that you can use to figure out program flow or what variables are set to. As with most languages its as simple as calling print() in a location of interest
+
+```javascript
+var adc = IO.analogOut(IO.pin[1]);
+
+/*...Some code manipulating 'adc'...*/
+
+print(adc.value());
+```
+
+####or
+```
+function myFunc(var) {
+    if (cond) {
+        /*Do something*/
+        print("The condition was met");
+    } else {
+        /*Something else*/
+        print("The condition was not met");
+    }
+```
+
+###Pin information
+If the problem your having comes from an incorrect pin configuration or an unknown pin type there is pin information that can be queried from JavaScript. They are mentioned in the IO Documentation as well. After you have created a pin object you can look at its pin properties to find out information about it.
+
+```javascript
+var mypin = IO.digitalOut(IO.pin[1]);
+
+print(mypin.info.physicalPin);
+print(mypin.info.schematicId);
+print(mypin.info.datasheetId);
+print(mypin.info.description);
+```
+This might print out something like:
+
+```
+62
+GPIO_PD15
+PD15
+Blue LED
+```
+Now we know that pin 1 is a GPIO pin, its pin PD15 on the hardware your using, and its also a blue LED. Using the pin information can tell you if your using the pin for the right function.
+
+###Console Application
+
+The final tool at your disposal is the console application. It is a command line application that can be used to send scripts over the air (OTA) as well as send short JavaScript commands (evals) directly to the JavaScript engine. To get this setup you will also need to have AllJoyn Standard Library on your Linux, Mac, or Windows machine. This can either be done by downloading the SDK or building from source. Information about how to do this can be found at https://wiki.allseenalliance.org.
+
+Once you have AllJoyn Standard Library up and running you will need to compile the console application. In the alljoyn-js directory navigate to the 'console' folder. From here it is as easy as running 'scons' as with building alljoyn-js. After running scons you should have an executable named 'ajs_console'. This can be run by iteslf or with a JavaScript script as a parameter. Doing this will send the script OTA to your AllJoyn.js device.
+#####Sending a script OTA
+Before we look at the eval feature we can try sending a script OTA to the AllJoyn.js device. To do this you simply run the console application with the script you want to send as the first parameter:
+* #####Linux/Mac
+```
+./console/ajs_console js/blinky.js
+```
+* #####Windows
+```
+console\ajs_console.exe js\blinky.js
+```
+This command will then send the"blinky.js" script to the AllJoyn.js device, compile it, and execute it. For some devices that dont have any kind of shell or UI this is the only way to run scripts on them. The console will execute the entire script on the device. Next we will look at the eval feature where you can execute single lines of JavaScript.
+
+
+Running the console application by itself without a script as a parameter will connect to the AllJoyn.js device but not execute any JavaScript. Once your connected you can type in lines of JavaScript you want to "evaluate" in the engine. This can be simple like 1+1 or more complex like actually manipulating the hardware.
+#####Evaluate a simple expression:
+```
+1+1
+Eval: 1+1;
+Eval result=0: 2
+```
+#####Configure a pin:
+This wil cause pin 15 to go high every 500 ms
+```
+setInterval(function(){IO.digitalOut(IO.pin[15]).toggle()}, 500);
+```
+The console application allows you to easily test out simple JavaScript code without having to compleatly write a script and run it on the platform your debugging. This is very useful for on the fly testing and debugging because you can talk, in real time, to the AllJoyn.js device.

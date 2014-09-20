@@ -2,7 +2,7 @@
  * @file
  */
 /******************************************************************************
- * Copyright (c) 2012-2013, AllSeen Alliance. All rights reserved.
+ * Copyright (c) 2012-2014, AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -30,8 +30,6 @@
 #include "aj_debug.h"
 #include "ajs_heap.h"
 
-extern void duk_dump_string_table(void* ctx);
-
 /**
  * Turn on per-module debug printing by setting this variable to non-zero value
  * (usually in debugger).
@@ -44,12 +42,13 @@ uint8_t dbgHEAPDUMP = 0;
 #ifndef AJS_USE_NATIVE_MALLOC
 
 typedef struct {
-    void* endOfPool; /* Address of end of this pool */
-    void* freeList;  /* Free list for this pool */
+    void* startOfPool; /* Address of end of this pool */
+    void* endOfPool;   /* Address of end of this pool */
+    void* freeList;    /* Free list for this pool */
 #ifndef NDEBUG
-    uint16_t use;    /* Number of entries in use */
-    uint16_t hwm;    /* High-water mark */
-    uint16_t max;    /* Max allocation from this pool */
+    uint16_t use;      /* Number of entries in use */
+    uint16_t hwm;      /* High-water mark */
+    uint16_t max;      /* Max allocation from this pool */
 #endif
 } Pool;
 
@@ -58,53 +57,32 @@ typedef struct _MemBlock {
     uint8_t mem[sizeof(void*)];
 } MemBlock;
 
+#define MAX_HEAPS  4
+
 typedef struct {
-    Pool** heapPools;    /* Array of pointers to pools for each heap */
-    uint8_t* numPools;   /* Array of the number of pools per heap */
-    uint8_t** heapStart; /* Array of pointers to the start of each heap */
-    uint8_t numHeaps;    /* Number of heaps */
-    size_t* heapSz;      /* Array of the sizes of each heap */
-} PoolConfig;
+    uint8_t numPools;
+    const AJS_HeapConfig* config;
+    Pool* pools;
+} HeapInfo;
 
+static HeapInfo heapInfo;
 
-static const AJS_HeapConfig* heapConfig;
-static uint8_t numPools;
-static PoolConfig* pools;
-
-void AJS_HeapDump(void);
-
-static int8_t findHeapBySize(size_t sz)
+size_t AJS_HeapRequired(const AJS_HeapConfig* heapConfig, uint8_t numPools, uint8_t heapNum)
 {
-    uint8_t i;
-    for (i = 0; i < numPools; i++) {
-        if (sz <= heapConfig[i].size) {
-            return heapConfig[i].heapIndex;
-        }
-    }
-    return -1;
-}
-static int8_t findHeapByMem(uint8_t* mem)
-{
-    int8_t i;
-    for (i = 0; i < pools->numHeaps; i++) {
-        if (((ptrdiff_t)mem >= (ptrdiff_t)pools->heapStart[i]) &&
-            ((ptrdiff_t)mem < (ptrdiff_t)pools->heapStart[i] + pools->heapSz[i])) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-size_t AJS_HeapRequired(const AJS_HeapConfig* poolConfig, uint8_t numPools, uint8_t heapNum)
-{
-    size_t heapSz = sizeof(Pool) * numPools;
+    size_t heapSz = 0;
     uint8_t i;
 
+    /*
+     * Pool table is allocated from heap 0
+     */
+    if (heapNum == 0) {
+        heapSz += sizeof(Pool) * numPools;
+    }
     for (i = 0; i < numPools; ++i) {
-        if (poolConfig[i].heapIndex == heapNum) {
-            size_t sz = poolConfig[i].size;
+        if (heapConfig[i].heapIndex == heapNum) {
+            size_t sz = heapConfig[i].size;
             sz += AJS_HEAP_POOL_ROUNDING - (sz & (AJS_HEAP_POOL_ROUNDING - 1));
-            heapSz += sz * poolConfig[i].entries;
+            heapSz += sz * heapConfig[i].entries;
         }
     }
     return heapSz;
@@ -112,117 +90,81 @@ size_t AJS_HeapRequired(const AJS_HeapConfig* poolConfig, uint8_t numPools, uint
 
 void AJS_HeapTerminate(void* heap)
 {
-    if (pools && pools->heapPools) {
-        AJ_Free(pools->heapPools);
-    }
-    if (pools && pools->heapStart) {
-        AJ_Free(pools->heapStart);
-    }
-    if (pools && pools->numPools) {
-        AJ_Free(pools->numPools);
-    }
-    if (pools) {
-        AJ_Free(pools);
-    }
-    pools = NULL;
+    heapInfo.pools = NULL;
 }
-AJ_Status AJS_HeapInit(void** heap, size_t* heapSz, const AJS_HeapConfig* poolConfig, uint8_t num, uint8_t numHeaps)
+
+AJ_Status AJS_HeapInit(void** heap, size_t* heapSz, const AJS_HeapConfig* heapConfig, uint8_t numPools, uint8_t numHeaps)
 {
-    uint8_t i, j, k;
-    uint16_t n;
-    Pool* p;
-    /* Allocate the poolConfig structure */
-    pools = AJ_Malloc(sizeof(PoolConfig));
-    pools->heapPools = AJ_Malloc(numHeaps * sizeof(Pool*));
-    pools->numPools = AJ_Malloc(numHeaps * sizeof(uint8_t));
-    pools->heapStart = AJ_Malloc(numHeaps * sizeof(uint8_t*));
-    pools->heapSz = AJ_Malloc(numHeaps * sizeof(size_t));
-    pools->numHeaps = numHeaps;
-    numPools = num;
-    heapConfig = poolConfig;
+    uint8_t i;
+    uint8_t* heapEnd[MAX_HEAPS];
+    uint8_t* heapStart[MAX_HEAPS];
 
-    /* Go through each heap and setup, 'j' is the heap number for this outer loop */
-    for (j = 0; j < pools->numHeaps; j++) {
-        uint8_t* heapStart;
-        uint8_t* heapEnd;
-        uint8_t poolsInHeap;
-        /* Calculate the end for this heap */
-        poolsInHeap = 0;
-        for (k = 0; k < num; k++) {
-            if (poolConfig[k].heapIndex == j) {
-                poolsInHeap++;
-            }
-        }
-        heapEnd = (uint8_t*)heap[j] + sizeof(Pool) * poolsInHeap;
-
-        /* Set the static values for this heap */
-        pools->heapSz[j] = heapSz[j];
-        pools->heapPools[j] = (Pool*)heap[j];
-        pools->heapStart[j] = (uint8_t*)heapEnd;
-        pools->numPools[j] = poolsInHeap;
-
-        p = (Pool*)heap[j];
+    if (numHeaps > MAX_HEAPS) {
+        return AJ_ERR_RESOURCES;
+    }
+    /*
+     * Pre-allocate the pool table from the first heap
+     */
+    heapInfo.pools = (Pool*)heap[0];
+    heapEnd[0] = heapStart[0] = (uint8_t*)(&heapInfo.pools[numPools]);
+    heapInfo.config = heapConfig;
+    heapInfo.numPools = numPools;
+    /*
+     * Get bounds for other heaps
+     */
+    for (i = 1; i < numHeaps; ++i) {
+        heapEnd[i] = heapStart[i] = heap[i];
+    }
+    /*
+     * Initialize the pool table
+     */
+    memset(heapInfo.pools, 0, numPools * sizeof(Pool));
+    for (i = 0; i < numPools; ++i) {
+        uint16_t n;
+        Pool* p = &heapInfo.pools[i];
+        uint8_t heapIndex = heapConfig[i].heapIndex;
+        size_t sz = heapConfig[i].size;
         /*
-         * Clear the heap pool info  block
+         * Round up the pool entry size
          */
-        memset(pools->heapPools[j], 0, heapEnd - (uint8_t*)heap[j]);
-        /* Go through the pools for each heap, 'i' is the pool iterator */
-        for (i = 0; i < numPools; ++i) {
-            if (poolConfig[i].heapIndex == j) {
-                size_t sz = poolConfig[i].size;
-                size_t heapSize = heapSz[j];
-                sz += AJS_HEAP_POOL_ROUNDING - (sz & (AJS_HEAP_POOL_ROUNDING - 1));
-                /*
-                 * Add all blocks to the pool free list
-                 */
-                for (n = poolConfig[i].entries; n != 0; --n) {
-                    MemBlock* block = (MemBlock*)heapEnd;
-                    if (sz > heapSize) {
-                        return AJ_ERR_RESOURCES;
-                    }
-
-                    block->next = p->freeList;
-                    p->freeList = (void*)block;
-                    heapEnd += sz;
-                    heapSize -= sz;
-
-                }
-                /*
-                 * Save end of pool pointer for use by AJ_PoolFree
-                 */
-                p->endOfPool = (void*)heapEnd;
-#ifndef NDEBUG
-                p->use = 0;
-                p->hwm = 0;
-                p->max = 0;
-#endif
-                ++p;
+        sz += AJS_HEAP_POOL_ROUNDING - (sz & (AJS_HEAP_POOL_ROUNDING - 1));
+        /*
+         * Initialize the free list for this pool
+         */
+        p->startOfPool = (void*)heapEnd[heapIndex];
+        for (n = heapConfig[i].entries; n != 0; --n) {
+            MemBlock* block = (MemBlock*)heapEnd[heapIndex];
+            block->next = p->freeList;
+            p->freeList = (void*)block;
+            heapEnd[heapIndex] += sz;
+            /*
+             * Check there is room for this entry
+             */
+            if ((heapEnd[heapIndex] - heapStart[heapIndex]) > heapSz[heapIndex]) {
+                AJ_ErrPrintf(("Heap %d is too small for the requested pool allocations\n", heapIndex));
+                return AJ_ERR_RESOURCES;
             }
         }
+        p->endOfPool = (void*)heapEnd[heapIndex];
+#ifndef NDEBUG
+        p->use = 0;
+        p->hwm = 0;
+        p->max = 0;
+#endif
     }
     return AJ_OK;
 }
 
 uint8_t AJS_HeapIsInitialized()
 {
-    return pools->heapPools != NULL;
+    return heapInfo.pools != NULL;
 }
 
 void* AJS_Alloc(void* userData, size_t sz)
 {
-    Pool* p;
+    Pool* p = heapInfo.pools;
     uint8_t i;
-    uint8_t heapNum;
-    /*
-     * Find the right heap to allocate from
-     */
-    heapNum = findHeapBySize(sz);
-    if (sz == -1) {
-        AJ_ErrPrintf(("No heap with size %d\n", sz));
-        return NULL;
-    }
-    p = pools->heapPools[heapNum];
-    assert(p->freeList != p);
+
     if (!p) {
         AJ_ErrPrintf(("Heap not initialized\n"));
         return NULL;
@@ -230,21 +172,20 @@ void* AJS_Alloc(void* userData, size_t sz)
     /*
      * Find pool that can satisfy the allocation
      */
-    for (i = 0; i < numPools; ++i) {
-        if ((sz <= heapConfig[i].size) && (heapConfig[i].heapIndex == heapNum)) {
+    for (i = 0; i < heapInfo.numPools; ++i, ++p) {
+        if (sz <= heapInfo.config[i].size) {
             MemBlock* block = (MemBlock*)p->freeList;
-            if (!block || (uint8_t*)block >= (uint8_t*)p->endOfPool) {
+            if (!block) {
                 /*
-                 * Are we allowed to borrowing from next pool?
+                 * Are we allowed to borrow from next pool?
                  */
-                if (heapConfig[i].borrow) {
+                if (heapInfo.config[i].borrow) {
                     continue;
                 }
                 break;
             }
-            AJ_InfoPrintf(("AJ_PoolAlloc pool[%d] allocated %d\n", heapConfig[i].size, (int)sz));
+            AJ_InfoPrintf(("AJS_Alloc pool[%d] allocated %d\n", heapInfo.config[i].size, (int)sz));
             p->freeList = block->next;
-            assert(p->freeList != p);
 #ifndef NDEBUG
             ++p->use;
             p->hwm = max(p->use, p->hwm);
@@ -252,102 +193,82 @@ void* AJS_Alloc(void* userData, size_t sz)
 #endif
             return (void*)block;
         }
-        if (heapConfig[i].heapIndex == heapNum) {
-            ++p;
-        }
     }
-    AJ_ErrPrintf(("AJS_PoolAlloc of %d bytes failed\n", (int)sz));
+    AJ_ErrPrintf(("AJS_Alloc of %d bytes failed\n", (int)sz));
     AJS_HeapDump();
     return NULL;
 }
 
 void AJS_Free(void* userData, void* mem)
 {
-    Pool* p;
-    uint8_t i;
-    uint8_t heapIdx;
-
     if (mem) {
-        /*
-         * Locate the heap that contains the memory
-         */
-        heapIdx = findHeapByMem(mem);
-        if (heapIdx == -1) {
-            AJ_ErrPrintf(("No heap memory contains 0x%x\n", mem));
-        }
-        assert((ptrdiff_t)mem >= (ptrdiff_t)pools->heapStart[heapIdx]);
-        p = pools->heapPools[heapIdx];
+        Pool* p = heapInfo.pools;
+        uint8_t i;
         /*
          * Locate the pool from which the released memory was allocated
          */
-        for (i = 0; i < numPools; ++i, ++p) {
-            if ((ptrdiff_t)mem < (ptrdiff_t)p->endOfPool) {
+        for (i = 0; i < heapInfo.numPools; ++i, ++p) {
+            if (((ptrdiff_t)mem >= (ptrdiff_t)p->startOfPool) && ((ptrdiff_t)mem < (ptrdiff_t)p->endOfPool)) {
                 MemBlock* block = (MemBlock*)mem;
                 block->next = p->freeList;
                 p->freeList = block;
-                AJ_InfoPrintf(("AJ_PoolFree pool[%d]\n", heapConfig[i].size));
+                AJ_InfoPrintf(("AJS_Free pool[%d]\n", heapInfo.config[i].size));
 #ifndef NDEBUG
                 --p->use;
 #endif
-                break;
+                return;
             }
-            assert(i < numPools);
         }
-
+        AJ_ErrPrintf(("AJS_Free invalid heap pointer %0x\n", (size_t)mem));
+        AJ_ASSERT(0);
     }
 }
 
 void* AJS_Realloc(void* userData, void* mem, size_t newSz)
 {
-    Pool* pOld;
+    Pool* p = heapInfo.pools;
     uint8_t i;
-    uint8_t oldHeap;
 
     if (mem) {
         /*
-         * Find the current heap this memory exists in
-         */
-        oldHeap = findHeapByMem(mem);
-        assert(oldHeap != -1);
-        assert((ptrdiff_t)mem >= (ptrdiff_t)pools->heapStart[oldHeap]);
-        pOld = pools->heapPools[oldHeap];
-        /*
          * Locate the pool from which the released memory was allocated
          */
-        for (i = 0; i < numPools; ++i) {
-            if (((ptrdiff_t)mem < (ptrdiff_t)pOld->endOfPool) && (heapConfig[i].heapIndex == oldHeap)) {
-                size_t oldSz = heapConfig[i].size;
+        for (i = 0; i < heapInfo.numPools; ++i, ++p) {
+            if (((ptrdiff_t)mem >= (ptrdiff_t)p->startOfPool) && ((ptrdiff_t)mem < (ptrdiff_t)p->endOfPool)) {
+                size_t oldSz = heapInfo.config[i].size;
                 /*
                  * Don't need to do anything if the same block would be reused
                  */
-                if ((newSz <= oldSz) && ((i == 0) || (newSz > heapConfig[i - 1].size))) {
-                    AJ_InfoPrintf(("AJ_Realloc pool[%d] %d bytes in place\n", (int)oldSz, (int)newSz));
+                if ((newSz <= oldSz) && ((i == 0) || (newSz > heapInfo.config[i - 1].size))) {
+                    AJ_InfoPrintf(("AJS_Realloc pool[%d] %d bytes in place\n", (int)oldSz, (int)newSz));
+#ifndef NDEBUG
+                    p->max = max(p->max, newSz);
+#endif
                 } else {
                     MemBlock* block = (MemBlock*)mem;
-                    AJ_InfoPrintf(("AJ_Realloc pool[%d] by AJ_Alloc(%d)\n", (int)oldSz, (int)newSz));
-                    mem = AJS_Alloc(NULL, newSz);
+                    AJ_InfoPrintf(("AJS_Realloc pool[%d] by AJS_Alloc(%d)\n", (int)oldSz, (int)newSz));
+                    mem = AJS_Alloc(userData, newSz);
                     if (mem) {
                         memcpy(mem, (void*)block, min(oldSz, newSz));
                         /*
                          * Put old block on the free list
                          */
-                        block->next = pOld->freeList;
-                        pOld->freeList = block;
+                        block->next = p->freeList;
+                        p->freeList = block;
 #ifndef NDEBUG
-                        --pOld->use;
+                        --p->use;
 #endif
                     }
                 }
                 return mem;
             }
-            if (heapConfig[i].heapIndex == oldHeap) {
-                ++pOld;
-            }
         }
+        AJ_ErrPrintf(("AJS_Realloc invalid heap pointer %0x\n", (size_t)mem));
+        AJ_ASSERT(0);
     } else {
-        return AJS_Alloc(NULL, newSz);
+        return AJS_Alloc(userData, newSz);
     }
-    AJ_ErrPrintf(("AJ_Realloc of %d bytes failed\n", (int)newSz));
+    AJ_ErrPrintf(("AJS_Realloc of %d bytes failed\n", (int)newSz));
     AJS_HeapDump();
     return NULL;
 }
@@ -355,30 +276,21 @@ void* AJS_Realloc(void* userData, void* mem, size_t newSz)
 #ifndef NDEBUG
 void AJS_HeapDump(void)
 {
-    if (dbgHEAPDUMP) {
-        int k;
-        Pool* p;
+    uint8_t i;
+    size_t memUse = 0;
+    size_t memHigh = 0;
+    size_t memTotal = 0;
+    Pool* p = heapInfo.pools;
 
-        size_t memUse = 0;
-        size_t memHigh = 0;
-        size_t memTotal = 0;
-        AJ_AlwaysPrintf(("================= Dump of %d heap pools ==============\n", numPools));
-        for (k = 0; k < pools->numHeaps; k++) {
-            uint8_t i;
-            p = *(pools->heapPools + k);
-            for (i = 0; i < numPools; ++i) {
-                if (k == heapConfig[i].heapIndex) {
-                    AJ_AlwaysPrintf(("pool[%4d] used=%4d free=%4d high-water=%4d max-alloc=%4d heap=%2d\n",
-                                     heapConfig[i].size, p->use, heapConfig[i].entries - p->use, p->hwm, p->max, heapConfig[i].heapIndex));
-                    memUse += p->use * heapConfig[i].size;
-                    memHigh += p->hwm * heapConfig[i].size;
-                    memTotal += p->hwm * p->max;
-                    ++p;
-                }
-            }
-        }
-        AJ_AlwaysPrintf(("======= heap hwm = %d use = %d waste = %d ======\n", (int)memHigh, (int)memUse, (int)(memHigh - memTotal)));
+    AJ_AlwaysPrintf(("======= dump of %d heap pools ======\n", heapInfo.numPools));
+    for (i = 0; i < heapInfo.numPools; ++i, ++p) {
+        AJ_AlwaysPrintf(("heap[%d] pool[%d] used=%d free=%d high-water=%d max-alloc=%d\n",
+                         heapInfo.config[i].heapIndex, heapInfo.config[i].size, p->use, heapInfo.config[i].entries - p->use, p->hwm, p->max));
+        memUse += p->use * heapInfo.config[i].size;
+        memHigh += p->hwm * heapInfo.config[i].size;
+        memTotal += p->hwm * p->max;
     }
+    AJ_AlwaysPrintf(("======= heap hwm = %d use = %d waste = %d ======\n", (int)memHigh, (int)memUse, (int)(memHigh - memTotal)));
 }
 #endif
 

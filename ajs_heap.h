@@ -31,7 +31,7 @@ typedef struct _AJS_HeapConfig {
     const uint16_t size;     /* Size of the pool entries in bytes */
     const uint16_t entries;  /* Number of entries in this pool */
     const uint8_t borrow;    /* Indicates if pool can borrow from then next larger pool */
-    const uint8_t heapIndex;   /* What heap memory location to use for this pool */
+    const uint8_t heapIndex; /* What heap memory location to use for this pool */
 } AJS_HeapConfig;
 
 /*
@@ -79,5 +79,21 @@ size_t AJS_HeapRequired(const AJS_HeapConfig* heapConfig, uint8_t numPools, uint
  *         - AJ_ERR_RESOURCES of the heap is not big enough to allocate the requested pools.
  */
 AJ_Status AJS_HeapInit(void** heap, size_t* heapSz, const AJS_HeapConfig* heapConfig, uint8_t numPools, uint8_t numHeaps);
+
+/**
+ * Terminate the heap
+ */
+void AJS_HeapTerminate(void* heap);
+
+/**
+ * Indicates if the heap has been initialized
+ */
+uint8_t AJS_HeapIsInitialized();
+ 
+#ifndef NDEBUG
+void AJS_HeapDump(void);
+#else
+#define AJS_HeapDump()
+#endif
 
 #endif

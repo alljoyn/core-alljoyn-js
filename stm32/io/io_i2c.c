@@ -62,7 +62,7 @@ void AJS_TargetIO_I2cStop(void* ctx)
     while(!I2C_CheckEvent(i2c->I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED));
 }
 
-uint8_t AJS_TargetIO_I2cRead(void* ctx, uint8_t address, uint32_t length)
+uint8_t AJS_TargetIO_I2cRead(void* ctx)
 {
     I2C_Pin* i2c = (I2C_Pin*)ctx;
     return I2C_ReceiveData(i2c->I2Cx);
@@ -72,7 +72,7 @@ void AJS_TargetIO_I2cWrite(void* ctx, uint8_t data)
     I2C_Pin* i2c = (I2C_Pin*)ctx;
     I2C_SendData(i2c->I2Cx, data);
 }
-AJ_Status AJS_TargetIO_I2cOpen(uint8_t sda, uint8_t scl, uint32_t clock, uint8_t mode, uint8_t ownAddress)
+AJ_Status AJS_TargetIO_I2cOpen(uint8_t sda, uint8_t scl, uint32_t clock, uint8_t mode, uint8_t ownAddress, void** ctx)
 {
     GPIO_InitTypeDef i2cGPIO;
     I2C_InitTypeDef i2cInit;
@@ -119,6 +119,8 @@ AJ_Status AJS_TargetIO_I2cOpen(uint8_t sda, uint8_t scl, uint32_t clock, uint8_t
     I2C_Init(I2C1, &i2cInit);
 
     I2C_Cmd(I2C1, ENABLE);
+
+    *ctx = i2cCtx;
 
     return AJ_OK;
 }

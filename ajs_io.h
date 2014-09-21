@@ -324,5 +324,61 @@ AJ_Status AJS_TargetIO_UartOpen(uint8_t txPin, uint8_t rxPin, uint32_t baud, voi
  */
 AJ_Status AJS_TargetIO_UartClose(void* uartCtx);
 
+/**
+ * Start an I2C data transfer. This must be called first followed by AJS_TargetIO_I2cRead()/Write()
+ * and ended by AJS_TargetIO_I2cStop()
+ *
+ * @param ctx       Pointer to an opaque target specific data structure for the I2C channel
+ * @param addr      Address to the device on the I2C bus to talk to
+ *
+ */
+void AJS_TargetIO_I2cStart(void* ctx, uint8_t addr);
+
+/**
+ * Stop an I2C transfer.
+ *
+ * @param ctx       Pointer to an opaque target specific data structure for the UART channel
+ */
+void AJS_TargetIO_I2cStop(void* ctx);
+
+/**
+ * Read from an I2C device.
+ *
+ * @param ctx       Pointer to an opaque target specific data structure for the UART channel
+ *
+ * @return          The byte that was read for the I2C device
+ */
+uint8_t AJS_TargetIO_I2cRead(void* ctx);
+
+/**
+ * Write to an I2C device.
+ *
+ * @param ctx       Pointer to an opaque target specific data structure for the UART channel
+ * @param data      Byte of data to write to the I2C device
+ */
+void AJS_TargetIO_I2cWrite(void* ctx, uint8_t data);
+
+/**
+ * Open and configure an I2C peripheral
+ *
+ * @param sda       Pin number for the SDA (data) pin
+ * @param dcl       Pin number for the SCL (clock) pin
+ * @param clock     Clock rate for the I2C peripheral
+ * @param mode      Specifies if the peripheral should be configured as master or slave
+ * @param ownAddress The peripherals own I2C address. Only relevant if configuring for slave mode.
+ * @param i2cCtx    Returned context pointer for the I2C peripheral
+ *
+ * @return          AJ_OK if the peripheral was configured correctly
+ */
+AJ_Status AJS_TargetIO_I2cOpen(uint8_t sda, uint8_t scl, uint32_t clock, uint8_t mode, uint8_t ownAddress, void** i2cCtx);
+
+/**
+ * Close a previously opened I2C peripheral
+ *
+ * @param ctx       Pointer to an opaque target specific data structure for the UART channel
+ *
+ * @return          AJ_OK if the I2C peripheral was closed correctly
+ */
+AJ_Status AJS_TargetIO_I2cClose(void* ctx);
 
 #endif

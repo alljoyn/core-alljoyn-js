@@ -98,14 +98,14 @@ void AJS_TargetIO_I2cStart(void* ctx, uint8_t addr)
 void AJS_TargetIO_I2cStop(void* ctx)
 {
 }
-uint8_t AJS_TargetIO_I2cRead(void* ctx, uint8_t address, uint32_t length)
+uint8_t AJS_TargetIO_I2cRead(void* ctx)
 {
     return 0;
 }
 void AJS_TargetIO_I2cWrite(void* ctx, uint8_t data)
 {
 }
-AJ_Status AJS_TargetIO_I2cOpen(uint8_t sda, uint8_t scl, uint32_t clock, uint8_t mode, uint8_t ownAddress)
+AJ_Status AJS_TargetIO_I2cOpen(uint8_t sda, uint8_t scl, uint32_t clock, uint8_t mode, uint8_t ownAddress, void** ctx)
 {
     return AJ_ERR_UNEXPECTED;
 }

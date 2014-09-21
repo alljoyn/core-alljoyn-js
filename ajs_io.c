@@ -357,14 +357,16 @@ static int NativeIoSystem(duk_context* ctx)
     }
     return 1;
 }
+
 static int NativeSpiFinalizer(duk_context* ctx)
 {
     AJ_InfoPrintf(("Closing SPI\n"));
     duk_get_prop_string(ctx, 0, AJS_HIDDEN_PROP("ctx"));
     AJS_TargetIO_SpiClose(duk_require_pointer(ctx, -1));
     duk_pop(ctx);
-    return 1;
+    return 0;
 }
+
 static int NativeSpiRead(duk_context* ctx)
 {
     int size = duk_require_int(ctx, -1);
@@ -373,6 +375,7 @@ static int NativeSpiRead(duk_context* ctx)
     memcpy(ptrOut, ptrIn, size);
     return 1;
 }
+
 static void NativeSpiWriteHelper(duk_context* ctx, duk_idx_t idx)
 {
     switch (duk_get_type(ctx, idx)) {
@@ -424,11 +427,11 @@ static void NativeSpiWriteHelper(duk_context* ctx, duk_idx_t idx)
     }
     return;
 }
+
 static int NativeSpiWrite(duk_context* ctx)
 {
     NativeSpiWriteHelper(ctx, 0);
-    duk_pop(ctx);
-    return 1;
+    return 0;
 }
 
 static int NativeIoSpi(duk_context* ctx)
@@ -498,14 +501,16 @@ static int NativeIoSpi(duk_context* ctx)
 
     return 1;
 }
+
 static int NativeUartFinalizer(duk_context* ctx)
 {
     AJ_InfoPrintf(("Closing UART\n"));
     duk_get_prop_string(ctx, 0, AJS_HIDDEN_PROP("ctx"));
     AJS_TargetIO_UartClose(duk_require_pointer(ctx, -1));
     duk_pop(ctx);
-    return 1;
+    return 0;
 }
+
 static int NativeUartRead(duk_context* ctx)
 {
     int size = duk_require_int(ctx, -1);
@@ -569,11 +574,11 @@ static void NativeUartWriteHelper(duk_context* ctx, duk_idx_t idx)
     }
     return;
 }
+
 static int NativeUartWrite(duk_context* ctx)
 {
     NativeUartWriteHelper(ctx, 0);
-    duk_pop(ctx);
-    return 1;
+    return 0;
 }
 
 static int NativeIoUart(duk_context* ctx)
@@ -602,34 +607,39 @@ static int NativeIoUart(duk_context* ctx)
 
     return 1;
 }
+
 static int NativeI2cWrite(duk_context* ctx)
 {
     uint8_t value = duk_require_int(ctx, 0);
     AJS_TargetIO_I2cWrite(PinCtxPtr(ctx), value);
-    duk_pop(ctx);
-    return 1;
+    return 0;
 }
+
 static int NativeI2cRead(duk_context* ctx)
 {
     uint8_t value = AJS_TargetIO_I2cRead(PinCtxPtr(ctx));
     duk_push_number(ctx, value);
     return 1;
 }
+
 static int NativeI2cStart(duk_context* ctx)
 {
     uint8_t addr = duk_require_int(ctx, 0);
     AJS_TargetIO_I2cStart(PinCtxPtr(ctx), addr);
+    return 0;
 }
+
 static int NativeI2cStop(duk_context* ctx)
 {
     AJS_TargetIO_I2cStop(PinCtxPtr(ctx));
-    return 1;
+    return 0;
 }
 
 static int NativeI2cFinalizer(duk_context* ctx)
 {
     return 0;
 }
+
 static int NativeIoI2c(duk_context* ctx)
 {
     AJ_Status status;
@@ -646,7 +656,7 @@ static int NativeIoI2c(duk_context* ctx)
 
     duk_pop(ctx);
 
-    status = AJS_TargetIO_I2cOpen(sda, scl, clock, mode, address);
+    status = AJS_TargetIO_I2cOpen(sda, scl, clock, mode, address, &i2cCtx);
     if (status != AJ_OK) {
         duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Failed to open I2C device\n");
     }

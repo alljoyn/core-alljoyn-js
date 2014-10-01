@@ -2,7 +2,7 @@
  * @file
  */
 /******************************************************************************
- * Copyright AllSeen Alliance. All rights reserved.
+ * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -32,48 +32,5 @@ AJ_Status AJS_TargetIO_DacClose(void* dacCtx)
 
 void AJS_TargetIO_DacWrite(void* dacCtx, uint32_t val)
 {
-}
-
-AJ_Status AJS_TargetIO_SpiRead(void* ctx, uint32_t length, uint8_t* buffer)
-{
-    AJ_InfoPrintf(("AJS_TargetIO_SpiRead()"));
-    return AJ_ERR_UNEXPECTED;
-}
-
-void AJS_TargetIO_SpiWrite(void* ctx, uint8_t* data, uint32_t length)
-{
-    AJ_InfoPrintf(("AJS_TargetIO_SpiWrite(): Wrote %d bytes\n", length));
     return;
-}
-
-AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t clk, uint32_t prescaler,
-                               uint8_t master, uint8_t cpol, uint8_t cpha, uint8_t data, void** spiCtx)
-{
-    return AJ_ERR_UNEXPECTED;
-}
-
-AJ_Status AJS_TargetIO_SpiClose(void* spiCtx)
-{
-    return AJ_ERR_UNEXPECTED;
-}
-
-uint8_t* AJS_TargetIO_UartRead(void* uartCtx, uint32_t length)
-{
-    AJ_InfoPrintf(("AJS_TargetIO_UartRead()"));
-    return 0;
-}
-
-AJ_Status AJS_TargetIO_UartWrite(void* uartCtx, uint8_t* data, uint32_t length)
-{
-    return 0;
-}
-
-AJ_Status AJS_TargetIO_UartOpen(uint8_t txPin, uint8_t rxPin, uint32_t baud, void** uartCtx)
-{
-    return 0;
-}
-
-AJ_Status AJS_TargetIO_UartClose(void* uartCtx)
-{
-    return AJ_ERR_UNEXPECTED;
 }

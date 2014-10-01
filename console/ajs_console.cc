@@ -306,6 +306,7 @@ static void ParseDvalData(MsgArg* variant, uint8_t identifier, uint8_t** value, 
         break;
 
     case DBG_TYPE_INTEGER4:
+
     case DBG_TYPE_UNUSED:
     case DBG_TYPE_UNDEFINED:
     case DBG_TYPE_NULL:

@@ -450,9 +450,8 @@ static int NativeSpiFinalizer(duk_context* ctx)
 static int NativeSpiRead(duk_context* ctx)
 {
     int size = duk_require_int(ctx, -1);
-    void* ptrIn = AJS_TargetIO_SpiRead(PinCtxPtr(ctx), size);
-    void* ptrOut = duk_push_fixed_buffer(ctx, size);
-    memcpy(ptrOut, ptrIn, size);
+    void* ptr = duk_push_fixed_buffer(ctx, size);
+    AJS_TargetIO_SpiRead(PinCtxPtr(ctx), size, ptr);
     return 1;
 }
 
@@ -493,11 +492,6 @@ static int NativeIoSpi(duk_context* ctx)
     cpha = duk_require_int(ctx, -1);
     duk_get_prop_string(ctx, 4, "data");
     data = duk_require_int(ctx, -1);
-    AJ_Printf("Clock = %u\n", prescaler);
-    AJ_Printf("Master? = %u\n", master);
-    AJ_Printf("cpol = %u\n", cpol);
-    AJ_Printf("cpha = %u\n", cpha);
-    AJ_Printf("data = %u\n", data);
     duk_pop(ctx);
 
     // Clock polarity must be high (1) or low (0)

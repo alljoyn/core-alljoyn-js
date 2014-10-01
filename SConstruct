@@ -34,7 +34,7 @@ elif platform.system() == 'Darwin':
 vars = Variables()
 
 # Common build variables
-vars.Add(EnumVariable('TARG', 'Target platform variant', default_target, allowed_values=('win32', 'linux', 'stm32', 'darwin')))
+vars.Add(EnumVariable('TARG', 'Target platform variant', default_target, allowed_values=('win32', 'linux', 'stm32', 'darwin', 'frdm')))
 vars.Add(EnumVariable('VARIANT', 'Build variant', 'debug', allowed_values=('debug', 'release')))
 vars.Add(PathVariable('GTEST_DIR', 'The path to googletest sources', os.environ.get('GTEST_DIR'), PathVariable.PathIsDir))
 vars.Add(EnumVariable('WS', 'Whitespace Policy Checker', 'off', allowed_values=('check', 'detail', 'fix', 'off')))
@@ -47,6 +47,7 @@ vars.Add(PathVariable('ARM_TOOLCHAIN_DIR', 'Path to the GNU ARM toolchain bin fo
 vars.Add(PathVariable('STM_SRC_DIR', 'Path to the source code for the STM32 microcontroller', os.environ.get('STM_SRC_DIR'), PathVariable.PathIsDir))
 vars.Add(PathVariable('FREE_RTOS_DIR','Directory to FreeRTOS source code', os.environ.get('FREE_RTOS_DIR'), PathVariable.PathIsDir))
 vars.Add(EnumVariable('DUK_DEBUG', 'Turn on duktape logging and print debug messages', 'off', allowed_values=('on', 'off')))
+vars.Add(PathVariable('MBED_DIR', 'Path to the mbed source code repository', os.environ.get('MBED_DIR'), PathVariable))
 
 
 if default_msvc_version:
@@ -180,6 +181,10 @@ if env['TARG'] == 'linux':
 if env['TARG'] == 'stm32':
     env['os'] = 'stm32'
 
+if env['TARG'] == 'frdm':
+    env['os'] = 'frdm'
+    env['PLATFORM'] = 'frdm'
+    
 if env['TARG'] == 'darwin':
     if os.environ.has_key('CROSS_PREFIX'):
         env.Replace(CC = os.environ['CROSS_PREFIX'] + 'gcc')
@@ -310,7 +315,7 @@ else:
 # 
 env.Append(LIBPATH = env['ajtcl_root'])
 
-if env['TARG'] != 'stm32':
+if env['TARG'] != 'frdm' and env['TARG'] != 'stm32':
     if env['PLATFORM'] == 'win32':
         env.Append(LIBS = ['ajtcl_st'])
 
@@ -322,6 +327,6 @@ if env['TARG'] != 'stm32':
 
     progs = env.SConscript('SConscript', 'env', variant_dir='build/$VARIANT', duplicate=0)
 else:
-    progs = env.SConscript('stm32/SConscript', 'env', variant_dir='build/$VARIANT', duplicate=0)
+    progs = env.SConscript(env['os'] + '/SConscript', 'env', variant_dir='build/$VARIANT', duplicate=0)
 
 env.Install('.', progs)

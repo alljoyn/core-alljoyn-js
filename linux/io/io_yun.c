@@ -630,9 +630,9 @@ AJ_Status AJS_TargetIO_System(const char* cmd, char* output, uint16_t length)
     }
 }
 
-uint8_t* AJS_TargetIO_SpiRead(void* ctx, uint32_t length)
+AJ_Status AJS_TargetIO_SpiRead(void* ctx, uint32_t length, uint8_t* buffer)
 {
-    return 0;
+    return AJ_ERR_UNEXPECTED;
 }
 
 void AJS_TargetIO_SpiWrite(void* ctx, uint8_t* data, uint32_t length)

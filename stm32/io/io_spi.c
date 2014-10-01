@@ -30,10 +30,9 @@
 
 #include "io_common.h"
 
-uint8_t* AJS_TargetIO_SpiRead(void* ctx, uint32_t length)
+AJ_Status AJS_TargetIO_SpiRead(void* ctx, uint32_t length, uint8_t* buffer)
 {
     SPI_Pin* spi = (SPI_Pin*)ctx;
-    uint8_t* buffer = AJS_Alloc(NULL, length);
     int i = 0;
     AJ_EnterCriticalRegion();
     GPIO_ResetBits(spi->SS_GPIO, spi->SS_Pin);
@@ -46,7 +45,7 @@ uint8_t* AJS_TargetIO_SpiRead(void* ctx, uint32_t length)
     }
     GPIO_SetBits(spi->SS_GPIO, spi->SS_Pin);
     AJ_LeaveCriticalRegion();
-    return buffer;
+    return AJ_OK;
 }
 void AJS_TargetIO_SpiWrite(void* ctx, uint8_t* data, uint32_t length)
 {

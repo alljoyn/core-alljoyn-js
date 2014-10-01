@@ -271,10 +271,11 @@ AJ_Status AJS_TargetIO_System(const char* cmd, char* output, uint16_t length);
  *
  * @param ctx       Pointer to an opaque target specific data structure for the SPI channel
  * @param length    Length in bytes that you want to read from the SPI peripheral
+ * @param buffer    Pointer to a buffer to be filled with the SPI data
  *
  * @return          Pointer to the data that was read from the SPI peripheral
  */
-uint8_t* AJS_TargetIO_SpiRead(void* ctx, uint32_t length);
+AJ_Status AJS_TargetIO_SpiRead(void* ctx, uint32_t length, uint8_t* buffer);
 
 /**
  * Write to the SPI peripheral

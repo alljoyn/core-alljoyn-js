@@ -30,7 +30,7 @@ AJ_Status AJS_PropertyStore_Init();
 /**
  * Returns TRUE is the property is read only
  */
-uint8_t AJS_PropertyStore_IsReadOnly(AJSVC_PropertyStoreFieldIndices index);
+uint8_t AJS_PropertyStore_IsReadOnly(int8_t index);
 
 /**
  * Function to retrieve a password from the property store.

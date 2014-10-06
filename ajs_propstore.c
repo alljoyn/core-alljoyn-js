@@ -55,7 +55,7 @@ typedef struct {
     const char* initialValue;
 } PropertyStoreEntry;
 
-#define FIRST_PROPERTY_INDEX ((AJSVC_PropertyStoreFieldIndices)0)
+#define FIRST_PROPERTY_INDEX (0)
 
 static duk_context* duktape;
 
@@ -101,19 +101,19 @@ static const PropertyStoreEntry propDefs[AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS] =
 
 static const char* SupportedLanguagesKey = "SupportedLanguages";
 
-uint8_t AJSVC_PropertyStore_GetMaxValueLength(AJSVC_PropertyStoreFieldIndices field)
+uint8_t AJSVC_PropertyStore_GetMaxValueLength(int8_t field)
 {
     return MAX_PROP_LENGTH;
 }
 
-const char* AJSVC_PropertyStore_GetFieldName(AJSVC_PropertyStoreFieldIndices field)
+const char* AJSVC_PropertyStore_GetFieldName(int8_t field)
 {
     return IS_VALID_FIELD_ID(field) ? propDefs[field].keyName : "N/A";
 }
 
-AJSVC_PropertyStoreFieldIndices AJSVC_PropertyStore_GetFieldIndex(const char* fieldName)
+int8_t AJSVC_PropertyStore_GetFieldIndex(const char* fieldName)
 {
-    AJSVC_PropertyStoreFieldIndices field;
+    int8_t field;
 
     for (field = FIRST_PROPERTY_INDEX; field < AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS; field++) {
         if (strcmp(propDefs[field].keyName, fieldName) == 0) {
@@ -123,7 +123,7 @@ AJSVC_PropertyStoreFieldIndices AJSVC_PropertyStore_GetFieldIndex(const char* fi
     return AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX;
 }
 
-static const char* PeekProp(AJSVC_PropertyStoreFieldIndices field)
+static const char* PeekProp(int8_t field)
 {
     AJ_NV_DATASET* handle = AJ_NVRAM_Open(NVRAM_ID(field), "r", 0);
     if (handle) {
@@ -135,7 +135,7 @@ static const char* PeekProp(AJSVC_PropertyStoreFieldIndices field)
     }
 }
 
-static uint8_t PropChanged(AJSVC_PropertyStoreFieldIndices field, const char* str)
+static uint8_t PropChanged(int8_t field, const char* str)
 {
     uint8_t changed = TRUE;
     AJ_NV_DATASET* handle = AJ_NVRAM_Open(NVRAM_ID(field), "r", 0);
@@ -162,7 +162,7 @@ const char* AJSVC_PropertyStore_GetLanguageName(int8_t index)
     return language ? language : DEFAULT_LANGUAGE;
 }
 
-const char* AJSVC_PropertyStore_GetValueForLang(AJSVC_PropertyStoreFieldIndices field, int8_t index)
+const char* AJSVC_PropertyStore_GetValueForLang(int8_t field, int8_t index)
 {
     const char* val = NULL;
     const char* lang;
@@ -214,7 +214,7 @@ const char* AJSVC_PropertyStore_GetValueForLang(AJSVC_PropertyStoreFieldIndices 
     return val;
 }
 
-const char* AJSVC_PropertyStore_GetValue(AJSVC_PropertyStoreFieldIndices field)
+const char* AJSVC_PropertyStore_GetValue(int8_t field)
 {
     return AJSVC_PropertyStore_GetValueForLang(field, AJS_GetCurrentLanguage());
 }
@@ -224,7 +224,7 @@ int8_t AJSVC_PropertyStore_GetLanguageIndex(const char* const language)
     return (int8_t)AJS_GetLanguageIndex(duktape, language);
 }
 
-uint8_t AJSVC_PropertyStore_SetValue(AJSVC_PropertyStoreFieldIndices field, const char* value)
+uint8_t AJSVC_PropertyStore_SetValue(int8_t field, const char* value)
 {
     return AJSVC_PropertyStore_SetValueForLang(field, AJS_GetCurrentLanguage(), value);
 }
@@ -236,7 +236,7 @@ static void InitProperties(const char* deviceName, uint8_t force)
 {
     AJ_GUID guid;
     char buffer[MAX_PROP_LENGTH + 1];
-    AJSVC_PropertyStoreFieldIndices field;
+    int8_t field;
     AJ_GetLocalGUID(&guid);
     AJ_GUID_ToString(&guid, buffer, sizeof(buffer));
 
@@ -326,7 +326,7 @@ AJ_Status AJSVC_PropertyStore_SaveAll()
     return AJ_OK;
 }
 
-uint8_t AJS_PropertyStore_IsReadOnly(AJSVC_PropertyStoreFieldIndices field)
+uint8_t AJS_PropertyStore_IsReadOnly(int8_t field)
 {
     return !IS_VALID_FIELD_ID(field) || (propDefs[field].flags & (P_READONLY | P_PRIVATE));
 }
@@ -336,7 +336,7 @@ AJ_Status AJSVC_PropertyStore_ReadAll(AJ_Message* msg, AJSVC_PropertyStoreCatego
     AJ_Status status;
     AJ_Arg array;
     AJ_Arg dict;
-    AJSVC_PropertyStoreFieldIndices field;
+    int8_t field;
 
     AJ_InfoPrintf(("PropertyStore_ReadAll()\n"));
 
@@ -439,11 +439,11 @@ ExitReadAll:
 
 AJ_Status AJSVC_PropertyStore_Update(const char* key, int8_t lang, const char* value)
 {
-    AJSVC_PropertyStoreFieldIndices field = AJSVC_PropertyStore_GetFieldIndex(key);
+    int8_t field = AJSVC_PropertyStore_GetFieldIndex(key);
     return AJSVC_PropertyStore_SetValueForLang(field, lang, value) ? AJ_OK : AJ_ERR_INVALID;
 }
 
-uint8_t AJSVC_PropertyStore_SetValueForLang(AJSVC_PropertyStoreFieldIndices field, int8_t lang, const char* value)
+uint8_t AJSVC_PropertyStore_SetValueForLang(int8_t field, int8_t lang, const char* value)
 {
     duk_context* ctx = duktape;
     const char* str = value;
@@ -486,7 +486,7 @@ uint8_t AJSVC_PropertyStore_SetValueForLang(AJSVC_PropertyStoreFieldIndices fiel
 
 AJ_Status AJSVC_PropertyStore_Reset(const char* key, int8_t lang)
 {
-    AJSVC_PropertyStoreFieldIndices field = AJSVC_PropertyStore_GetFieldIndex(key);
+    int8_t field = AJSVC_PropertyStore_GetFieldIndex(key);
 
     if (IS_VALID_FIELD_ID(field)) {
         /*

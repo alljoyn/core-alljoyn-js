@@ -141,9 +141,12 @@ static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx, int ajIdx)
          * Let JavaScript know we are attached to the bus
          */
         ajRunning = TRUE;
-        duk_push_string(ctx, "onAttach");
-        if (duk_pcall_prop(ctx, ajIdx, 0) != DUK_EXEC_SUCCESS) {
-            AJS_ConsoleSignalError(ctx);
+        duk_get_prop_string(ctx, ajIdx, "onAttach");
+        if (duk_is_callable(ctx, -1)) {
+            duk_dup(ctx, ajIdx);
+            if (duk_pcall_method(ctx, 0) != DUK_EXEC_SUCCESS) {
+                AJS_ConsoleSignalError(ctx);
+            }
         }
         duk_pop(ctx);
         /*
@@ -173,8 +176,13 @@ static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx, int ajIdx)
      * If we told JavaScript we are attached now indicate we are detached
      */
     if (ajRunning) {
-        duk_push_string(ctx, "onDetach");
-        duk_pcall_prop(ctx, ajIdx, 0);
+        duk_get_prop_string(ctx, ajIdx, "onDetach");
+        if (duk_is_callable(ctx, -1)) {
+            duk_dup(ctx, ajIdx);
+            if (duk_pcall_method(ctx, 0) != DUK_EXEC_SUCCESS) {
+                AJS_ConsoleSignalError(ctx);
+            }
+        }
         duk_pop(ctx);
         ajRunning = FALSE;
     }

@@ -139,7 +139,7 @@ static void OpenSimIO()
     }
 }
 
-static int SendCmd(uint8_t op, GPIO* gpio, uint8_t arg1, double arg2)
+static int SendCmd(uint8_t op, GPIO* gpio, uint8_t arg1, uint8_t arg2)
 {
     if (sock == -1) {
         OpenSimIO();
@@ -150,7 +150,7 @@ static int SendCmd(uint8_t op, GPIO* gpio, uint8_t arg1, double arg2)
         buf[0] = op;
         buf[1] = gpio->pinId;
         buf[2] = arg1;
-        buf[3] = (uint8_t)(arg2 * 255.0);
+        buf[3] = arg2;
         ret = send(sock, buf, sizeof(buf), 0);
         if (ret == -1) {
             AJ_ErrPrintf(("Failed to send cmd - closing socket\n"));
@@ -235,7 +235,7 @@ int32_t AJS_TargetIO_PinTrigId()
 AJ_Status AJS_TargetIO_PinPWM(void* pinCtx, double dutyCycle, uint32_t freq)
 {
     GPIO* gpio = (GPIO*)pinCtx;
-    if (!SendCmd('p', gpio, (uint32_t)freq, (double)dutyCycle)) {
+    if (!SendCmd('p', gpio, (uint8_t)freq, (uint8_t)(dutyCycle * 255.0))) {
         AJ_ErrPrintf(("AJS_TargetIO_PinPWM(%d, %d, %d)\n", gpio->pinId, dutyCycle, freq));
         return AJ_ERR_DRIVER;
     }

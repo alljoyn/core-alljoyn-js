@@ -131,7 +131,7 @@ static void OpenSimIO()
     }
 }
 
-static int SendCmd(uint8_t op, GPIO* gpio, uint8_t arg)
+static int SendCmd(uint8_t op, GPIO* gpio, uint8_t arg1, uint8_t arg2)
 {
     if (pipe == INVALID_HANDLE_VALUE) {
         OpenSimIO();
@@ -139,10 +139,11 @@ static int SendCmd(uint8_t op, GPIO* gpio, uint8_t arg)
     if (pipe != INVALID_HANDLE_VALUE) {
         OVERLAPPED ov;
         DWORD wrote;
-        uint8_t buf[3];
+        uint8_t buf[4];
         buf[0] = op;
         buf[1] = (uint8_t)gpio->pinId;
-        buf[2] = arg;
+        buf[2] = arg1;
+        buf[2] = arg2;
         memset(&ov, 0, sizeof(ov));
         ov.hEvent = writeEv;
         WriteFile(pipe, buf, sizeof(buf), NULL, &ov);
@@ -181,7 +182,7 @@ AJ_Status AJS_TargetIO_PinClose(void* pinCtx)
 void AJS_TargetIO_PinToggle(void* pinCtx)
 {
     GPIO* gpio = (GPIO*)pinCtx;
-    if (!SendCmd('t', gpio, 0)) {
+    if (!SendCmd('t', gpio, 0, 0)) {
         AJ_ErrPrintf(("AJS_TargetIO_PinToggle(%d)\n", gpio->pinId));
     }
 }
@@ -189,7 +190,7 @@ void AJS_TargetIO_PinToggle(void* pinCtx)
 void AJS_TargetIO_PinSet(void* pinCtx, uint32_t val)
 {
     GPIO* gpio = (GPIO*)pinCtx;
-    if (!SendCmd('w', gpio, (uint8_t)val)) {
+    if (!SendCmd('w', gpio, (uint8_t)val, 0)) {
         AJ_ErrPrintf(("AJS_TargetIO_PinSet(%d, %d)\n", gpio->pinId, val));
     }
 }
@@ -197,7 +198,7 @@ void AJS_TargetIO_PinSet(void* pinCtx, uint32_t val)
 uint32_t AJS_TargetIO_PinGet(void* pinCtx)
 {
     GPIO* gpio = (GPIO*)pinCtx;
-    if (SendCmd('r', gpio, 0)) {
+    if (SendCmd('r', gpio, 0, 0)) {
         if (WaitForData(200) == AJ_OK) {
             if ((recvBuf[0] == 'r') && (recvBuf[1] == (int)gpio->pinId)) {
                 return recvBuf[2];
@@ -228,7 +229,12 @@ int32_t AJS_TargetIO_PinTrigId()
 
 AJ_Status AJS_TargetIO_PinPWM(void* pinCtx, double dutyCycle, uint32_t freq)
 {
-    return AJ_ERR_DRIVER;
+    GPIO* gpio = (GPIO*)pinCtx;
+    if (!SendCmd('p', gpio, (uint8_t)freq, (uint8_t)(dutyCycle * 255.0))) {
+        AJ_ErrPrintf(("AJS_TargetIO_PinPWM(%d, %d, %d)\n", gpio->pinId, dutyCycle, freq));
+        return AJ_ERR_DRIVER;
+    }
+    return AJ_OK;
 }
 
 AJ_Status AJS_TargetIO_PinEnableTrigger(void* pinCtx, AJS_IO_PinTriggerMode trigger, int32_t* trigId, uint8_t debounce)
@@ -240,7 +246,7 @@ AJ_Status AJS_TargetIO_PinEnableTrigger(void* pinCtx, AJS_IO_PinTriggerMode trig
          * Disable triggers for this pin
          */
         if (gpio->trigId != AJS_IO_PIN_NO_TRIGGER) {
-            SendCmd('i', gpio, 0);
+            SendCmd('i', gpio, 0, 0);
             *trigId = gpio->trigId;
             BIT_CLR(trigSet, gpio->trigId);
             gpio->trigId = AJS_IO_PIN_NO_TRIGGER;
@@ -249,7 +255,7 @@ AJ_Status AJS_TargetIO_PinEnableTrigger(void* pinCtx, AJS_IO_PinTriggerMode trig
         }
         return AJ_OK;
     }
-    SendCmd('i', gpio, (trigger == AJS_IO_PIN_TRIGGER_ON_RISE) ? 1 : 2);
+    SendCmd('i', gpio, (trigger == AJS_IO_PIN_TRIGGER_ON_RISE) ? 1 : 2, 0);
     gpio->trigId = gpio->pinId;
     *trigId = gpio->trigId;
 

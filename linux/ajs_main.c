@@ -107,6 +107,7 @@ extern uint8_t dbgHEAP;
 extern uint8_t dbgNET;
 extern uint8_t dbgHEAPDUMP;
 extern uint8_t dbgCONSOLE;
+extern uint8_t dbgGPIO;
 
 int main(int argc, char* argv[])
 {
@@ -114,7 +115,7 @@ int main(int argc, char* argv[])
     int argn = 1;
     AJ_Status status = AJ_OK;
 #ifndef NDEBUG
-    AJ_DbgLevel = 2;
+    AJ_DbgLevel = 4;
     dbgMSG = 0;
     dbgHELPER = 0;
     dbgABOUT = 0;
@@ -126,6 +127,7 @@ int main(int argc, char* argv[])
     dbgNET = 0;
     dbgHEAPDUMP = 0;
     dbgCONSOLE = 0;
+    dbgGPIO = 1;
 #endif
 
     AJ_Initialize();

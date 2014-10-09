@@ -143,7 +143,7 @@ void AJS_TargetIO_PinToggle(void* pinCtx);
  *
  * @param pinCtx    The target-specific identifier for the GPIO pin
  * @param dutyCycle Value between 0.0 and 1.0 for the duty cycle
- * @param freq      Repetition frequency to rotate the bit pattern
+ * @param freq      Frequency for the PWM - if zero uses the target-specific default.
  */
 AJ_Status AJS_TargetIO_PinPWM(void* pinCtx, double dutyCycle, uint32_t freq);
 

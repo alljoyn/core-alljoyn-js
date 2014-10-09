@@ -124,17 +124,28 @@ static int NativePWM(duk_context* ctx)
 {
     AJ_Status status;
     double dutyCycle = duk_require_number(ctx, 0);
-    uint32_t freq = duk_require_int(ctx, 1);
+    uint32_t freq = 0;
 
     if (dutyCycle > 1.0 || dutyCycle < 0.0) {
         duk_error(ctx, DUK_ERR_RANGE_ERROR, "Duty cycle must be in the range 0.0 to 1.0");
     }
-    if (freq == 0) {
-        duk_error(ctx, DUK_ERR_RANGE_ERROR, "Frequency cannot be zero Hz");
+    /*
+     * Frequency is optional. If not specified zero is passed into the target code and the default
+     * target PWM frequency is used.
+     */
+    if (!duk_is_undefined(ctx, 1)) {
+        freq = duk_require_int(ctx, 1);
+        if (freq == 0) {
+            duk_error(ctx, DUK_ERR_RANGE_ERROR, "Frequency cannot be zero Hz");
+        }
     }
     status = AJS_TargetIO_PinPWM(PinCtxPtr(ctx), dutyCycle, freq);
     if (status != AJ_OK) {
-        duk_error(ctx, DUK_ERR_RANGE_ERROR, "Too many PWM pins");
+        if (status == AJ_ERR_RESOURCES) {
+            duk_error(ctx, DUK_ERR_RANGE_ERROR, "Too many PWM pins");
+        } else {
+            duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Error setting PWM %s", AJ_StatusText(status));
+        }
     }
     return 0;
 }

@@ -30,7 +30,7 @@ void* PinCtxPtr(duk_context* ctx)
     duk_push_this(ctx);
     duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("ctx"));
     pinCtx = duk_require_pointer(ctx, -1);
-    duk_pop(ctx);
+    duk_pop_2(ctx);
     return pinCtx;
 }
 
@@ -165,9 +165,6 @@ static int NativePinFinalizer(duk_context* ctx)
 
 /*
  * Returns the pid id for a pin object. Also checks that the pin supports the requested function.
- * Note that we number pins from 1 in JavaScript (where it is just a name) but the pin identifier in
- * the C code is zero based because it is used as an array index. This may seem to add an
- * unnecessary complexity but in hardware pins are always numbered starting at 1.
  */
 static uint32_t GetPinId(duk_context* ctx, int idx, uint32_t function)
 {
@@ -377,6 +374,59 @@ static int NativeIoSystem(duk_context* ctx)
     return 1;
 }
 
+/*
+ * Serializes various data types into a buffer. Leaves the buffer on the top of the stack.
+ */
+static uint8_t* SerializeToBuffer(duk_context* ctx, duk_idx_t idx, duk_size_t *sz)
+{
+    uint8_t* ptr;
+
+    switch (duk_get_type(ctx, idx)) {
+    case DUK_TYPE_BUFFER:
+        duk_dup(ctx, idx);
+        ptr = duk_get_buffer(ctx, -1, sz);
+        break;
+
+    case DUK_TYPE_BOOLEAN:
+        ptr = duk_push_fixed_buffer(ctx, 1);
+        ptr[0] = duk_get_boolean(ctx, idx);
+        *sz = 1;
+        break;
+
+    case DUK_TYPE_NUMBER: 
+        ptr = duk_push_fixed_buffer(ctx, 1);
+        ptr[0] = duk_get_int(ctx, idx);
+        *sz = 1;
+        break;
+
+    case DUK_TYPE_STRING:
+        duk_dup(ctx, idx);
+        ptr = duk_to_fixed_buffer(ctx, -1, sz);
+        break;
+
+    case DUK_TYPE_OBJECT:
+        if (duk_is_array(ctx, idx)) {
+            duk_idx_t i;
+            duk_idx_t len = duk_get_length(ctx, idx);
+            ptr = duk_push_fixed_buffer(ctx, len);
+            for (i = 0; i < len; ++i) {
+                duk_get_prop_index(ctx, idx, i);
+                ptr[i] = duk_require_uint(ctx, -1); 
+                duk_pop(ctx);
+            }
+            *sz = len;
+        } else {
+            duk_error(ctx, DUK_ERR_TYPE_ERROR, "Can only serialize arrays of numbers");
+        }
+        break;
+
+    default:
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "Cannot serialize");
+        break;
+    }
+    return ptr;
+}
+
 static int NativeSpiFinalizer(duk_context* ctx)
 {
     AJ_InfoPrintf(("Closing SPI\n"));
@@ -395,61 +445,12 @@ static int NativeSpiRead(duk_context* ctx)
     return 1;
 }
 
-static void NativeSpiWriteHelper(duk_context* ctx, duk_idx_t idx)
-{
-    switch (duk_get_type(ctx, idx)) {
-    case (DUK_TYPE_BOOLEAN): {
-            uint8_t bool = duk_require_boolean(ctx, idx);
-            AJS_TargetIO_SpiWrite(PinCtxPtr(ctx), &bool, 1);
-            break;
-        }
-
-    case (DUK_TYPE_NUMBER): {
-            uint32_t number = duk_require_int(ctx, idx);
-            AJS_TargetIO_SpiWrite(PinCtxPtr(ctx), (uint8_t*)&number, 4);
-            break;
-        }
-
-    case (DUK_TYPE_STRING): {
-            const char* str = duk_require_string(ctx, idx);
-            AJS_TargetIO_SpiWrite(PinCtxPtr(ctx), (uint8_t*)str, strlen(str));
-            break;
-        }
-
-    case (DUK_TYPE_BUFFER): {
-            duk_size_t size;
-            void* buffer = duk_require_buffer(ctx, idx, &size);
-            AJS_TargetIO_SpiWrite(PinCtxPtr(ctx), buffer, size);
-            break;
-        }
-
-    case (DUK_TYPE_OBJECT): {
-            int i = 0;
-            if (duk_is_array(ctx, idx)) {
-                while (!duk_is_undefined(ctx, -1)) {
-                    uint8_t ret = duk_get_prop_index(ctx, idx, i++);
-                    if (!ret) {
-                        break;
-                    }
-                    NativeSpiWriteHelper(ctx, duk_get_top_index(ctx));
-                }
-            } else {
-                duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Only array objects can be sent over UART\n");
-                return;
-            }
-            break;
-        }
-
-    default:
-        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Cannot send type %u over UART\n", duk_get_type(ctx, idx));
-        break;
-    }
-    return;
-}
-
 static int NativeSpiWrite(duk_context* ctx)
 {
-    NativeSpiWriteHelper(ctx, 0);
+    duk_size_t len;
+    uint8_t* ptr = SerializeToBuffer(ctx, 0, &len);
+    AJS_TargetIO_SpiWrite(PinCtxPtr(ctx), ptr, len);
+    duk_pop(ctx);
     return 0;
 }
 
@@ -538,65 +539,13 @@ static int NativeUartRead(duk_context* ctx)
     memcpy(ptrOut, ptrIn, size);
     return 1;
 }
-/*
- * Recursively call this function to process arrays of types
- * Boolean, number, string, buffer, or nested arrays
- */
-static void NativeUartWriteHelper(duk_context* ctx, duk_idx_t idx)
-{
-    switch (duk_get_type(ctx, idx)) {
-    case (DUK_TYPE_BOOLEAN): {
-            uint8_t bool = duk_require_boolean(ctx, idx);
-            AJS_TargetIO_UartWrite(PinCtxPtr(ctx), &bool, 1);
-            break;
-        }
-
-    case (DUK_TYPE_NUMBER): {
-            uint32_t number = duk_require_int(ctx, idx);
-            AJS_TargetIO_UartWrite(PinCtxPtr(ctx), (uint8_t*)&number, 4);
-            break;
-        }
-
-    case (DUK_TYPE_STRING): {
-            const char* str = duk_require_string(ctx, idx);
-            AJS_TargetIO_UartWrite(PinCtxPtr(ctx), (uint8_t*)str, strlen(str));
-            break;
-        }
-
-    case (DUK_TYPE_BUFFER): {
-            duk_size_t size;
-            void* buffer = duk_require_buffer(ctx, idx, &size);
-            AJS_TargetIO_UartWrite(PinCtxPtr(ctx), buffer, size);
-            break;
-        }
-
-    case (DUK_TYPE_OBJECT): {
-            int i = 0;
-            if (duk_is_array(ctx, idx)) {
-                while (!duk_is_undefined(ctx, -1)) {
-                    uint8_t ret = duk_get_prop_index(ctx, idx, i++);
-                    if (!ret) {
-                        break;
-                    }
-                    NativeUartWriteHelper(ctx, duk_get_top_index(ctx));
-                }
-            } else {
-                duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Only array objects can be sent over UART\n");
-                return;
-            }
-            break;
-        }
-
-    default:
-        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Cannot send type %u over UART\n", duk_get_type(ctx, idx));
-        break;
-    }
-    return;
-}
 
 static int NativeUartWrite(duk_context* ctx)
 {
-    NativeUartWriteHelper(ctx, 0);
+    duk_size_t len;
+    uint8_t* ptr = SerializeToBuffer(ctx, 0, &len);
+    AJS_TargetIO_UartWrite(PinCtxPtr(ctx), ptr, len);
+    duk_pop(ctx);
     return 0;
 }
 
@@ -627,35 +576,44 @@ static int NativeIoUart(duk_context* ctx)
     return 1;
 }
 
-static int NativeI2cWrite(duk_context* ctx)
+static int NativeI2cTransfer(duk_context* ctx)
 {
-    uint8_t value = duk_require_int(ctx, 0);
-    AJS_TargetIO_I2cWrite(PinCtxPtr(ctx), value);
-    return 0;
-}
-
-static int NativeI2cRead(duk_context* ctx)
-{
-    uint8_t value = AJS_TargetIO_I2cRead(PinCtxPtr(ctx));
-    duk_push_number(ctx, value);
-    return 1;
-}
-
-static int NativeI2cStart(duk_context* ctx)
-{
+    AJ_Status status;
     uint8_t addr = duk_require_int(ctx, 0);
-    AJS_TargetIO_I2cStart(PinCtxPtr(ctx), addr);
-    return 0;
-}
+    uint8_t* txBuf = NULL;
+    uint8_t* rxBuf = NULL;
+    duk_size_t txLen = 0;
+    duk_size_t rxLen = 0;
+    uint8_t rxBytes = 0;
 
-static int NativeI2cStop(duk_context* ctx)
-{
-    AJS_TargetIO_I2cStop(PinCtxPtr(ctx));
-    return 0;
+    if (duk_is_undefined(ctx, 2)) {
+        duk_push_undefined(ctx);
+    } else {
+        rxLen = duk_require_uint(ctx, 2);
+        rxBuf = duk_push_dynamic_buffer(ctx, rxLen);
+    }
+    if (duk_is_null(ctx, 1)) {
+        duk_push_undefined(ctx);
+    } else {
+        txBuf = SerializeToBuffer(ctx, 1, &txLen);
+    }
+    status = AJS_TargetIO_I2cTransfer(PinCtxPtr(ctx), addr, txBuf, txLen, rxBuf, rxLen, &rxBytes);
+    if (status != AJ_OK) {
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "I2C transfer failed %s\n", AJ_StatusText(status));
+    }
+    duk_pop(ctx);
+    if (rxLen) {
+        duk_resize_buffer(ctx, -1, rxBytes);
+    }
+    return 1;
 }
 
 static int NativeI2cFinalizer(duk_context* ctx)
 {
+    AJ_InfoPrintf(("Closing i2c\n"));
+    duk_get_prop_string(ctx, 0, AJS_HIDDEN_PROP("ctx"));
+    AJS_TargetIO_I2cClose(duk_require_pointer(ctx, -1));
+    duk_pop(ctx);
     return 0;
 }
 
@@ -667,7 +625,7 @@ static int NativeIoI2c(duk_context* ctx)
     int idx;
     void* i2cCtx;
     sda = GetPinId(ctx, 0, AJS_IO_FUNCTION_I2C_SDA);
-    scl = GetPinId(ctx, 1, AJS_IO_FUNCTION_I2C_SDC);
+    scl = GetPinId(ctx, 1, AJS_IO_FUNCTION_I2C_SCL);
 
     clock = duk_require_int(ctx, 2);
     mode = duk_require_int(ctx, 3);
@@ -681,17 +639,8 @@ static int NativeIoI2c(duk_context* ctx)
     }
     idx = NewIOObject(ctx, i2cCtx, NativeI2cFinalizer);
 
-    duk_push_c_function(ctx, NativeI2cWrite, 2);
-    duk_put_prop_string(ctx, idx, "write");
-
-    duk_push_c_function(ctx, NativeI2cRead, 1);
-    duk_put_prop_string(ctx, idx, "read");
-
-    duk_push_c_function(ctx, NativeI2cStart, 1);
-    duk_put_prop_string(ctx, idx, "start");
-
-    duk_push_c_function(ctx, NativeI2cStop, 0);
-    duk_put_prop_string(ctx, idx, "stop");
+    duk_push_c_function(ctx, NativeI2cTransfer, 3);
+    duk_put_prop_string(ctx, idx, "transfer");
 
     return 1;
 }
@@ -900,8 +849,8 @@ const char* AJS_IO_FunctionName(uint32_t function)
     case AJS_IO_FUNCTION_I2C_SDA:
         return "i2cSDA";
 
-    case AJS_IO_FUNCTION_I2C_SDC:
-        return "i2cSDC";
+    case AJS_IO_FUNCTION_I2C_SCL:
+        return "i2cSCL";
 
     case AJS_IO_FUNCTION_SPI_SCK:
         return "spiSCK";

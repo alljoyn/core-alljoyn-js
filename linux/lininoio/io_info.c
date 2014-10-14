@@ -21,15 +21,18 @@
 #include "ajs_io.h"
 
 static const AJS_IO_Info info[] = {
-    { AJS_IO_FUNCTION_DIGITAL_IO,                              2, "D2",  "",  "Digital Pin 2"  },
-    { AJS_IO_FUNCTION_DIGITAL_IO | AJS_IO_FUNCTION_PWM,        3, "D3",  "",  "Digital Pin 3"  },
+    { AJS_IO_FUNCTION_UART_TX,                                 0, "TX",  "",  "Serial RX"  },
+    { AJS_IO_FUNCTION_UART_RX,                                 1, "RX",  "",  "Serial TX"  },
+    { AJS_IO_FUNCTION_DIGITAL_IO | AJS_IO_FUNCTION_I2C_SDA,                       2, "D2",  "",  "SDA/Digital Pin 2"  },
+    { AJS_IO_FUNCTION_DIGITAL_IO | AJS_IO_FUNCTION_I2C_SCL | AJS_IO_FUNCTION_PWM, 3, "D3",  "",  "SCL/Digital Pin 3"  },
     { AJS_IO_FUNCTION_DIGITAL_IO,                              4, "D4",  "",  "Digital Pin 4"  },
     { AJS_IO_FUNCTION_DIGITAL_IO | AJS_IO_FUNCTION_PWM,        5, "D5",  "",  "Digital Pin 5"  },
     { AJS_IO_FUNCTION_DIGITAL_IO | AJS_IO_FUNCTION_PWM,        6, "D6",  "",  "Digital Pin 6"  },
+    { 0,                                                       7, "N/A", "",  "Not available"  },
     { AJS_IO_FUNCTION_DIGITAL_IO,                              8, "D8",  "",  "Digital Pin 8"  },
     { AJS_IO_FUNCTION_DIGITAL_IO | AJS_IO_FUNCTION_PWM,        9, "D9",  "",  "Digital Pin 9"  },
     { AJS_IO_FUNCTION_DIGITAL_IO | AJS_IO_FUNCTION_PWM,       10, "D10", "",  "Digital Pin 10" },
-    { AJS_IO_FUNCTION_DIGITAL_IO | AJS_IO_FUNCTION_PWM,       11, "D11", "",  "Digital Pin 11" },
+    { AJS_IO_FUNCTION_DIGITAL_IO | AJS_IO_FUNCTION_PWM,       11, "D11", "",  "0igital Pin 11" },
     { AJS_IO_FUNCTION_DIGITAL_IO,                             12, "D12", "",  "Digital Pin 12" },
     { AJS_IO_FUNCTION_DIGITAL_IO,                             13, "D13", "",  "Digital Pin 13" },
 

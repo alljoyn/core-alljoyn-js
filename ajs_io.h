@@ -34,7 +34,7 @@
 #define AJS_IO_FUNCTION_UART_RX     0x00000200
 
 #define AJS_IO_FUNCTION_I2C_SDA     0x00001000
-#define AJS_IO_FUNCTION_I2C_SDC     0x00002000
+#define AJS_IO_FUNCTION_I2C_SCL     0x00002000
 
 #define AJS_IO_FUNCTION_SPI_SCK     0x00010000
 #define AJS_IO_FUNCTION_SPI_SS      0x00020000
@@ -328,38 +328,17 @@ AJ_Status AJS_TargetIO_UartOpen(uint8_t txPin, uint8_t rxPin, uint32_t baud, voi
 AJ_Status AJS_TargetIO_UartClose(void* uartCtx);
 
 /**
- * Start an I2C data transfer. This must be called first followed by AJS_TargetIO_I2cRead()/Write()
- * and ended by AJS_TargetIO_I2cStop()
+ * Write, read, or write then read an I2C device.
  *
- * @param ctx       Pointer to an opaque target specific data structure for the I2C channel
- * @param addr      Address to the device on the I2C bus to talk to
+ * @param ctx      Pointer to an opaque target specific data structure for the I2C bus
+ * @param txBuf    Data to write to the I2C device
+ * @param txLen    Number of bytes to write - can be zero
+ * @param rxBuf    Buffer for reading from the I2C device
+ * @param rxLen    Number of bytes to read - can be zero.
+ * @param rxBytes  Number of bytes actually read - can be NULL if rxLen == 0.
  *
  */
-void AJS_TargetIO_I2cStart(void* ctx, uint8_t addr);
-
-/**
- * Stop an I2C transfer.
- *
- * @param ctx       Pointer to an opaque target specific data structure for the UART channel
- */
-void AJS_TargetIO_I2cStop(void* ctx);
-
-/**
- * Read from an I2C device.
- *
- * @param ctx       Pointer to an opaque target specific data structure for the UART channel
- *
- * @return          The byte that was read for the I2C device
- */
-uint8_t AJS_TargetIO_I2cRead(void* ctx);
-
-/**
- * Write to an I2C device.
- *
- * @param ctx       Pointer to an opaque target specific data structure for the UART channel
- * @param data      Byte of data to write to the I2C device
- */
-void AJS_TargetIO_I2cWrite(void* ctx, uint8_t data);
+AJ_Status AJS_TargetIO_I2cTransfer(void* ctx, uint8_t addr, uint8_t* txBuf, uint8_t txLen, uint8_t* rxBuf, uint8_t rxLen, uint8_t* rxBytes);
 
 /**
  * Open and configure an I2C peripheral

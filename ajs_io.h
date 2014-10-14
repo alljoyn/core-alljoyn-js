@@ -74,7 +74,8 @@ typedef enum {
 typedef enum {
     AJS_IO_PIN_TRIGGER_DISABLE = 0,
     AJS_IO_PIN_TRIGGER_ON_RISE = 1,
-    AJS_IO_PIN_TRIGGER_ON_FALL = 2
+    AJS_IO_PIN_TRIGGER_ON_FALL = 2,
+    AJS_IO_PIN_TRIGGER_ON_BOTH = 3
 } AJS_IO_PinTriggerMode;
 
 /**
@@ -159,9 +160,11 @@ uint32_t AJS_TargetIO_PinGet(void* pinCtx);
  * Returns the trigger id for the GPIO pin that was triggered. If called repeatedly it will return each
  * of the trigger indices in order.
  *
+ * @param level  Returns a 0 ot indicate the trigger was on falling edge or 1 for a rising edge.
+ *
  * @return  A trigger index or -1 if no GPIO pins are currently triggered.
  */
-int32_t AJS_TargetIO_PinTrigId();
+int32_t AJS_TargetIO_PinTrigId(uint32_t* level);
 
 /**
  * Enable (or disable) trigger mode for a GPIO pin

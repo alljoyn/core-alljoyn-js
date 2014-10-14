@@ -51,6 +51,8 @@ typedef struct {
     int8_t trigId;
     uint8_t pinId;
     uint8_t value;
+    uint8_t debounceMillis;
+    AJ_Time timer;
     uint32_t pwmPeriod;
     int fd;
 } GPIO;
@@ -58,9 +60,10 @@ typedef struct {
 #define MAX_TRIGGERS 16
 
 /*
- * Bit mask of allocated triggers (max 32)
+ * Bit mask of allocated triggers and levels (max 32)
  */
 static uint32_t trigSet;
+static uint32_t trigLevel;
 
 #define BIT_IS_SET(i, b)  ((i)& (1 << (b)))
 #define BIT_SET(i, b)     ((i) |= (1 << (b)))
@@ -123,8 +126,8 @@ static void* TriggerThread(void* arg)
             }
         }
         ret = select(maxFd + 1, &readFds, NULL, &exceptFds, NULL);
-        AJ_InfoPrintf(("Error: select returned %d\n", ret));
         if (ret < 0) {
+            AJ_ErrPrintf(("Error: select returned %d\n", ret));
             break;
         }
         /*
@@ -139,17 +142,33 @@ static void* TriggerThread(void* arg)
          */
         pthread_mutex_lock(&mutex);
         for (i = 0; i < MAX_TRIGGERS; ++i) {
-            if (triggers[i] && FD_ISSET(triggers[i]->fd, &exceptFds)) {
+            GPIO* gpio = triggers[i];
+            if (gpio && FD_ISSET(gpio->fd, &exceptFds)) {
                 char buf[2];
-                AJ_InfoPrintf(("Trigger on pin %d\n", triggers[i]->pinId));
-                /*
-                 * Record which trigger fired
-                 */
-                BIT_SET(trigSet, i);
                 /*
                  * Consume the value
                  */
-                pread(triggers[i]->fd, buf, sizeof(buf), 0);
+                pread(gpio->fd, buf, sizeof(buf), 0);
+                /*
+                 *
+                 */
+                if (gpio->debounceMillis) {
+                    if (!BIT_IS_SET(trigSet, i)) {
+                        AJ_InitTimer(&gpio->timer);
+                    } else if (AJ_GetElapsedTime(&gpio->timer, TRUE) < gpio->debounceMillis) {
+                        continue;
+                    }
+                }
+                AJ_InfoPrintf(("Trigger on pin %d\n", gpio->pinId));
+                /*
+                 * Record which trigger fired and the leve
+                 */
+                BIT_SET(trigSet, i);
+                if (buf[0] == '0') {
+                    BIT_CLR(trigLevel, i);
+                } else {
+                    BIT_SET(trigLevel, i);
+                }
             }
         }
         pthread_mutex_unlock(&mutex);
@@ -324,6 +343,14 @@ AJ_Status AJS_TargetIO_PinClose(void* pinCtx)
 {
     GPIO* gpio = (GPIO*)pinCtx;
     AJ_InfoPrintf(("AJS_TargetIO_PinClose(%d)\n", gpio->pinId));
+    /*
+     * Might need to remove the pin from the triggers list
+     */
+    if (gpio->trigId != AJS_IO_PIN_NO_TRIGGER) {
+        pthread_mutex_lock(&mutex);
+        triggers[gpio->trigId] = NULL;
+        pthread_mutex_unlock(&mutex);
+    }
     close(gpio->fd);
     free(gpio);
     return AJ_OK;
@@ -344,6 +371,7 @@ void AJS_TargetIO_PinSet(void* pinCtx, uint32_t val)
      */
     if (gpio->pwmPeriod != 0) {
         (void)SetDeviceProp(pinInfo[gpio->pinId].pwmDev, pwm_root, "enable", "0");
+        (void)SetDeviceProp(pinInfo[gpio->pinId].gpioDev, gpio_root, "direction", "out");
         gpio->pwmPeriod = 0;
     }
     if (write(gpio->fd, val ? "1" : "0", 2) != 2) {
@@ -359,7 +387,6 @@ uint32_t AJS_TargetIO_PinGet(void* pinCtx)
     GPIO* gpio = (GPIO*)pinCtx;
     char buf[2];
 
-    //lseek(gpio->fd, 0, SEEK_SET);
     ret = pread(gpio->fd, buf, sizeof(buf), 0);
     if (ret <= 0) {
         AJ_ErrPrintf(("AJS_TargetIO_PinGet unsuccessful ret=%d errno=%d\n", ret, errno));
@@ -369,7 +396,7 @@ uint32_t AJS_TargetIO_PinGet(void* pinCtx)
     return gpio->value;
 }
 
-int32_t AJS_TargetIO_PinTrigId()
+int32_t AJS_TargetIO_PinTrigId(uint32_t* level)
 {
     pthread_mutex_lock(&mutex);
     if (trigSet == 0) {
@@ -384,6 +411,7 @@ int32_t AJS_TargetIO_PinTrigId()
             ++id;
         }
         BIT_CLR(trigSet, id % MAX_TRIGGERS);
+        *level = BIT_IS_SET(trigLevel, id % MAX_TRIGGERS);
         pthread_mutex_unlock(&mutex);
         return (id % MAX_TRIGGERS);
     }
@@ -510,15 +538,23 @@ AJ_Status AJS_TargetIO_PinEnableTrigger(void* pinCtx, AJS_IO_PinTriggerMode trig
                     break;
                 }
             }
+            gpio->debounceMillis = debounce;
+            AJ_InitTimer(&gpio->timer);
             pthread_mutex_unlock(&mutex);
+            if (i == MAX_TRIGGERS) {
+                (void)SetDeviceProp(dev, gpio_root, "edge", "node");
+                status = AJ_ERR_RESOURCES;
+            }
             *trigId = gpio->trigId;
         }
     }
-    /*
-     * Let the trigger thread know there has been a change
-     */
-    ResetTriggerThread();
-    AJ_InfoPrintf(("AJS_TargetIO_PinEnableTrigger pinId %d\n", gpio->pinId));
+    if (status == AJ_OK) {
+        /*
+         * Let the trigger thread know there has been a change
+         */
+        ResetTriggerThread();
+        AJ_InfoPrintf(("AJS_TargetIO_PinEnableTrigger pinId %d\n", gpio->pinId));
+    }
     return status;
 }
 

@@ -57,7 +57,7 @@ uint8_t* AJS_TargetIO_SpiRead(void* ctx, uint32_t length)
 
 void AJS_TargetIO_SpiWrite(void* ctx, uint8_t* data, uint32_t length)
 {
-    AJ_InfoPrintf(("AJS_TargetIO_SpiWrite(): Wrote %i\n", data));
+    AJ_InfoPrintf(("AJS_TargetIO_SpiWrite(): Wrote %d bytes\n", length));
     return;
 }
 

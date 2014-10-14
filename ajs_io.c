@@ -54,6 +54,7 @@ static int NewIOObject(duk_context* ctx, void* pinCtx, duk_c_function finalizer)
 
 static int NativeSetTrigger(duk_context* ctx)
 {
+    AJ_Status status;
     int32_t trigId;
     uint32_t debounce = 0;
     AJS_IO_PinTriggerMode mode = (AJS_IO_PinTriggerMode)duk_require_int(ctx, 0);
@@ -70,13 +71,16 @@ static int NativeSetTrigger(duk_context* ctx)
     /*
      * Enable or disable the trigger
      */
-    AJS_TargetIO_PinEnableTrigger(PinCtxPtr(ctx), mode, &trigId, debounce);
+    status = AJS_TargetIO_PinEnableTrigger(PinCtxPtr(ctx), mode, &trigId, debounce);
+    if (status != AJ_OK) {
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Error %s", AJ_StatusText(status));
+    }
 
     duk_push_global_object(ctx);
     duk_get_prop_string(ctx, -1, "IO");
     duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("trigs"));
 
-    if ((mode == AJS_IO_PIN_TRIGGER_ON_RISE) || (mode == AJS_IO_PIN_TRIGGER_ON_FALL)) {
+    if ((mode & AJS_IO_PIN_TRIGGER_ON_RISE) || (mode & AJS_IO_PIN_TRIGGER_ON_FALL)) {
         /*
          * Set the callback function on the pin object
          */
@@ -247,17 +251,21 @@ static int NativeIoDigitalIn(duk_context* ctx)
     AJ_Status status;
     int idx;
     void* pinCtx;
-    AJS_IO_PinConfig config;
+    int config = -1;
     uint32_t pin = GetPinId(ctx, 0, AJS_IO_FUNCTION_DIGITAL_IN);
 
-    if (!duk_is_number(ctx, 1)) {
+    if (duk_is_undefined(ctx, 1)) {
+        config = AJS_IO_PIN_PULL_UP;
+    } else if (duk_is_number(ctx, 1)) {
+        config = (AJS_IO_PinConfig)duk_get_int(ctx, 1);
+    }
+    if ((config != AJS_IO_PIN_OPEN_DRAIN) && (config != AJS_IO_PIN_PULL_UP) && (config != AJS_IO_PIN_PULL_DOWN)) {
         duk_error(ctx, DUK_ERR_RANGE_ERROR, "Configuration must be pullUp, pullDown, or openDrain");
     }
-    config = (AJS_IO_PinConfig)duk_get_int(ctx, 1);
     /*
      * Target specific I/O pin initialization
      */
-    status = AJS_TargetIO_PinOpen(pin, config, &pinCtx);
+    status = AJS_TargetIO_PinOpen(pin, (AJS_IO_PinConfig)config, &pinCtx);
     if (status != AJ_OK) {
         duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Failed to open digital input pin: %s", AJ_StatusText(status));
     }
@@ -827,8 +835,9 @@ AJ_Status AJS_RegisterIO(duk_context* ctx)
 AJ_Status AJS_ServiceIO(duk_context* ctx)
 {
     int32_t trigId;
+    uint32_t level;
 
-    trigId = AJS_TargetIO_PinTrigId();
+    trigId = AJS_TargetIO_PinTrigId(&level);
     if (trigId != AJS_IO_PIN_NO_TRIGGER) {
         AJ_InfoPrintf(("triggered on id %d\n", trigId));
         /*
@@ -841,11 +850,12 @@ AJ_Status AJS_ServiceIO(duk_context* ctx)
             duk_get_prop_index(ctx, -1, trigId);
             if (duk_is_object(ctx, -1)) {
                 /*
-                 * Call the trigger function passing the pin object as an argument
+                 * Call the trigger function passing the pin object and level as arguments
                  */
                 duk_get_prop_string(ctx, -1, "trigger");
                 duk_dup(ctx, -2);
-                if (duk_pcall(ctx, 1) != DUK_EXEC_SUCCESS) {
+                duk_push_int(ctx, level);
+                if (duk_pcall(ctx, 2) != DUK_EXEC_SUCCESS) {
                     AJS_ConsoleSignalError(ctx);
                 }
                 /*
@@ -853,10 +863,10 @@ AJ_Status AJS_ServiceIO(duk_context* ctx)
                  */
                 duk_pop(ctx);
             } else {
-                AJ_ErrPrintf(("Expected a pin object\n"));
+                AJ_ErrPrintf(("Expected a pin object trigId = %d\n", trigId));
             }
             duk_pop(ctx);
-            trigId = AJS_TargetIO_PinTrigId();
+            trigId = AJS_TargetIO_PinTrigId(&level);
         } while (trigId != AJS_IO_PIN_NO_TRIGGER);
         duk_pop_3(ctx);
     }

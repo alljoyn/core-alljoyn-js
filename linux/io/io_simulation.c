@@ -17,6 +17,8 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#define AJ_MODULE GPIO
+
 #include <errno.h>
 #include <pthread.h>
 #include <sys/socket.h>
@@ -26,6 +28,13 @@
 
 #include "ajs.h"
 #include "ajs_io.h"
+
+/**
+ * Controls debug output for this module
+ */
+#ifndef NDEBUG
+uint8_t dbgGPIO;
+#endif
 
 extern void AJ_Net_Interrupt();
 
@@ -215,7 +224,7 @@ uint32_t AJS_TargetIO_PinGet(void* pinCtx)
     return 0;
 }
 
-int32_t AJS_TargetIO_PinTrigId()
+int32_t AJS_TargetIO_PinTrigId(uint32_t* level)
 {
     if (trigSet == 0) {
         return AJS_IO_PIN_NO_TRIGGER;
@@ -236,7 +245,7 @@ AJ_Status AJS_TargetIO_PinPWM(void* pinCtx, double dutyCycle, uint32_t freq)
 {
     GPIO* gpio = (GPIO*)pinCtx;
     if (!SendCmd('p', gpio, (uint8_t)freq, (uint8_t)(dutyCycle * 255.0))) {
-        AJ_ErrPrintf(("AJS_TargetIO_PinPWM(%d, %d, %d)\n", gpio->pinId, dutyCycle, freq));
+        AJ_ErrPrintf(("AJS_TargetIO_PinPWM(%d, %f, %d)\n", gpio->pinId, dutyCycle, freq));
         return AJ_ERR_DRIVER;
     }
     return AJ_OK;

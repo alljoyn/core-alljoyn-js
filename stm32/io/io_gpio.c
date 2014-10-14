@@ -245,7 +245,7 @@ AJ_Status AJS_TargetIO_PinEnableTrigger(void* pinCtx, AJS_IO_PinTriggerMode trig
     *trigId = gpio->trigId;
     return AJ_OK;
 }
-int32_t AJS_TargetIO_PinTrigId()
+int32_t AJS_TargetIO_PinTrigId(uint32_t* level)
 {
     if (trigSet == 0) {
         return AJS_IO_PIN_NO_TRIGGER;

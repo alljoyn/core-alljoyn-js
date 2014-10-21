@@ -72,23 +72,22 @@ static uint32_t trigLevel;
 typedef struct {
     uint8_t physicalPin; /* matches up the pin information in the pin info array */
     uint8_t gpioId;      /* id used to export the GPIO function of this pin */
-    const char* gpioDev; /* exported device name for the GPIO function of this pin */
     int8_t pwmId;        /* id used to export the PWM function of this pin */
-    const char* pwmDev;  /* exported device name for the PWM function of this pin */
+    const char* gpioDev; /* exported device name for the GPIO function of this pin */
 } PIN_Info;
 
 static const PIN_Info pinInfo[] = {
-    {  2, 117, "SDA",  -1, NULL },
-    {  3, 116, "SCL",   0, "D3" },
-    {  4, 120, "D4",    4, "D5" },
-    {  5, 114, "D5",   -1, NULL },
-    {  6, 123, "D6",    5, "D6" },
-    {  8, 104, "IO8",  -1, NULL },
-    {  9, 105, "IO9",   1, "D9" },
-    { 10, 105, "IO10",  2, "D10" },
-    { 11, 107, "IO11",  3, "D11" },
-    { 12, 122, "IO12", -1, NULL },
-    { 13, 115, "IO13", -1, NULL },
+    {  2, 117, -1, "D2" },
+    {  3, 116,  0, "D3" },
+    {  4, 120, -1, "D4" },
+    {  5, 114,  4, "D5" },
+    {  6, 123,  5, "D6" },
+    {  8, 104, -1, "D8" },
+    {  9, 105,  1, "D9" },
+    { 10, 105,  2, "D10"},
+    { 11, 107,  3, "D11"},
+    { 12, 122, -1, "D12"},
+    { 13, 115, -1, "D13"},
 };
 
 static GPIO* triggers[MAX_TRIGGERS];
@@ -370,7 +369,7 @@ void AJS_TargetIO_PinSet(void* pinCtx, uint32_t val)
      * Setting an explicit value disables PWM if it was enabled
      */
     if (gpio->pwmPeriod != 0) {
-        (void)SetDeviceProp(pinInfo[gpio->pinId].pwmDev, pwm_root, "enable", "0");
+        (void)SetDeviceProp(pinInfo[gpio->pinId].gpioDev, pwm_root, "enable", "0");
         (void)SetDeviceProp(pinInfo[gpio->pinId].gpioDev, gpio_root, "direction", "out");
         gpio->pwmPeriod = 0;
     }
@@ -432,10 +431,7 @@ AJ_Status AJS_TargetIO_PinPWM(void* pinCtx, double dutyCycle, uint32_t freq)
     if (pwmId < 0) {
         return AJ_ERR_INVALID;
     }
-    dev = pinInfo[gpio->pinId].pwmDev;
-    if (!dev) {
-        return AJ_ERR_INVALID;
-    }
+    dev = pinInfo[gpio->pinId].gpioDev;
     /*
      * Handle limit cases
      */

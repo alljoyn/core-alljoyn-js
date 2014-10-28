@@ -20,6 +20,10 @@
 #include "ajs.h"
 #include "ajs_target.h"
 
+#include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+
 typedef struct {
     FILE* file;
     uint8_t* buf;
@@ -112,7 +116,9 @@ extern uint8_t dbgGPIO;
 int main(int argc, char* argv[])
 {
     const char* deviceName = NULL;
+    const char* scriptName = NULL;
     int argn = 1;
+    int daemonize = FALSE;
     AJ_Status status = AJ_OK;
 #ifndef NDEBUG
     AJ_DbgLevel = 4;
@@ -132,7 +138,12 @@ int main(int argc, char* argv[])
 
     AJ_Initialize();
 
-    if (argc > argn) {
+    while (argn < argc) {
+        if (strcmp(argv[argn], "--daemon") == 0) {
+            daemonize = TRUE;
+            ++argn;
+            continue;
+        }
         if (strcmp(argv[argn], "--name") == 0) {
             ++argn;
             if (argn >= argc) {
@@ -140,26 +151,43 @@ int main(int argc, char* argv[])
             }
             deviceName = argv[argn];
             ++argn;
+            continue;
         }
-        if (argc > argn) {
             if (argc > (argn + 1)) {
                 goto Usage;
             }
-            status = InstallScript(argv[argn]);
-            if (status != AJ_OK) {
-                AJ_Printf("Failed to install script %s\n", argv[argn]);
-                exit(-1);
-            }
-        }
+            scriptName = argv[argn];
+            ++argn;
     }
 
-    status = AJS_Main(deviceName);
+    if (daemonize) {
+        int ret = daemon(0, 0);
+        if (ret < 0) {
+            AJ_Printf("Failed to launch daemon errno=%d\n", errno);
+            exit(1);
+        }
+        AJ_SetLogFile("/tmp/AJS.log", 4096);
+    }
+
+    if (scriptName) {
+        status = InstallScript(scriptName);
+        if (status != AJ_OK) {
+            AJ_Printf("Failed to install script %s\n", argv[argn]);
+            exit(-1);
+        }
+    }
+    /*
+     * If running as a daemon keep restarting
+     */
+    do {
+        status = AJS_Main(deviceName);
+    } while (daemonize);
 
     return -((int)status);
 
 Usage:
 
-    AJ_Printf("Usage: %s [--name <device-name>] [script_file]\n", argv[0]);
+    AJ_Printf("Usage: %s [--daemon] [--name <device-name>] [script_file]\n", argv[0]);
     exit(-1);
 }
 

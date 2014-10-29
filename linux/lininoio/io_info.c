@@ -36,12 +36,12 @@ static const AJS_IO_Info info[] = {
     { AJS_IO_FUNCTION_DIGITAL_IO,                             12, "D12", "",  "Digital Pin 12" },
     { AJS_IO_FUNCTION_DIGITAL_IO,                             13, "D13", "",  "Digital Pin 13" },
 
-    { AJS_IO_FUNCTION_DIGITAL_IO | AJS_IO_FUNCTION_ANALOG_IN, 0xA0, "A0",  "",  "Analog Pin 0"   },
-    { AJS_IO_FUNCTION_DIGITAL_IO | AJS_IO_FUNCTION_ANALOG_IN, 0xA1, "A1",  "",  "Analog Pin 1"   },
-    { AJS_IO_FUNCTION_DIGITAL_IO | AJS_IO_FUNCTION_ANALOG_IN, 0xA2, "A2",  "",  "Analog Pin 2"   },
-    { AJS_IO_FUNCTION_DIGITAL_IO | AJS_IO_FUNCTION_ANALOG_IN, 0xA3, "A3",  "",  "Analog Pin 3"   },
-    { AJS_IO_FUNCTION_DIGITAL_IO | AJS_IO_FUNCTION_ANALOG_IN, 0xA4, "A4",  "",  "Analog Pin 4"   },
-    { AJS_IO_FUNCTION_DIGITAL_IO | AJS_IO_FUNCTION_ANALOG_IN, 0xA5, "A5",  "",  "Analog Pin 5"   }
+    { AJS_IO_FUNCTION_ANALOG_IN, 0xA0, "A0",  "",  "Analog Input Pin 0"   },
+    { AJS_IO_FUNCTION_ANALOG_IN, 0xA1, "A1",  "",  "Analog Input Pin 1"   },
+    { AJS_IO_FUNCTION_ANALOG_IN, 0xA2, "A2",  "",  "Analog Input Pin 2"   },
+    { AJS_IO_FUNCTION_ANALOG_IN, 0xA3, "A3",  "",  "Analog Input Pin 3"   },
+    { AJS_IO_FUNCTION_ANALOG_IN, 0xA4, "A4",  "",  "Analog Input Pin 4"   },
+    { AJS_IO_FUNCTION_ANALOG_IN, 0xA5, "A5",  "",  "Analog Input Pin 5"   }
 };
 
 uint16_t AJS_TargetIO_GetNumPins()

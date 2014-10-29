@@ -20,21 +20,6 @@
 #include "ajs.h"
 #include "ajs_io.h"
 
-AJ_Status AJS_TargetIO_AdcOpen(uint16_t channel, void** adcCtx)
-{
-    return AJ_ERR_UNEXPECTED;
-}
-
-AJ_Status AJS_TargetIO_AdcClose(void* adcCtx)
-{
-    return AJ_ERR_UNEXPECTED;
-}
-
-uint32_t AJS_TargetIO_AdcRead(void* adcCtx)
-{
-    return 0;
-}
-
 AJ_Status AJS_TargetIO_DacOpen(uint16_t pin, void** dacCtx)
 {
     return AJ_ERR_UNEXPECTED;

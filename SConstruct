@@ -283,8 +283,12 @@ env.Append(LIBPATH = env['ajtcl_root'])
 if env['TARG'] != 'stm32':
     if env['PLATFORM'] == 'win32':
         env.Append(LIBS = ['ajtcl_st'])
-    elif env['PLATFORM'] == 'posix' or env['PLATFORM'] == 'darwin':
-        env.Prepend(LIBS = ['libajtcl_st'])
+
+    if env['PLATFORM'] == 'posix':
+        env.Append(LIBS = ['libajtcl'])
+
+    if env['PLATFORM'] == 'darwin':
+        env.Append(LIBS = ['libajtcl_st'])
 
     progs = env.SConscript('SConscript', 'env', variant_dir='build/$VARIANT', duplicate=0)
 else:

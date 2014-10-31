@@ -356,6 +356,7 @@ static const char* DescriptionFinder(uint32_t descId, const char* lang)
 
 AJ_Status AJS_InitTables(duk_context* ctx)
 {
+    AJ_Status status;
     BuildInterfaceTable(ctx);
     BuildLocalObjects(ctx);
     AJ_RegisterObjectList(proxyList, AJ_PRX_ID_FLAG);
@@ -363,9 +364,9 @@ AJ_Status AJS_InitTables(duk_context* ctx)
      * Have to register this global so DescriptionFinder has access to the duktape context
      */
     dukContext = ctx;
-    AJ_RegisterObjectListWithDescriptions(objectList, JS_OBJ_INDEX, DescriptionFinder);
+    status = AJ_RegisterObjectListWithDescriptions(objectList, JS_OBJ_INDEX, DescriptionFinder);
     AJ_PrintXMLWithDescriptions(objectList, "en");
-    return AJ_OK;
+    return status;
 }
 
 void AJS_SetObjectPath(const char* path)

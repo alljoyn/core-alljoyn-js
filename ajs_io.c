@@ -617,33 +617,37 @@ static int NativeI2cFinalizer(duk_context* ctx)
     return 0;
 }
 
+/*
+ * Uses "magic" property to determine if i2c is being configured as master or slave.
+ */ 
 static int NativeIoI2c(duk_context* ctx)
 {
     AJ_Status status;
-    uint8_t sda, scl, mode, address;
-    uint32_t clock;
-    int idx;
+    uint8_t address = 0;
+    uint32_t clock = 0;
     void* i2cCtx;
-    sda = GetPinId(ctx, 0, AJS_IO_FUNCTION_I2C_SDA);
-    scl = GetPinId(ctx, 1, AJS_IO_FUNCTION_I2C_SCL);
+    uint8_t mode = duk_get_current_magic(ctx);
+    uint8_t sda = GetPinId(ctx, 0, AJS_IO_FUNCTION_I2C_SDA);
+    uint8_t scl = GetPinId(ctx, 1, AJS_IO_FUNCTION_I2C_SCL);
 
-    clock = duk_require_int(ctx, 2);
-    mode = duk_require_int(ctx, 3);
-    address = duk_require_int(ctx, 4);
-
-    duk_pop(ctx);
-
+    if (mode == AJS_I2C_MODE_MASTER) {
+        if (!duk_is_undefined(ctx, 2)) {
+            clock = duk_require_int(ctx, 2);
+        }
+    } else {
+        address = duk_require_int(ctx, 2);
+    }
     status = AJS_TargetIO_I2cOpen(sda, scl, clock, mode, address, &i2cCtx);
     if (status != AJ_OK) {
         duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Failed to open I2C device\n");
     }
-    idx = NewIOObject(ctx, i2cCtx, NativeI2cFinalizer);
-
+    NewIOObject(ctx, i2cCtx, NativeI2cFinalizer);
     duk_push_c_function(ctx, NativeI2cTransfer, 3);
-    duk_put_prop_string(ctx, idx, "transfer");
+    duk_put_prop_string(ctx, -2, "transfer");
 
     return 1;
 }
+
 /*
  * Returns the IO functions supported by this pin
  */
@@ -754,8 +758,13 @@ AJ_Status AJS_RegisterIO(duk_context* ctx)
     duk_push_c_function(ctx, NativeIoUart, 3);
     duk_put_prop_string(ctx, ioIdx, "uart");
 
-    duk_push_c_function(ctx, NativeIoI2c, 5);
-    duk_put_prop_string(ctx, ioIdx, "i2c");
+    duk_push_c_function(ctx, NativeIoI2c, 3);
+    duk_set_magic(ctx, -1, AJS_I2C_MODE_MASTER);
+    duk_put_prop_string(ctx, ioIdx, "i2cMaster");
+
+    duk_push_c_function(ctx, NativeIoI2c, 3);
+    duk_set_magic(ctx, -1, AJS_I2C_MODE_SLAVE);
+    duk_put_prop_string(ctx, ioIdx, "i2cSlave");
     /*
      * GPIO attribute constants
      */

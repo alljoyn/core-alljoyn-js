@@ -328,6 +328,26 @@ AJ_Status AJS_TargetIO_UartOpen(uint8_t txPin, uint8_t rxPin, uint32_t baud, voi
 AJ_Status AJS_TargetIO_UartClose(void* uartCtx);
 
 /**
+ * Configuration mode for I2C bus
+ */
+#define AJS_I2C_MODE_MASTER 1
+#define AJS_I2C_MODE_SLAVE  0
+
+/**
+ * Open and configure an I2C peripheral
+ *
+ * @param sda        Pin number for the SDA (data) pin
+ * @param dcl        Pin number for the SCL (clock) pin
+ * @param clock      Clock rate for the I2C peripheral - 0 to use BSP default
+ * @param mode       Specifies if the peripheral should be configured as master or slave
+ * @param ownAddress The peripherals own I2C address. Only used if configuring for slave mode.
+ * @param i2cCtx     Returned context pointer for the I2C peripheral
+ *
+ * @return          AJ_OK if the peripheral was configured correctly
+ */
+AJ_Status AJS_TargetIO_I2cOpen(uint8_t sda, uint8_t scl, uint32_t clock, uint8_t mode, uint8_t ownAddress, void** i2cCtx);
+
+/**
  * Write, read, or write then read an I2C device.
  *
  * @param ctx      Pointer to an opaque target specific data structure for the I2C bus
@@ -339,20 +359,6 @@ AJ_Status AJS_TargetIO_UartClose(void* uartCtx);
  *
  */
 AJ_Status AJS_TargetIO_I2cTransfer(void* ctx, uint8_t addr, uint8_t* txBuf, uint8_t txLen, uint8_t* rxBuf, uint8_t rxLen, uint8_t* rxBytes);
-
-/**
- * Open and configure an I2C peripheral
- *
- * @param sda       Pin number for the SDA (data) pin
- * @param dcl       Pin number for the SCL (clock) pin
- * @param clock     Clock rate for the I2C peripheral
- * @param mode      Specifies if the peripheral should be configured as master or slave
- * @param ownAddress The peripherals own I2C address. Only relevant if configuring for slave mode.
- * @param i2cCtx    Returned context pointer for the I2C peripheral
- *
- * @return          AJ_OK if the peripheral was configured correctly
- */
-AJ_Status AJS_TargetIO_I2cOpen(uint8_t sda, uint8_t scl, uint32_t clock, uint8_t mode, uint8_t ownAddress, void** i2cCtx);
 
 /**
  * Close a previously opened I2C peripheral

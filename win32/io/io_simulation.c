@@ -272,7 +272,7 @@ AJ_Status AJS_TargetIO_PinEnableTrigger(void* pinCtx, AJS_IO_PinTriggerMode trig
     return AJ_OK;
 }
 
-AJ_Status AJS_TargetIO_System(const char* cmd)
+AJ_Status AJS_TargetIO_System(const char* cmd, char* output, uint16_t length)
 {
     int ret = system(cmd);
     if (ret == -1) {

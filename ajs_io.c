@@ -365,11 +365,23 @@ static int NativeIoSystem(duk_context* ctx)
 {
     AJ_Status status;
     const char* cmd = duk_require_string(ctx, 0);
-
-    status = AJS_TargetIO_System(cmd);
+    if (AJ_MAX_SYSTEM_RETURN > 0) {
+        char* buf = (char*)duk_push_fixed_buffer(ctx, AJ_MAX_SYSTEM_RETURN);
+        if (buf) {
+            *buf = '\0';
+            status = AJS_TargetIO_System(cmd, buf, AJ_MAX_SYSTEM_RETURN);
+        } else {
+            status = AJS_TargetIO_System(cmd, NULL, 0);
+        }
+    } else {
+        status = AJS_TargetIO_System(cmd, NULL, 0);
+        duk_push_null(ctx);
+    }
     if (status != AJ_OK) {
         duk_error(ctx, DUK_ERR_UNSUPPORTED_ERROR, "System '%s'", cmd);
     }
+    /* Convert the buffer to a string and push it onto the stack */
+    duk_to_string(ctx, 0);
     return 1;
 }
 
@@ -730,7 +742,7 @@ static const duk_function_list_entry io_native_functions[] = {
     { "digitalOut", NativeIoDigitalOut, 2 },
     { "analogIn",   NativeIoAnalogIn,   2 },
     { "analogOut",  NativeIoAnalogOut,  2 },
-    { "system",     NativeIoSystem,     1 },
+    { "system",     NativeIoSystem,     2 },
     { "spi",        NativeIoSpi,        5 },
     { "uart",       NativeIoUart,       3 },
     { "i2cMaster",  NativeIoI2cMaster,  3 },

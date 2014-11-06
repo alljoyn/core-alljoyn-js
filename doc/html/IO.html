@@ -1,4 +1,4 @@
-<!DOCTYPE html><html><head><meta charset="utf-8"><title>IO Documentation</title><style></style></head><body>
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Untitled Document.md</title><style></style></head><body>
 <p>This work is licensed under a Creative Commons Attribution 4.0 International License.
 <a href="http://creativecommons.org/licenses/by/4.0/">http://creativecommons.org/licenses/by/4.0/</a></p>
 <h1 id="io">IO</h1>
@@ -42,7 +42,7 @@ print(led1.pin.info...);
 <p>mode: the Trigger Mode of the pin  </p>
 <p>function(): the function that will execute when .setTrigger() is called  </p>
 <pre><code class="lang-javascript">
-pb1.setTrigger(IO.risingEdge, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>{</span>print(pb1.level);});
+pb1.setTrigger(IO.risingEdge, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{print(pb1.level);});
 </code></pre>
 <p><strong>.level-</strong>Return the level on which the pin is on  </p>
 <pre><code class="lang-javascript">
@@ -140,21 +140,18 @@ print(s.read(<span class="hljs-number">40</span>));
 <p>clock: The clock rate for the I2C device</p>
 <p>master: Mode for the I2C device. true for master, false for slave</p>
 <p>address: The AllJoyn.js device address. If master this can be any value as it is not used.</p>
-<p>The i2c object has 4 functions: read(), write(), start(), and stop(). The functions read() and write() only work with 1 byte at a time. You cannot provide arrays or buffers to them. The start() function takes an address of the device on the i2c line that you want to talk to. This is called at the beginning of transmission followed by writes or reads. After all writes or reads have been completed the stop() function is called to signal that the transaction has completed.</p>
+<p>The i2c object has one function, transfer(). This function handles sending and receiving all in one go. transfer() takes 6 parameters: address, tx buffer, tx length, rx buffer, rx length, and rx bytes. The first parameter is the address of the device your transfering to or from. tx/rx buffer is the data buffer where the data will be transfered to/from. tx/rx length is the size of the tx/rx buffer. rx bytes is the number of bytes actually received in the transfer.</p>
 <pre><code class="lang-javascript"><span class="hljs-keyword">var</span> i = IO.i2c(IO.pin5, IO.pin6, <span class="hljs-number">100000</span>, <span class="hljs-literal">true</span>, <span class="hljs-number">0x00</span>);
 
-<span class="hljs-comment">/*Talk to device at address 0x4A*/</span>
-i.start(<span class="hljs-number">0x4A</span>);
-<span class="hljs-comment">/*Devices sub address*/</span>
-i.write(<span class="hljs-number">0x06</span>);
-<span class="hljs-comment">/*Read the register 0x06 from the device*/</span>
-<span class="hljs-keyword">var</span> ret = i.read();
-<span class="hljs-comment">/*Stop the transmission*/</span>
-i.stop();
+<span class="hljs-comment">/*Send the device 2 bytes then receive 2 bytes*/</span>
+<span class="hljs-keyword">var</span> send = <span class="hljs-number">0x1234</span>;
+<span class="hljs-keyword">var</span> recv;
+<span class="hljs-keyword">var</span> bytes_received;
+i.transfer(<span class="hljs-number">0x4A</span>, send, <span class="hljs-number">2</span>, recv, <span class="hljs-number">2</span>, bytes_received);
 </code></pre>
-<h3 id="io-system-string-cmmd-">IO.system(String cmmd)</h3>
-<p>Emit the command to the underlying system  </p>
-<p>cmmd: the command to emit  </p>
+<h3 id="io-system-sring-cmd-">IO.system(Sring cmd)</h3>
+<p>Emit the command to the underlying system. On supported systems (linux/darwin) the command line result is returned from the system call.</p>
+<p>cmd: the command to emit  </p>
 <pre><code class="lang-javascript">
 IO.system(<span class="hljs-string">'aplay DoorBell.wav'</span>);
 </code></pre>

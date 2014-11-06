@@ -620,7 +620,7 @@ void AJS_TargetIO_DacWrite(void* dacCtx, uint32_t val)
     }
 }
 
-AJ_Status AJS_TargetIO_System(const char* cmd)
+AJ_Status AJS_TargetIO_System(const char* cmd, char* output, uint16_t length)
 {
     int ret = system(cmd);
     if (ret == -1) {

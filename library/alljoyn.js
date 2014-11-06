@@ -22,19 +22,35 @@ function digitalOut() {
 	digitalOut.toggle = function(){};
 	digitalOut.pwm = function(duty, freq){};
 }
+
 function digitalIn() {
 	digitalOut.setTrigger = function(trigger, func){};
 }
+
 function analogIn() {
 	analogIn.value = {};
 }
+
 function analogOut() {
 	analogOut.value = {};
 }
+
 function uart() {
-	uart.read = function(){};
+	uart.read = function(numBytes){};
 	uart.write = function(value){};
 }
+
+function i2c() {
+	i2c.transfer = function(address, txBuf, txLength, rxBuf, rxLength, rxBytes){};
+}
+
+function spi() {
+	spi.write = function(){};
+	spi.read = function(numBytes){};
+}
+
+function system() {};
+
 /*
  * IO object definition
  */
@@ -60,7 +76,20 @@ function IO() {
 	IO.uart = function(pinTx, pinRx, baud) {
 		return new uart;
 	};
+	IO.i2cMaster = function(sda, scl, clk) {
+		return new i2c;
+	}
+	IO.i2cSlave = function(sda, scl, address) {
+		return new i2c;
+	}
+	IO.spi = function(mosi, miso, cs, clock, presclaer, master, cpol, cpha, data_bits) {
+		return new spi;
+	}
+	IO.system = function(command) {
+		return new system;
+	}
 }
+
 /*
  * The following object definitions should not be called from JavaScript
  * directly. Always reference them from the "AJ" object first
@@ -82,14 +111,17 @@ function propertyWidget() {
 	propertyWidget.onValueChanged = function(){};
 
 }
+
 function dialogWidget() {
 	dialogWidget.buttons = {};
 	dialogWidget.path = {};
 }
+
 function labelWidget() {
 	labelWidget.enabled = {};
 	labelWidget.path = {};
 }
+
 function containerWidget() {
 	containerWidget.enabled = {};
 	containerWidget.path = {};
@@ -142,7 +174,6 @@ function controlPanel() {
 	controlPanel.actionWidget = function() {
 		return new actionWidget;
 	};
-	
 }
 
 function notification() {
@@ -157,11 +188,13 @@ function notification() {
 	notification.controlPanelPath = {};
 	notification.attributes = {};
 }
+
 function signal() {
 	signal.sessonless = {};
 	signal.timeToLive = {};
 	signal.send = function() {};
 }
+
 /*
  * AJ object definition's
  */

@@ -50,6 +50,26 @@ extern "C" {
 #define AJS_IO_FUNCTION_I2S_SDO     0x00400000
 #define AJS_IO_FUNCTION_I2S_SDI     0x00800000
 
+/*
+ * Compile time options for knowing whether or not the platform has a system
+ * call and if that system call has a return value. This saves on space if the
+ * platform has no system call.
+ * The logic is:
+ *  - If the user has already defined that the platform has a system call
+ *    return, keep their settings
+ *  - If on linux/darwin, the system call has a return
+ *  - Any other platform (including win32), assume no return
+ */
+#if !defined(AJ_MAX_SYSTEM_RETURN)
+#if defined(__linux__) || defined(__APPLE__)
+#define AJ_MAX_SYSTEM_RETURN 256
+#else
+#define AJ_MAX_SYSTEM_RETURN 0
+#endif
+#elif AJ_MAX_SYSTEM_RETURN < 0
+#error "AJ_MAX_SYSTEM_RETURN must be >= 0"
+#endif
+
 /**
  * Info of a IO pin.
  */
@@ -240,9 +260,11 @@ void AJS_TargetIO_DacWrite(void* dacCtx, uint32_t val);
 /**
  * Emit an arbitrary command to the underlying system if supported
  *
- * @param cmd  The commmand to emit
+ * @param cmd           The commmand to emit
+ * @param[out] output   The output from the command passed in
+ * @param length        The length of the output buffer
  */
-AJ_Status AJS_TargetIO_System(const char* cmd);
+AJ_Status AJS_TargetIO_System(const char* cmd, char* output, uint16_t length);
 
 /**
  * Read from the SPI peripheral

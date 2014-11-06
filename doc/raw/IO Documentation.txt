@@ -221,28 +221,25 @@ master: Mode for the I2C device. true for master, false for slave
 
 address: The AllJoyn.js device address. If master this can be any value as it is not used.
 
-The i2c object has 4 functions: read(), write(), start(), and stop(). The functions read() and write() only work with 1 byte at a time. You cannot provide arrays or buffers to them. The start() function takes an address of the device on the i2c line that you want to talk to. This is called at the beginning of transmission followed by writes or reads. After all writes or reads have been completed the stop() function is called to signal that the transaction has completed.
+The i2c object has one function, transfer(). This function handles sending and receiving all in one go. transfer() takes 6 parameters: address, tx buffer, tx length, rx buffer, rx length, and rx bytes. The first parameter is the address of the device your transfering to or from. tx/rx buffer is the data buffer where the data will be transfered to/from. tx/rx length is the size of the tx/rx buffer. rx bytes is the number of bytes actually received in the transfer.
 
 ```javascript
 var i = IO.i2c(IO.pin5, IO.pin6, 100000, true, 0x00);
 
-/*Talk to device at address 0x4A*/
-i.start(0x4A);
-/*Devices sub address*/
-i.write(0x06);
-/*Read the register 0x06 from the device*/
-var ret = i.read();
-/*Stop the transmission*/
-i.stop();
+/*Send the device 2 bytes then receive 2 bytes*/
+var send = 0x1234;
+var recv;
+var bytes_received;
+i.transfer(0x4A, send, 2, recv, 2, bytes_received);
 ```
 
 
-###IO.system(String cmmd)  
+###IO.system(Sring cmd)  
 
-Emit the command to the underlying system  
+Emit the command to the underlying system. On supported systems (linux/darwin) the command line result is returned from the system call.
 
-cmmd: the command to emit  
+cmd: the command to emit  
 
 ```javascript
 
-IO.system('aplay DoorBell.wav');```
+IO.system('aplay DoorBell.w

@@ -288,7 +288,7 @@ void AJS_TargetIO_PinToggle(void* pinCtx)
 /*
  * No implementation for this on the SP140
  */
-AJ_Status AJS_TargetIO_System(const char* cmd)
+AJ_Status AJS_TargetIO_System(const char* cmd, char* output, uint16_t length)
 {
     return AJ_ERR_FAILURE;
 }

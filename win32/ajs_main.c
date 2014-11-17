@@ -143,6 +143,9 @@ int main(int argc, char* argv[])
             if (argc > (argn + 1)) {
                 goto Usage;
             }
+            if (argv[argn][0] == '-') {
+                goto Usage;
+            }
             status = InstallScript(argv[argn]);
             if (status != AJ_OK) {
                 AJ_Printf("Failed to install script %s\n", argv[argn]);

@@ -21,6 +21,9 @@
 #include "ajs_console.h"
 #include "alljoyn/Status.h"
 
+using namespace qcc;
+using namespace ajn;
+
 class AJS_PyConsole : public AJS_Console
 {
 public:

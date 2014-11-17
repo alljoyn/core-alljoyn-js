@@ -91,7 +91,7 @@ static const char consoleXML[] =
     " </node> ";
 
 #ifdef _WIN32
-class Event {
+class AJS_Console::Event {
 
   public:
 
@@ -127,7 +127,7 @@ class Event {
     HANDLE cond;
 };
 #else
-class Event {
+class AJS_Console::Event {
 
   public:
 
@@ -192,8 +192,9 @@ AJS_Console::~AJS_Console() {
      free(connectedBusName);
 }
 
-void AJS_Console::Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData)
+void AJS_Console::Announced(const char* busName, uint16_t version, SessionPort port, const MsgArg& objectDescriptionArg, const MsgArg& aboutDataArg)
 {
+    AboutData aboutData(aboutDataArg);
     SessionOpts opts;
     QStatus status;
     char* context;
@@ -203,17 +204,13 @@ void AJS_Console::Announce(uint16_t version, uint16_t port, const char* busName,
          * If a device name was given it must match
          */
         if (deviceName != "") {
-            AboutData::const_iterator iter = aboutData.find("DeviceName");
-            /*
-             *
-             */
-            if (iter == aboutData.end()) {
-                QCC_LogError(ER_NO_SUCH_DEVICE, ("Missing device name in about data"));
+            char* name;
+            status = aboutData.GetDeviceName(&name);
+            if (status != ER_OK) {
+                QCC_LogError(status, ("AboutData::GetDeviceName failed"));
                 return;
             }
-            const MsgArg& arg = iter->second;
-            const char* name;
-            if ((arg.Get("s", &name) != ER_OK) || (deviceName != name)) {
+            if (deviceName != name) {
                 Print("Found device \"%s\" this is not the device you are looking for\n", name);
                 return;
             }
@@ -282,7 +279,8 @@ QStatus AJS_Console::Connect(const char* deviceName, volatile sig_atomic_t* inte
         /*
          * Register for announcements from script engines
          */
-        ajn::services::AnnouncementRegistrar::RegisterAnnounceHandler(*aj, *this, interfaces, 1);
+        aj->RegisterAboutListener(*this);
+        aj->WhoImplements(interfaces, 1);
     }
     do {
         status = ev->Wait(1000);
@@ -291,7 +289,7 @@ QStatus AJS_Console::Connect(const char* deviceName, volatile sig_atomic_t* inte
         }
     } while (status == ER_TIMEOUT);
 
-    ajn::services::AnnouncementRegistrar::UnRegisterAllAnnounceHandlers(*aj);
+    aj->UnregisterAboutListener(*this);
 
     if (status == ER_OK) {
         qcc::String matchRule = "type='signal',sessionless='t',interface='org.alljoyn.Notification',member='notify'";

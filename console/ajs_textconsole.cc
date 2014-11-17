@@ -21,6 +21,8 @@
 
 static volatile sig_atomic_t g_interrupt = false;
 
+using namespace qcc;
+
 class AJS_TextConsole : public AJS_Console
 {
 public:

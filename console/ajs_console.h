@@ -18,6 +18,7 @@
  ******************************************************************************/
 #ifndef _AJS_CONSOLE_H
 
+#include <signal.h>
 #include <qcc/platform.h>
 #include <qcc/Debug.h>
 #include <qcc/String.h>
@@ -26,21 +27,13 @@
 #include <alljoyn/DBusStd.h>
 #include <alljoyn/AllJoynStd.h>
 #include <alljoyn/version.h>
-#include <alljoyn/about/AnnounceHandler.h>
-#include <alljoyn/about/AboutClient.h>
-#include <alljoyn/about/AnnouncementRegistrar.h>
+#include <alljoyn/AboutListener.h>
 
 #include <alljoyn/Status.h>
 
 #define QCC_MODULE "ALLJOYN"
 
-using namespace std;
-using namespace qcc;
-using namespace ajn;
-
-class Event;
-
-class AJS_Console : public BusListener, public SessionListener, public ajn::services::AnnounceHandler, public BusAttachment::JoinSessionAsyncCB {
+class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public ajn::AboutListener, public ajn::MessageReceiver, public ajn::BusAttachment::JoinSessionAsyncCB {
 public:
 
      AJS_Console();
@@ -49,23 +42,23 @@ public:
 
      QStatus Connect(const char* deviceName, volatile sig_atomic_t* interrupt);
 
-     QStatus Eval(const String script);
+     QStatus Eval(const qcc::String script);
 
      QStatus Reboot();
 
      QStatus Install(qcc::String name, const uint8_t* script, size_t len);
 
-     void SessionLost(SessionId sessionId, SessionLostReason reason);
+     void SessionLost(ajn::SessionId sessionId, SessionLostReason reason);
 
-     virtual void Notification(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg);
+     virtual void Notification(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
 
      virtual void Print(const char* fmt, ...) = 0;
 
-     virtual void PrintMsg(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg);
+     virtual void PrintMsg(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
 
-     virtual void AlertMsg(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg);
+     virtual void AlertMsg(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
 
-     void Announce(uint16_t version, uint16_t port, const char* busName, const ObjectDescriptions& objectDescs, const AboutData& aboutData);
+     void Announced(const char* busName, uint16_t version, ajn::SessionPort port, const ajn::MsgArg& objectDescriptionArg, const ajn::MsgArg& aboutDataArg);
 
      void SetVerbose(bool newValue) {
          verbose = newValue;
@@ -75,18 +68,20 @@ public:
          return verbose;
      }
 
+    class Event;
+
 private:
 
-     virtual void RegisterHandlers(BusAttachment* ajb);
-     virtual void JoinSessionCB(QStatus status, SessionId sessionId, const SessionOpts& opts, void* context);
+     virtual void RegisterHandlers(ajn::BusAttachment* ajb);
+     virtual void JoinSessionCB(QStatus status, ajn::SessionId sessionId, const ajn::SessionOpts& opts, void* context);
 
-     uint32_t sessionId;
-     ProxyBusObject* proxy;
+     ajn::SessionId sessionId;
+     ajn::ProxyBusObject* proxy;
      char* connectedBusName;
-     BusAttachment* aj;
+     ajn::BusAttachment* aj;
      Event* ev;
      bool verbose;
-     String deviceName;
+     qcc::String deviceName;
 };
 
 #endif

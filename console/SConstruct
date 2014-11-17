@@ -157,11 +157,10 @@ else:
 env.Append(LIBPATH=[distdir + '/cpp/lib'])
 env.Append(LIBPATH=[distdir + '/about/lib'])
 env.Append(CPPPATH=[distdir + '/cpp/inc'])
-env.Append(CPPPATH=[distdir + '/about/inc'])
 
 # Build apps with bundled daemon support
 env.Append(LINKFLAGS=[distdir + '/cpp/lib/BundledRouter' + env['OBJSUFFIX']])
-env.Prepend(LIBS = ['alljoyn','ajrouter','alljoyn_about'])
+env.Prepend(LIBS = ['alljoyn','ajrouter'])
 
 progs = env.SConscript('SConscript', 'env', variant_dir='build/$VARIANT', duplicate=0)
 

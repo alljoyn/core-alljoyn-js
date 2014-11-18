@@ -46,7 +46,7 @@ vars.Add(PathVariable('STM_SRC_DIR', 'Path to the source code for the STM32 micr
 vars.Add(PathVariable('FREE_RTOS_DIR','Directory to FreeRTOS source code', os.environ.get('FREE_RTOS_DIR'), PathVariable.PathIsDir))
 
 if default_msvc_version:
-    vars.Add(EnumVariable('MSVC_VERSION', 'MSVC compiler version - Windows', default_msvc_version, allowed_values=('8.0', '9.0', '10.0', '11.0', '11.0Exp')))
+    vars.Add(EnumVariable('MSVC_VERSION', 'MSVC compiler version - Windows', default_msvc_version, allowed_values=('8.0', '9.0', '10.0', '11.0', '11.0Exp', '12.0', '12.0Exp')))
 
 if ARGUMENTS.get('TARG', default_target) == 'win32':
     msvc_version = ARGUMENTS.get('MSVC_VERSION')

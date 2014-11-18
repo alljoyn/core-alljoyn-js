@@ -23,20 +23,8 @@
 void AJS_RegisterFinalizer(duk_context* ctx, duk_idx_t objIdx, duk_c_function finFunc)
 {
     objIdx = duk_normalize_index(ctx, objIdx);
-    duk_push_global_object(ctx);
-    duk_get_prop_string(ctx, -1, "Duktape");
-    if (duk_is_object(ctx, -1)) {
-        duk_get_prop_string(ctx, -1, "fin");
-        duk_dup(ctx, objIdx);
-        duk_push_c_function(ctx, finFunc, 1);
-        if (duk_pcall(ctx, 2) != DUK_EXEC_SUCCESS) {
-            AJ_ErrPrintf(("Failed to set finalizer %s\n", duk_to_string(ctx, -1)));
-        }
-        duk_pop(ctx);
-    } else {
-        AJ_ErrPrintf(("Failed to get Duktape object\n"));
-    }
-    duk_pop_2(ctx);
+    duk_push_c_function(ctx, finFunc, 1);
+    duk_set_finalizer(ctx, objIdx);
 }
 
 /*
@@ -47,21 +35,10 @@ void AJS_RegisterFinalizer(duk_context* ctx, duk_idx_t objIdx, duk_c_function fi
  */
 int AJS_CreateObjectFromPrototype(duk_context* ctx, duk_idx_t protoIdx)
 {
-    /*
-     * In case the protoype object index is relative
-     */
     protoIdx = duk_normalize_index(ctx, protoIdx);
-
-    duk_push_global_object(ctx);
-    duk_get_prop_string(ctx, -1, "Object");
-    duk_get_prop_string(ctx, -1, "create");
+    duk_push_object(ctx);
     duk_dup(ctx, protoIdx);
-    duk_call(ctx, 1);
-    /*
-     * Leave the newly created object returnd by the call on the stack
-     */
-    duk_swap(ctx, -1, -3);
-    duk_pop_2(ctx);
+    duk_set_prototype(ctx, -2);
     return duk_get_top_index(ctx);
 }
 

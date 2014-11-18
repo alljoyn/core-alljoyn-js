@@ -28,6 +28,10 @@
 #include <alljoyn/services_common/ServicesCommon.h>
 #include <alljoyn/onboarding/OnboardingManager.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Initialize the Services. called at the start of the application
  *
@@ -45,5 +49,9 @@ AJ_Status AJS_ServicesInit(AJ_BusAttachment* aj);
  *         - Other errors indicating an unmarshalling failure
  */
 AJ_Status AJS_ServicesMsgHandler(AJ_Message* msg);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

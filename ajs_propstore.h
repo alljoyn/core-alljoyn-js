@@ -20,6 +20,10 @@
 #include <alljoyn.h>
 #include <alljoyn/services_common/PropertyStore.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PASSWORD_VALUE_LENGTH     (AJ_ADHOC_LEN * 2)
 
 /**
@@ -41,5 +45,9 @@ uint8_t AJS_PropertyStore_IsReadOnly(int8_t index);
  * @return  Returns the actual length of the password
  */
 uint32_t AJS_PasswordCallback(uint8_t* buffer, uint32_t bufLen);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_AJS_PROPSTORE_H

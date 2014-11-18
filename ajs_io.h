@@ -19,6 +19,10 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * I/O functions that might be configurable on various pins
  */
@@ -368,5 +372,9 @@ AJ_Status AJS_TargetIO_I2cTransfer(void* ctx, uint8_t addr, uint8_t* txBuf, uint
  * @return          AJ_OK if the I2C peripheral was closed correctly
  */
 AJ_Status AJS_TargetIO_I2cClose(void* ctx);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -27,6 +27,10 @@
 #include <alljoyn/controlpanel/Common/HttpControl.h>
 #include <alljoyn/controlpanel/Common/DateTimeUtil.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define AJS_MAX_HINTS 4
 
 /**
@@ -134,5 +138,9 @@ void AJS_CPS_SignalValueChanged(AJ_BusAttachment* aj, AJS_Widget* ajsWidget);
  * @param ajsWidget  Widget wrapper structure for the widget that has changed
  */
 void AJS_CPS_SignalMetadataChanged(AJ_BusAttachment* aj, AJS_Widget* ajsWidget);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

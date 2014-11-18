@@ -21,6 +21,10 @@
 
 #include "ajs.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Lookup a string and find a translation if one exists
  *
@@ -66,5 +70,8 @@ uint8_t AJS_GetLanguageIndex(duk_context* ctx, const char* langName);
  */
 uint8_t AJS_GetNumberOfLanguages(duk_context* ctx);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

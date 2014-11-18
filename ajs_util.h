@@ -21,6 +21,10 @@
 
 #include "ajs.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Controls debug output for this module
  */
@@ -202,5 +206,9 @@ void AJS_DumpStack(duk_context* ctx);
         AJS_DumpJX(ctx, "GlobalStash", -1); \
         duk_pop(ctx); \
     } while (0)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

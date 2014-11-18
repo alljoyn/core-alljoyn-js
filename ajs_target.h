@@ -21,6 +21,10 @@
 
 #include "ajs.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Returns maximum size of a script for this target
  */
@@ -77,5 +81,8 @@ AJ_Status AJS_ReadScript(void* scriptf, const uint8_t** data, size_t* len);
  */
 AJ_Status AJS_CloseScript(void* scriptf);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

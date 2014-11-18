@@ -21,6 +21,10 @@
 
 #include "aj_target.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Indicates that allocations can be borrowed from the the next larger pool if the best-fit pool is
  * exhausted.
@@ -89,11 +93,13 @@ void AJS_HeapTerminate(void* heap);
  * Indicates if the heap has been initialized
  */
 uint8_t AJS_HeapIsInitialized();
- 
+
 #ifndef NDEBUG
 void AJS_HeapDump(void);
 #else
 #define AJS_HeapDump()
 #endif
-
+#ifdef __cplusplus
+}
+#endif
 #endif

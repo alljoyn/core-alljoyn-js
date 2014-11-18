@@ -32,6 +32,10 @@
 #include <alljoyn.h>
 #include <duktape.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Controls debug output for this module
  */
@@ -488,5 +492,7 @@ void AJS_HeapDump();
 #else
 #define AJS_HeapDump() do { } while (0)
 #endif
-
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -98,7 +98,7 @@ static AJ_Status SessionDispatcher(duk_context* ctx, AJ_Message* msg)
     return status;
 }
 
-static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t AJ_Idx, AJ_Message* msg)
+static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* msg)
 {
     duk_idx_t msgIdx;
     uint8_t accessor = AJS_NOT_ACCESSOR;
@@ -112,18 +112,27 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t AJ_Idx, AJ_Message* m
         }
         return status;
     }
+    /*
+     * JOIN_SESSION replies are handled in the AllJoyn.js layer and don't get passed to JavaScript
+     */
+    if (msg->msgId == AJ_REPLY_ID(AJ_METHOD_JOIN_SESSION)) {
+        return AJS_HandleJoinSessionReply(ctx, msg);
+    }
+    /*
+     * Nothing more to do if the AllJoyn module was not loaded
+     */
+    if (ajIdx < 0) {
+        return AJ_OK;
+    }
+    /*
+     * Let the bases services layer take a look at the message
+     */
     status = AJS_ServicesMsgHandler(msg);
     if (status != AJ_ERR_NO_MATCH) {
         if (status != AJ_OK) {
             AJ_WarnPrintf(("AJS_ServicesMsgHandler returned %s\n", AJ_StatusText(status)));
         }
         return status;
-    }
-    /*
-     * JOIN_SESSION replies are handled in the AllJoyn.js layer and don't get passed to JavaScript
-     */
-    if (msg->msgId == AJ_REPLY_ID(AJ_METHOD_JOIN_SESSION)) {
-        return AJS_HandleJoinSessionReply(ctx, msg);
     }
     /*
      * Push the appropriate callback function onto the duktape stack
@@ -142,7 +151,7 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t AJ_Idx, AJ_Message* m
             return AJS_SessionLost(ctx, msg);
         }
         func = "onSignal";
-        duk_get_prop_string(ctx, AJ_Idx, func);
+        duk_get_prop_string(ctx, ajIdx, func);
     } else if (msg->hdr->msgType == AJ_MSG_METHOD_CALL) {
         accessor = IsPropAccessor(msg);
         switch (accessor) {
@@ -162,7 +171,7 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t AJ_Idx, AJ_Message* m
             func = "onPropGetAll";
             break;
         }
-        duk_get_prop_string(ctx, AJ_Idx, func);
+        duk_get_prop_string(ctx, ajIdx, func);
     } else {
         func = "onReply";
         AJS_GetGlobalStashObject(ctx, func);
@@ -193,7 +202,7 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t AJ_Idx, AJ_Message* m
         return status;
     }
     msgIdx = AJS_UnmarshalMessage(ctx, msg, accessor);
-    AJ_ASSERT(msgIdx == (AJ_Idx + 2));
+    AJ_ASSERT(msgIdx == (ajIdx + 2));
     /*
      * Special case for GET prop so we can get the signature for marshalling the result
      */
@@ -212,37 +221,38 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t AJ_Idx, AJ_Message* m
         /*
          * Cleanup stack back to the AJ object
          */
-        duk_set_top(ctx, AJ_Idx);
+        duk_set_top(ctx, ajIdx);
     }
     return status;
 }
 
-AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj)
+AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajIdx)
 {
     AJ_Status status = AJ_OK;
     AJ_Message msg;
     AJ_Time timerClock;
     uint32_t linkTO;
     uint32_t msgTO = 0x7FFFFFFF;
-    duk_idx_t AJ_Idx = duk_get_top_index(ctx);
+    duk_idx_t top = duk_get_top_index(ctx);
 
-    AJ_InfoPrintf(("AJS_MessageLoop AJ_Idx=%d\n", (int)AJ_Idx));
+    AJ_InfoPrintf(("AJS_MessageLoop top=%d\n", (int)top));
 
-    /*
-     * Read the link timeout property from the config set
-     */
-    duk_get_prop_string(ctx, -1, "config");
-    duk_get_prop_string(ctx, -1, "linkTimeout");
-    linkTO = duk_get_int(ctx, -1);
-    duk_pop_2(ctx);
-
-    AJ_SetBusLinkTimeout(aj, linkTO);
+    if (ajIdx >= 0) {
+        /*
+         * Read the link timeout property from the config set
+         */
+        duk_get_prop_string(ctx, -1, "config");
+        duk_get_prop_string(ctx, -1, "linkTimeout");
+        linkTO = duk_get_int(ctx, -1);
+        duk_pop_2(ctx);
+        AJ_SetBusLinkTimeout(aj, linkTO);
+    }
     /*
      * timer clock must be initialized
      */
     AJ_GetElapsedTime(&timerClock, FALSE);
 
-    AJ_ASSERT(duk_get_top_index(ctx) == AJ_Idx);
+    AJ_ASSERT(duk_get_top_index(ctx) == top);
 
     /*
      * Initialize About we can start sending announcements
@@ -253,10 +263,10 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj)
         /*
          * Check we are cleaning up the duktape stack correctly.
          */
-        if (duk_get_top_index(ctx) != AJ_Idx) {
-            AJ_ErrPrintf(("!!!AJS_MessageLoop top=%d expected %d\n", (int)duk_get_top_index(ctx), (int)AJ_Idx));
+        if (duk_get_top_index(ctx) != top) {
+            AJ_ErrPrintf(("!!!AJS_MessageLoop top=%d expected %d\n", (int)duk_get_top_index(ctx), (int)top));
             AJS_DumpStack(ctx);
-            AJ_ASSERT(duk_get_top_index(ctx) == AJ_Idx);
+            AJ_ASSERT(duk_get_top_index(ctx) == top);
         }
         /*
          * The string stash is only valid while running script
@@ -363,7 +373,7 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj)
             break;
 
         default:
-            status = HandleMessage(ctx, AJ_Idx, &msg);
+            status = HandleMessage(ctx, ajIdx, &msg);
             break;
         }
         /*

@@ -65,7 +65,7 @@ typedef struct {
 static uint32_t trigSet;
 static uint32_t trigLevel;
 
-#define BIT_IS_SET(i, b)  ((i)& (1 << (b)))
+#define BIT_IS_SET(i, b)  ((i) & (1 << (b)))
 #define BIT_SET(i, b)     ((i) |= (1 << (b)))
 #define BIT_CLR(i, b)     ((i) &= ~(1 << (b)))
 
@@ -84,10 +84,10 @@ static const PIN_Info pinInfo[] = {
     {  6, 123,  5, "D6" },
     {  8, 104, -1, "D8" },
     {  9, 105,  1, "D9" },
-    { 10, 106,  2, "D10"},
-    { 11, 107,  3, "D11"},
-    { 12, 122, -1, "D12"},
-    { 13, 115, -1, "D13"},
+    { 10, 106,  2, "D10" },
+    { 11, 107,  3, "D11" },
+    { 12, 122, -1, "D12" },
+    { 13, 115, -1, "D13" },
 };
 
 static GPIO* triggers[MAX_TRIGGERS];
@@ -364,7 +364,7 @@ void AJS_TargetIO_PinToggle(void* pinCtx)
 void AJS_TargetIO_PinSet(void* pinCtx, uint32_t val)
 {
     GPIO* gpio = (GPIO*)pinCtx;
-    
+
     /*
      * Setting an explicit value disables PWM if it was enabled
      */

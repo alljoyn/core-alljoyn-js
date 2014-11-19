@@ -377,7 +377,7 @@ static int NativeIoSystem(duk_context* ctx)
 /*
  * Serializes various data types into a buffer. Leaves the buffer on the top of the stack.
  */
-static uint8_t* SerializeToBuffer(duk_context* ctx, duk_idx_t idx, duk_size_t *sz)
+static uint8_t* SerializeToBuffer(duk_context* ctx, duk_idx_t idx, duk_size_t*sz)
 {
     uint8_t* ptr;
 
@@ -393,7 +393,7 @@ static uint8_t* SerializeToBuffer(duk_context* ctx, duk_idx_t idx, duk_size_t *s
         *sz = 1;
         break;
 
-    case DUK_TYPE_NUMBER: 
+    case DUK_TYPE_NUMBER:
         ptr = duk_push_fixed_buffer(ctx, 1);
         ptr[0] = duk_get_int(ctx, idx);
         *sz = 1;
@@ -411,7 +411,7 @@ static uint8_t* SerializeToBuffer(duk_context* ctx, duk_idx_t idx, duk_size_t *s
             ptr = duk_push_fixed_buffer(ctx, len);
             for (i = 0; i < len; ++i) {
                 duk_get_prop_index(ctx, idx, i);
-                ptr[i] = duk_require_uint(ctx, -1); 
+                ptr[i] = duk_require_uint(ctx, -1);
                 duk_pop(ctx);
             }
             *sz = len;
@@ -619,7 +619,7 @@ static int NativeI2cFinalizer(duk_context* ctx)
 
 /*
  * Uses "magic" property to determine if i2c is being configured as master or slave.
- */ 
+ */
 static int NativeIoI2c(duk_context* ctx)
 {
     AJ_Status status;

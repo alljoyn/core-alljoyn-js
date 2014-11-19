@@ -13,6 +13,8 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
+require("AJ");
+require("IO");
 
 // IO pin 14 is Arduino digital pin 13 - also the onboard LED
 var D13 = IO.pin[13];

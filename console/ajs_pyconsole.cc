@@ -24,9 +24,8 @@
 using namespace qcc;
 using namespace ajn;
 
-class AJS_PyConsole : public AJS_Console
-{
-public:
+class AJS_PyConsole : public AJS_Console {
+  public:
     virtual void Notification(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg);
 
     virtual void Print(const char* fmt, ...);
@@ -39,7 +38,7 @@ public:
 
     PyObject* pycallback = NULL; /* Only modify when Python GIL is held */
 
-private:
+  private:
     virtual void RegisterHandlers(BusAttachment* ajb);
 
 };
@@ -63,19 +62,19 @@ void AJS_PyConsole::RegisterHandlers(BusAttachment* ajb)
 
     ifc = ajb->GetInterface("org.allseen.scriptConsole");
     ajb->RegisterSignalHandler(this,
-                              static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::PrintMsg),
-                              ifc->GetMember("print"),
-                              "/ScriptConsole");
+                               static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::PrintMsg),
+                               ifc->GetMember("print"),
+                               "/ScriptConsole");
     ajb->RegisterSignalHandler(this,
-                              static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::AlertMsg),
-                              ifc->GetMember("alert"),
-                              "/ScriptConsole");
+                               static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::AlertMsg),
+                               ifc->GetMember("alert"),
+                               "/ScriptConsole");
 
     ifc = ajb->GetInterface("org.alljoyn.Notification");
     ajb->RegisterSignalHandler(this,
-                              static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::Notification),
-                              ifc->GetMember("notify"),
-                              NULL);
+                               static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::Notification),
+                               ifc->GetMember("notify"),
+                               NULL);
 }
 
 void AJS_PyConsole::Notification(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
@@ -197,7 +196,7 @@ static PyObject* py_connect(PyObject* self, PyObject* args)
     QStatus status;
     // TODO: Make nonblocking. Start connection on another thread, use g_interrupt to stop it.
     Py_BEGIN_ALLOW_THREADS
-    status = console->Connect(NULL, NULL);
+        status = console->Connect(NULL, NULL);
     Py_END_ALLOW_THREADS
 
     return statusobject(status);
@@ -213,7 +212,7 @@ static PyObject* py_eval(PyObject* self, PyObject* args)
     }
 
     Py_BEGIN_ALLOW_THREADS
-    status = console->Eval(String(text));
+        status = console->Eval(String(text));
     Py_END_ALLOW_THREADS
 
     return statusobject(status);
@@ -231,7 +230,7 @@ static PyObject* py_install(PyObject* self, PyObject* args)
     }
 
     Py_BEGIN_ALLOW_THREADS
-    status = console->Install(String(name), script, scriptlen);
+        status = console->Install(String(name), script, scriptlen);
     Py_END_ALLOW_THREADS
 
     return statusobject(status);
@@ -242,7 +241,7 @@ static PyObject* py_reboot(PyObject* self, PyObject* args)
     QStatus status;
 
     Py_BEGIN_ALLOW_THREADS
-    status = console->Reboot();
+        status = console->Reboot();
     Py_END_ALLOW_THREADS
 
     return statusobject(status);
@@ -269,12 +268,12 @@ static PyObject* py_setcallback(PyObject* self, PyObject* args)
 }
 
 static PyMethodDef AJSConsoleMethods[] = {
-    {"Connect", py_connect, METH_VARARGS, "Make a connection"},
-    {"Eval", py_eval, METH_VARARGS, "Evaluate a statement"},
-    {"Install", py_install, METH_VARARGS, "Install a script"},
-    {"Reboot", py_reboot, METH_VARARGS, "Reboot target"},
-    {"SetCallback", py_setcallback, METH_VARARGS, "Set callback function"},
-    {NULL, NULL, 0, NULL}
+    { "Connect", py_connect, METH_VARARGS, "Make a connection" },
+    { "Eval", py_eval, METH_VARARGS, "Evaluate a statement" },
+    { "Install", py_install, METH_VARARGS, "Install a script" },
+    { "Reboot", py_reboot, METH_VARARGS, "Reboot target" },
+    { "SetCallback", py_setcallback, METH_VARARGS, "Set callback function" },
+    { NULL, NULL, 0, NULL }
 };
 
 PyMODINIT_FUNC initAJSConsole(void)

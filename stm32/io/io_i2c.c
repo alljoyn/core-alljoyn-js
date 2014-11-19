@@ -42,24 +42,24 @@ typedef struct {
 }I2C_Pin;
 
 static const I2C_Info i2cInfo[] = {
-        { I2C1, GPIOB, GPIO_Pin_6, 92},         //PB6 SCL
-        { I2C1, GPIOB, GPIO_Pin_9, 96},         //PB9 SDA
-        { I2C1, GPIOB, GPIO_Pin_8, 95},         //PB8 SCL
-        { I2C1, GPIOB, GPIO_Pin_7, 93}          //PB7 SDA
+    { I2C1, GPIOB, GPIO_Pin_6, 92 },            //PB6 SCL
+    { I2C1, GPIOB, GPIO_Pin_9, 96 },            //PB9 SDA
+    { I2C1, GPIOB, GPIO_Pin_8, 95 },            //PB8 SCL
+    { I2C1, GPIOB, GPIO_Pin_7, 93 }             //PB7 SDA
 };
 void AJS_TargetIO_I2cStart(void* ctx, uint8_t addr)
 {
     I2C_Pin* i2c = (I2C_Pin*)ctx;
-    while (I2C_GetFlagStatus(i2c->I2Cx, I2C_FLAG_BUSY));
+    while (I2C_GetFlagStatus(i2c->I2Cx, I2C_FLAG_BUSY)) ;
     I2C_GenerateSTART(i2c->I2Cx, ENABLE);
-    while (!I2C_CheckEvent(i2c->I2Cx, I2C_EVENT_MASTER_MODE_SELECT));
+    while (!I2C_CheckEvent(i2c->I2Cx, I2C_EVENT_MASTER_MODE_SELECT)) ;
     I2C_Send7bitAddress(i2c->I2Cx, addr, I2C_Direction_Transmitter);
 }
 void AJS_TargetIO_I2cStop(void* ctx)
 {
     I2C_Pin* i2c = (I2C_Pin*)ctx;
     I2C_GenerateSTOP(i2c->I2Cx, ENABLE);
-    while(!I2C_CheckEvent(i2c->I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED));
+    while (!I2C_CheckEvent(i2c->I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED)) ;
 }
 
 uint8_t AJS_TargetIO_I2cRead(void* ctx)
@@ -107,7 +107,7 @@ AJ_Status AJS_TargetIO_I2cOpen(uint8_t sda, uint8_t scl, uint32_t clock, uint8_t
     GPIO_Init(i2cInfo[indexSda].GPIOx, &i2cGPIO);
     pinSource = pinToSource(i2cInfo[indexSda].physicalPin);
     GPIO_PinAFConfig(i2cInfo[indexSda].GPIOx, pinSource, GPIO_AF_I2C1);
-    pinSource= pinToSource(i2cInfo[indexScl].physicalPin);
+    pinSource = pinToSource(i2cInfo[indexScl].physicalPin);
     GPIO_PinAFConfig(i2cInfo[indexScl].GPIOx, pinSource, GPIO_AF_I2C1);
 
     i2cInit.I2C_Ack = I2C_Ack_Disable;

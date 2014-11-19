@@ -13,6 +13,7 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
+require("AJ");
 
 AJ.onAttach = function() {
     AJ.notification(AJ.notification.Emergency, "I've fallen and I can't get up!").send(1000);

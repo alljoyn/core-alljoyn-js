@@ -153,11 +153,14 @@ int main(int argc, char* argv[])
             ++argn;
             continue;
         }
-            if (argc > (argn + 1)) {
-                goto Usage;
-            }
-            scriptName = argv[argn];
-            ++argn;
+        if (argv[argn][0] == '-') {
+            goto Usage;
+        }
+        if (argc > (argn + 1)) {
+            goto Usage;
+        }
+        scriptName = argv[argn];
+        ++argn;
     }
 
     if (daemonize) {

@@ -258,22 +258,25 @@ static void InitProperties(const char* deviceName, uint8_t force)
             continue;
         }
         switch (field) {
-            case AJSVC_PROPERTY_STORE_APP_ID:
-                ok = AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_APP_ID, buffer);
-                break;
-            case AJSVC_PROPERTY_STORE_DEVICE_ID:
-                ok = AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_DEVICE_ID, buffer);
-                break;
-            case AJSVC_PROPERTY_STORE_DEVICE_NAME:
-                memcpy(buffer, "AllJoyn.js.", 11);
-                buffer[18] = 0;
-                ok = AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_DEVICE_NAME, buffer);
-                break;
-            default:
-                if (propDefs[field].initialValue) {
-                    ok = AJSVC_PropertyStore_SetValue(field, propDefs[field].initialValue);
-                }
-                break;
+        case AJSVC_PROPERTY_STORE_APP_ID:
+            ok = AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_APP_ID, buffer);
+            break;
+
+        case AJSVC_PROPERTY_STORE_DEVICE_ID:
+            ok = AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_DEVICE_ID, buffer);
+            break;
+
+        case AJSVC_PROPERTY_STORE_DEVICE_NAME:
+            memcpy(buffer, "AllJoyn.js.", 11);
+            buffer[18] = 0;
+            ok = AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_DEVICE_NAME, buffer);
+            break;
+
+        default:
+            if (propDefs[field].initialValue) {
+                ok = AJSVC_PropertyStore_SetValue(field, propDefs[field].initialValue);
+            }
+            break;
         }
         if (!ok) {
             AJ_WarnPrintf(("Failed to initialize property %s\n", AJSVC_PropertyStore_GetFieldName(field)));
@@ -353,36 +356,39 @@ AJ_Status AJSVC_PropertyStore_ReadAll(AJ_Message* msg, AJSVC_PropertyStoreCatego
         if (filter.bit0About || (filter.bit1Config && !(propDefs[field].flags & P_READONLY)) || (filter.bit2Announce && (propDefs[field].flags & P_ANNOUNCE))) {
             const char* value;
 
-            switch(field) {
-                case AJSVC_PROPERTY_STORE_APP_ID:
-                    status = AJ_MarshalContainer(msg, &dict, AJ_ARG_DICT_ENTRY);
-                    if (status != AJ_OK) {
-                        goto ExitReadAll;
-                    }
-                    status = AJ_MarshalArgs(msg, "s", propDefs[field].keyName);
-                    if (status != AJ_OK) {
-                        goto ExitReadAll;
-                    }
-                    value = AJSVC_PropertyStore_GetValueForLang(field, lang);
-                    status = AJSVC_MarshalAppIdAsVariant(msg, value);
-                    if (status != AJ_OK) {
-                        goto ExitReadAll;
-                    }
-                    status = AJ_MarshalCloseContainer(msg, &dict);
-                    break;
-                case AJSVC_PROPERTY_STORE_MAX_LENGTH:
-                    status = AJ_MarshalArgs(msg, "{sv}", propDefs[field].keyName, "q", MAX_PROP_LENGTH);
-                    break;
-                case AJSVC_PROPERTY_STORE_AJ_SOFTWARE_VERSION:
-                    status = AJ_MarshalArgs(msg, "{sv}", propDefs[field].keyName, "s", AJ_GetVersion());
-                    break;
-                default:
-                    value = AJSVC_PropertyStore_GetValueForLang(field, lang);
-                    if (!value) {
-                        AJ_WarnPrintf(("PropertyStore_ReadAll - No value for field[%d] %s lang:%s\n", field, propDefs[field].keyName, AJSVC_PropertyStore_GetLanguageName(lang)));
-                    } else {
-                        status = AJ_MarshalArgs(msg, "{sv}", propDefs[field].keyName, "s", value);
-                    }
+            switch (field) {
+            case AJSVC_PROPERTY_STORE_APP_ID:
+                status = AJ_MarshalContainer(msg, &dict, AJ_ARG_DICT_ENTRY);
+                if (status != AJ_OK) {
+                    goto ExitReadAll;
+                }
+                status = AJ_MarshalArgs(msg, "s", propDefs[field].keyName);
+                if (status != AJ_OK) {
+                    goto ExitReadAll;
+                }
+                value = AJSVC_PropertyStore_GetValueForLang(field, lang);
+                status = AJSVC_MarshalAppIdAsVariant(msg, value);
+                if (status != AJ_OK) {
+                    goto ExitReadAll;
+                }
+                status = AJ_MarshalCloseContainer(msg, &dict);
+                break;
+
+            case AJSVC_PROPERTY_STORE_MAX_LENGTH:
+                status = AJ_MarshalArgs(msg, "{sv}", propDefs[field].keyName, "q", MAX_PROP_LENGTH);
+                break;
+
+            case AJSVC_PROPERTY_STORE_AJ_SOFTWARE_VERSION:
+                status = AJ_MarshalArgs(msg, "{sv}", propDefs[field].keyName, "s", AJ_GetVersion());
+                break;
+
+            default:
+                value = AJSVC_PropertyStore_GetValueForLang(field, lang);
+                if (!value) {
+                    AJ_WarnPrintf(("PropertyStore_ReadAll - No value for field[%d] %s lang:%s\n", field, propDefs[field].keyName, AJSVC_PropertyStore_GetLanguageName(lang)));
+                } else {
+                    status = AJ_MarshalArgs(msg, "{sv}", propDefs[field].keyName, "s", value);
+                }
             }
             if (status != AJ_OK) {
                 goto ExitReadAll;
@@ -472,7 +478,7 @@ uint8_t AJSVC_PropertyStore_SetValueForLang(int8_t field, int8_t lang, const cha
         uint16_t len = strlen(str) + 1;
         AJ_NV_DATASET* handle = AJ_NVRAM_Open(NVRAM_ID(field), "w", len);
         if (handle) {
-            AJ_NVRAM_Write(str, len, handle); 
+            AJ_NVRAM_Write(str, len, handle);
             AJ_NVRAM_Close(handle);
         } else {
             AJ_ErrPrintf(("Failed to write property to NVRAM\n"));

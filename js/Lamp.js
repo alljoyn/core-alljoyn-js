@@ -13,6 +13,8 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
+require("AJ");
+require("IO");
 
 AJ.interfaceDefinition["org.allseen.LSF.LampService"] = {
     Version:{type:AJ.PROPERTY, signature: "u", access: "R"},

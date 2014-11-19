@@ -124,9 +124,11 @@ AJ_Status AJS_DetachAllJoyn(AJ_BusAttachment* aj, AJ_Status reason);
 /**
  * Initialize object and interface tables from the JavaScript
  *
- * @param ctx        An opaque pointer to a duktape context structure
+ * @param ctx    An opaque pointer to a duktape context structure
+ * @param ajIdx  Index on the duktape stack for the AllJoyn object. If 0 means the AllJoyn object
+ *               was not loaded.
  */
-AJ_Status AJS_InitTables(duk_context* ctx);
+AJ_Status AJS_InitTables(duk_context* ctx, duk_idx_t ajIdx);
 
 /**
  * Reset the object and interface tables
@@ -140,10 +142,12 @@ void AJS_ResetTables(duk_context* ctx);
  *
  * @param ctx    An opaque pointer to a duktape context structure
  * @param bus    Pointer to a bus attachment to receive messages on
+ * @param ajIdx  Index on the duktape stack for the AllJoyn object. If 0 means the AllJoyn object
+ *               was not loaded.
  *
  * @return   Always returns an error status code.
  */
-AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* bus);
+AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* bus, duk_idx_t ajIdx);
 
 /**
  * Entry point for AllJoyn

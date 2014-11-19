@@ -13,10 +13,11 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
+require("AJ");
 
 var cp = AJ.controlPanel();
 
-//function InitControlPanel(cp) {
+function InitControlPanel(cp) {
     var l1 = cp.labelWidget("one");
     var c1 = cp.containerWidget();
     var l2 = c1.labelWidget(["two", "deux"]);
@@ -41,8 +42,8 @@ var cp = AJ.controlPanel();
     cp.color={red:255,green:0,blue:128};
     print("ok4");
     cp.load();
-//}
+}
 
-//InitControlPanel(cp);
+InitControlPanel(cp);
 
 

@@ -83,6 +83,10 @@ static void AJRegistrations(AJ_BusAttachment* aj, duk_context* ctx, duk_idx_t aj
      * Register control panel support
      */
     AJS_RegisterControlPanelHandlers(aj, ctx, ajIdx);
+    /*
+     * Compact the AllJoyn object
+     */
+    duk_compact(ctx, ajIdx);
 }
 
 static uint8_t ajRunning = FALSE;

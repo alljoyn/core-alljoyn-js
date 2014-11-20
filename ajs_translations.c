@@ -91,14 +91,21 @@ static int NativeTranslationsSetter(duk_context* ctx)
         duk_error(ctx, DUK_ERR_TYPE_ERROR, "Translations requires an object");
     }
     /*
+     * Check that translations have not already ben set
+     */
+    duk_push_global_stash(ctx);
+    if (duk_has_prop_string(ctx, -1, "translations")) {
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "Translations cannot be changed");
+    }
+    duk_pop(ctx);
+    /*
      * Global languages list to be registered with AJ_RegisterDescriptionLanguages()
      */
     languagesList = duk_alloc(ctx, sizeof(const char*) * 2);
     /*
      * Array for languages
      */
-    duk_push_global_object(ctx);
-    duk_get_prop_string(ctx, -1, "AJ");
+    duk_get_global_string(ctx, AJS_AllJoynObject);
     duk_push_array(ctx);
     /*
      * Count the languages and accumulate them in an array
@@ -116,7 +123,7 @@ static int NativeTranslationsSetter(duk_context* ctx)
      * Add the languages array to the AllJoyn object
      */
     duk_put_prop_string(ctx, -2, "languages");
-    duk_pop_2(ctx);
+    duk_pop(ctx);
     /*
      * The translation array is stored in the global stash
      */
@@ -124,6 +131,10 @@ static int NativeTranslationsSetter(duk_context* ctx)
     duk_dup(ctx, 0);
     duk_put_prop_string(ctx, -2, "translations");
     duk_pop(ctx);
+    /*
+     * Freeze the translations object
+     */
+    AJS_ObjectFreeze(ctx, 0);
 
     AJ_RegisterDescriptionLanguages((const char* const*)languagesList);
     /*

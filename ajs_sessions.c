@@ -36,20 +36,27 @@ static int NativeServiceObjectFinalizer(duk_context* ctx)
     AJ_InfoPrintf(("ServiceObjectFinalizer\n"));
 
     duk_get_prop_string(ctx, 0, "dest");
-    peer = duk_get_string(ctx, -1);
-    if (peer) {
-        AJS_GetGlobalStashObject(ctx, "sessions");
-        duk_get_prop_string(ctx, -1, peer);
-        duk_get_prop_string(ctx, -1, "info");
-        sessionInfo = duk_get_buffer(ctx, -1, NULL);
-        duk_pop_2(ctx);
-        AJ_ASSERT(sessionInfo->refCount != 0);
-        if ((--sessionInfo->refCount == 0) && sessionInfo->sessionId) {
-            duk_del_prop_string(ctx, -1, peer);
-            (void) AJ_BusLeaveSession(AJS_GetBusAttachment(), sessionInfo->sessionId);
-            sessionInfo->sessionId = 0;
+    if (!duk_is_undefined(ctx, -1)) {
+        peer = duk_get_string(ctx, -1);
+        if (peer) {
+            AJS_GetGlobalStashObject(ctx, "sessions");
+            duk_get_prop_string(ctx, -1, peer);
+            duk_get_prop_string(ctx, -1, "info");
+            sessionInfo = duk_get_buffer(ctx, -1, NULL);
+            duk_pop_2(ctx);
+            AJ_ASSERT(sessionInfo->refCount != 0);
+            if ((--sessionInfo->refCount == 0) && sessionInfo->sessionId) {
+                duk_del_prop_string(ctx, -1, peer);
+                (void) AJ_BusLeaveSession(AJS_GetBusAttachment(), sessionInfo->sessionId);
+                sessionInfo->sessionId = 0;
+            }
+            duk_pop(ctx);
         }
-        duk_pop(ctx);
+        /*
+         * There is no guarantee that finalizers are only called once. This ensures that the
+         * finalizer is idempotent.
+         */
+        duk_del_prop_string(ctx, 0, "dest");
     }
     duk_pop(ctx);
     return 0;
@@ -96,13 +103,12 @@ static const char* FindInterfaceForMember(duk_context* ctx, duk_idx_t mbrIdx, co
             duk_error(ctx, DUK_ERR_TYPE_ERROR, "Interface name '%s' is not a dotted name", iface);
         }
         *member = duk_require_string(ctx, -2);
-        duk_pop_3(ctx);
         duk_get_prop_string(ctx, listIdx, iface);
         if (duk_is_undefined(ctx, -1)) {
             duk_error(ctx, DUK_ERR_REFERENCE_ERROR, "Unknown interface: '%s'", iface);
         }
         found = duk_has_prop_string(ctx, -1, *member);
-        duk_pop(ctx);
+        duk_pop_n(ctx, 4);
     } else {
         size_t i;
         /*
@@ -330,6 +336,20 @@ static int NativeGetAllProps(duk_context* ctx)
     return 1;
 }
 
+static const duk_function_list_entry peer_native_functions[] = {
+    { "method",      NativeMethod,      1 },
+    { "signal",      NativeSignal,      2 },
+    { "getAllProps", NativeGetAllProps, 1 },
+    { "getProp",     NativeGetProp,     1 },
+    { "setProp",     NativeSetProp,     2 },
+    { NULL }
+};
+
+static const duk_number_list_entry peer_native_numbers[] = {
+    { "session", 0 },
+    { NULL }
+};
+
 void AJS_RegisterMsgFunctions(AJ_BusAttachment* bus, duk_context* ctx, duk_idx_t ajIdx)
 {
     duk_idx_t objIdx;
@@ -339,28 +359,15 @@ void AJS_RegisterMsgFunctions(AJ_BusAttachment* bus, duk_context* ctx, duk_idx_t
 
     duk_push_global_stash(ctx);
     /*
-     * Push the peerProto object
+     * Push and initialized the peerProto object
      */
     objIdx = duk_push_object(ctx);
+    duk_put_number_list(ctx, objIdx, peer_native_numbers);
+    duk_put_function_list(ctx, objIdx, peer_native_functions);
     /*
      * Finalizer function called when the object is deleted
      */
     AJS_RegisterFinalizer(ctx, objIdx, NativeServiceObjectFinalizer);
-    /*
-     * Initialize the peerProto object
-     */
-    duk_push_int(ctx, 0);
-    duk_put_prop_string(ctx, objIdx, "session");
-    duk_push_c_function(ctx, NativeMethod, 1);
-    duk_put_prop_string(ctx, objIdx, "method");
-    duk_push_c_function(ctx, NativeSignal, 2);
-    duk_put_prop_string(ctx, objIdx, "signal");
-    duk_push_c_function(ctx, NativeGetAllProps, 1);
-    duk_put_prop_string(ctx, objIdx, "getAllProps");
-    duk_push_c_function(ctx, NativeGetProp, 1);
-    duk_put_prop_string(ctx, objIdx, "getProp");
-    duk_push_c_function(ctx, NativeSetProp, 2);
-    duk_put_prop_string(ctx, objIdx, "setProp");
     /*
      * Give the object a name
      */

@@ -117,32 +117,31 @@ static void SignalConsole(duk_context* ctx, uint32_t sigId)
     AJ_Status status;
     AJ_Message msg;
     size_t len = 0;
-    size_t sz;
-    duk_idx_t i;
-    duk_idx_t nargs = duk_get_top(ctx);
-    const char nul = 0;
+    duk_idx_t top = duk_get_top_index(ctx);
+    const char* str = NULL;
     AJ_BusAttachment* bus = AJS_GetBusAttachment();
 
+#if DUK_VERSION < 10100
+#define duk_is_error(ctx, idx) (1)
+#endif
+    if (duk_is_error(ctx, top)) {
+        duk_get_prop_string(ctx, top, "stack");
+        if (duk_is_string(ctx, -1)) {
+            duk_replace(ctx, top);
+        } else {
+            duk_pop(ctx);
+        }
+    }
     status = AJ_MarshalSignal(bus, &msg, sigId, consoleBusName, consoleSession, 0, 0);
     if (status == AJ_OK) {
-        for (i = 0; i < nargs; ++i) {
-            duk_safe_to_lstring(ctx, i, &sz);
-            len += sz;
-        }
-        status = AJ_DeliverMsgPartial(&msg, len + sizeof(uint32_t) + sizeof(nul));
+        str = duk_safe_to_lstring(ctx, top, &len);
+        status = AJ_DeliverMsgPartial(&msg, len + 1 + sizeof(uint32_t));
     }
     if (status == AJ_OK) {
         status = AJ_MarshalRaw(&msg, &len, 4);
     }
-    for (i = 0; i < nargs && status == AJ_OK; ++i) {
-        const char* str = duk_safe_to_lstring(ctx, i, &sz);
-        status = AJ_MarshalRaw(&msg, str, sz);
-    }
     if (status == AJ_OK) {
-        /*
-         * Marshal the terminating NUL
-         */
-        status = AJ_MarshalRaw(&msg, &nul, 1);
+        status = AJ_MarshalRaw(&msg, str, len + 1);
     }
     if (status == AJ_OK) {
         status = AJ_DeliverMsg(&msg);
@@ -274,17 +273,15 @@ static AJ_Status Eval(duk_context* ctx, AJ_Message* msg)
             --len;
         }
         duk_push_string(ctx, "ConsoleInput.js");
-        retval = duk_pcompile_lstring_filename(ctx, 0, (const char*)js, len);
+        retval = duk_pcompile_lstring_filename(ctx, DUK_COMPILE_EVAL, (const char*)js, len);
         AJ_Free(js);
         if (retval == DUK_EXEC_SUCCESS) {
             retval = duk_pcall(ctx, 0);
         }
         /*
-         * A succesful eval leaves the engine in an unknown state
+         * Eval leaves the engine in an unknown state
          */
-        if (retval == DUK_EXEC_SUCCESS) {
-            engineState = ENGINE_DIRTY;
-        }
+        engineState = ENGINE_DIRTY;
     }
     return EvalReply(ctx, msg, retval);
 

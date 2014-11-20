@@ -31,7 +31,6 @@ void AJS_RegisterFinalizer(duk_context* ctx, duk_idx_t objIdx, duk_c_function fi
  * This function does the equivalent of the following JavaScript
  *
  * Object.createObject(<protoype>)
- *
  */
 int AJS_CreateObjectFromPrototype(duk_context* ctx, duk_idx_t protoIdx)
 {
@@ -40,6 +39,22 @@ int AJS_CreateObjectFromPrototype(duk_context* ctx, duk_idx_t protoIdx)
     duk_dup(ctx, protoIdx);
     duk_set_prototype(ctx, -2);
     return duk_get_top_index(ctx);
+}
+
+/*
+ * This function does the equivalent of the following JavaScript
+ *
+ * Object.freeze(<object>)
+ */
+void AJS_ObjectFreeze(duk_context* ctx, duk_idx_t objIdx)
+{
+    objIdx = duk_normalize_index(ctx, objIdx);
+
+    duk_get_global_string(ctx, "Object");
+    duk_get_prop_string(ctx, -1, "freeze");
+    duk_dup(ctx, objIdx);
+    duk_call(ctx, 1);
+    duk_pop_2(ctx);
 }
 
 int AJS_IncrementProperty(duk_context* ctx, const char* intProp, duk_idx_t objIdx)
@@ -61,13 +76,13 @@ int AJS_IncrementProperty(duk_context* ctx, const char* intProp, duk_idx_t objId
  * Object.defineProperty(<obj>, <prop>, { set: function() { ... }, get: function() { ... } });
  *
  */
-AJ_Status AJS_SetPropertyAccessors(duk_context* ctx, duk_idx_t objIdx, const char* prop, duk_c_function setter, duk_c_function getter)
+void AJS_SetPropertyAccessors(duk_context* ctx, duk_idx_t objIdx, const char* prop, duk_c_function setter, duk_c_function getter)
 {
     /*
      * Must have a least one of these
      */
     if (!setter && !getter) {
-        return AJ_ERR_NULL;
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "setter and getter cannot both be NULL");
     }
     /*
      * In case the object index is relative
@@ -92,7 +107,6 @@ AJ_Status AJS_SetPropertyAccessors(duk_context* ctx, duk_idx_t objIdx, const cha
     }
     duk_call(ctx, 3);
     duk_pop_2(ctx);
-    return AJ_OK;
 }
 
 const char* AJS_GetStringProp(duk_context* ctx, duk_idx_t idx, const char* prop)
@@ -156,40 +170,29 @@ duk_idx_t AJS_GetAllJoynProperty(duk_context* ctx, const char* prop)
     return duk_get_top_index(ctx);
 }
 
-size_t AJS_NumProps(duk_context* ctx, duk_idx_t idx)
-{
-    size_t num = 0;
-    AJ_ASSERT(duk_is_object(ctx, idx));
-    duk_enum(ctx, idx, DUK_ENUM_OWN_PROPERTIES_ONLY);
-    while (duk_next(ctx, -1, 0)) {
-        duk_pop(ctx);
-        ++num;
-    }
-    duk_pop(ctx); // enum
-    return num;
-}
+static uint8_t pinnedStrings = FALSE;
 
-static uint8_t stashedStrings = FALSE;
-
-const char* AJS_StashString(duk_context* ctx, const char* str)
+const char* AJS_PinString(duk_context* ctx, duk_idx_t idx)
 {
     const char* stableStr;
 
+    idx = duk_normalize_index(ctx, idx);
     AJS_GetGlobalStashArray(ctx, "string-stash");
-    stableStr = duk_push_string(ctx, str);
+    duk_dup(ctx, idx);
+    stableStr = duk_require_string(ctx, -1);
     duk_put_prop_index(ctx, -2, duk_get_length(ctx, -2));
     duk_pop(ctx);
-    stashedStrings = TRUE;
+    pinnedStrings = TRUE;
     return stableStr;
 }
 
-void AJS_ClearStringStash(duk_context* ctx)
+void AJS_ClearPinnedStrings(duk_context* ctx)
 {
-    if (stashedStrings) {
+    if (pinnedStrings) {
         duk_push_global_stash(ctx);
         duk_del_prop_string(ctx, -1, "string-stash");
         duk_pop(ctx);
-        stashedStrings = FALSE;
+        pinnedStrings = FALSE;
     }
 }
 

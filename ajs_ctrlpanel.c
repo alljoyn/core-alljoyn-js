@@ -47,8 +47,7 @@ static AJS_Widget* CreateWidget(duk_context* ctx, uint8_t type)
 {
     AJS_Widget* widget;
 
-    duk_push_global_object(ctx);
-    duk_get_prop_string(ctx, -1, AJS_AllJoynObject);
+    duk_get_global_string(ctx, AJS_AllJoynObject);
     duk_get_prop_string(ctx, -1, "controlPanel");
     duk_get_prop_string(ctx, -1, "baseWidget");
     /*
@@ -58,8 +57,8 @@ static AJS_Widget* CreateWidget(duk_context* ctx, uint8_t type)
     /*
      * Clean up stack leaving new widget on the top
      */
-    duk_swap_top(ctx, -5);
-    duk_pop_n(ctx, 4);
+    duk_swap_top(ctx, -4);
+    duk_pop_n(ctx, 3);
     /*
      * Allocate a buffer for the CPS widget and set it
      */
@@ -67,6 +66,7 @@ static AJS_Widget* CreateWidget(duk_context* ctx, uint8_t type)
     widget->type = type;
     widget->dukCtx = ctx;
     duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("wbuf"));
+    duk_compact(ctx, -1);
     return widget;
 }
 
@@ -93,10 +93,6 @@ static const char* WidgetTypeTxt(uint8_t type)
     }
 }
 
-/*
- * TODO - this is really cumbersome and expensive - perhaps better to just set the widget list as a
- * property on the AJ object.
- */
 static void GetWidgetObject(duk_context* ctx, int index)
 {
     duk_push_global_stash(ctx);
@@ -291,6 +287,11 @@ static int NativeValueSetter(duk_context* ctx)
         break;
 
     case PROPERTY_WIDGET_HINT_CHECKBOX:
+        if (duk_is_boolean(ctx, 0)) {
+            duk_to_int(ctx, 0);
+        }
+
+    /* Falling through */
     case PROPERTY_WIDGET_HINT_SPINNER:
     case PROPERTY_WIDGET_HINT_RADIOBUTTON:
     case PROPERTY_WIDGET_HINT_KEYPAD:
@@ -303,7 +304,7 @@ static int NativeValueSetter(duk_context* ctx)
     case PROPERTY_WIDGET_HINT_NUMERICVIEW:
     case PROPERTY_WIDGET_HINT_NUMBERPICKER:
         if (widget->property.wdt.signature[0] == 'i') {
-            widget->property.val.i = duk_get_int(ctx, 0);
+            widget->property.val.i = duk_require_int(ctx, 0);
             AJ_InfoPrintf(("Value = %d\n", widget->property.val.i));
         } else {
             widget->property.val.d = duk_require_number(ctx, 0);
@@ -484,7 +485,7 @@ static int NativeChoicesGetter(duk_context* ctx)
 }
 
 /*
- * Enumeration is an array of strings or array of arrays of strings for multi-language support
+ * Enumeration is an array of strings
  */
 static int NativeChoicesSetter(duk_context* ctx)
 {
@@ -533,20 +534,20 @@ static int NativeRangeSetter(duk_context* ctx)
     if (duk_has_prop_string(ctx, 0, "increment")) {
         duk_get_prop_string(ctx, 0, "increment");
     } else {
-        duk_push_int(ctx, 0);
+        duk_push_int(ctx, 1);
     }
     /*
-     * Initialize the range and set the type
+     * Initialize the range and choose the type (double or integer)
      */
+    range[0].d = duk_require_number(ctx, -3);
+    range[1].d = duk_require_number(ctx, -2);
+    range[2].d = duk_require_number(ctx, -1);
     if (IsInt(ctx, -1) && IsInt(ctx, -2) && IsInt(ctx, -3)) {
-        range[0].i = duk_get_int(ctx, -3);
-        range[1].i = duk_get_int(ctx, -2);
-        range[2].i = duk_get_int(ctx, -1);
+        range[0].i = (int32_t)range[0].d;
+        range[1].i = (int32_t)range[1].d;
+        range[2].i = (int32_t)range[2].d;
         widget->property.wdt.signature = "i";
     } else {
-        range[0].d = duk_get_number(ctx, -3);
-        range[1].d = duk_get_number(ctx, -2);
-        range[2].d = duk_get_number(ctx, -1);
         widget->property.wdt.signature = "d";
     }
     duk_pop_3(ctx);
@@ -738,13 +739,11 @@ static int NativeButtonsSetter(duk_context* ctx)
         duk_get_prop_index(ctx, 0, i);
         duk_get_prop_string(ctx, -1, "label");
         if (!duk_is_string(ctx, -1)) {
-            duk_pop_2(ctx);
             goto TypeError;
         }
         duk_pop(ctx);
         duk_get_prop_string(ctx, -1, "onClick");
         if (!duk_is_callable(ctx, -1)) {
-            duk_pop_2(ctx);
             goto TypeError;
         }
         duk_pop_2(ctx);
@@ -755,7 +754,6 @@ static int NativeButtonsSetter(duk_context* ctx)
     return 0;
 
 TypeError:
-    duk_pop(ctx);
     duk_error(ctx, DUK_ERR_TYPE_ERROR, "Requires array of 1..3 objects with a label and onClick function");
     return 0;
 
@@ -763,16 +761,17 @@ TypeError:
 
 static AJ_Status OnClick(duk_context* ctx)
 {
-    int ret;
+    AJ_Status status = AJ_OK;
     duk_get_prop_string(ctx, -1, "onClick");
-    ret = duk_pcall(ctx, 0);
-    duk_pop(ctx);
-    if (ret == DUK_EXEC_SUCCESS) {
-        return AJ_OK;
-    } else {
-        AJS_ConsoleSignalError(ctx);
-        return AJ_ERR_FAILURE;
+    if (duk_is_callable(ctx, -1)) {
+        duk_int_t ret = duk_pcall(ctx, 0);
+        if (ret != DUK_EXEC_SUCCESS) {
+            AJS_ConsoleSignalError(ctx);
+            status = AJ_ERR_FAILURE;
+        }
     }
+    duk_pop(ctx);
+    return status;
 }
 
 AJ_Status AJS_CP_ExecuteAction(AJS_Widget* ajsWidget, uint8_t action)
@@ -861,20 +860,13 @@ static int NativeActionWidget(duk_context* ctx)
     return 1;
 }
 
-/*
- * Add the functions for creating widgets in this container
- */
-static void AddContainerFunctions(duk_context* ctx, AJS_Widget* widget)
-{
-    duk_push_c_function(ctx, NativeLabelWidget, 1);
-    duk_put_prop_string(ctx, -2, "labelWidget");
-    duk_push_c_function(ctx, NativePropertyWidget, DUK_VARARGS);
-    duk_put_prop_string(ctx, -2, "propertyWidget");
-    duk_push_c_function(ctx, NativeActionWidget, 1);
-    duk_put_prop_string(ctx, -2, "actionWidget");
-    duk_push_c_function(ctx, NativeContainerWidget, DUK_VARARGS);
-    duk_put_prop_string(ctx, -2, "containerWidget");
-}
+static const duk_function_list_entry container_functions[] = {
+    { "labelWidget",     NativeLabelWidget, 1 },
+    { "propertyWidget",  NativePropertyWidget, DUK_VARARGS },
+    { "actionWidget",    NativeActionWidget, 1 },
+    { "containerWidget", NativeContainerWidget, DUK_VARARGS },
+    { NULL }
+};
 
 static int NativeContainerWidget(duk_context* ctx)
 {
@@ -882,7 +874,7 @@ static int NativeContainerWidget(duk_context* ctx)
 
     AJS_Widget* widget = AddWidget(ctx, WIDGET_TYPE_CONTAINER);
     AJ_InfoPrintf(("Creating container widget\n"));
-    AddContainerFunctions(ctx, widget);
+    duk_put_function_list(ctx, -1, container_functions);
 
     widget->base.optParams.numHints = 1;
     if (numArgs == 0) {
@@ -896,6 +888,7 @@ static int NativeContainerWidget(duk_context* ctx)
             widget->hints[1] = duk_require_int(ctx, 1);
         }
     }
+    duk_compact(ctx, -1);
     return 1;
 }
 
@@ -954,11 +947,11 @@ static int NativeControlPanelFinalizer(duk_context* ctx)
 
 static int NativeOptColorSetter(duk_context* ctx)
 {
-    int r, g, b;
+    uint32_t r, g, b;
     AJS_Widget* widget = GetWidgetFromThis(ctx);
     AJ_InfoPrintf(("Native color setter called\n"));
     if (duk_is_number(ctx, 0)) {
-        int color = duk_get_int(ctx, 0);
+        uint32_t color = duk_require_uint(ctx, 0);
         r = (color >> 16);
         g = (color >> 8) & 0xFF;
         b = (color) & 0xFF;
@@ -967,9 +960,9 @@ static int NativeOptColorSetter(duk_context* ctx)
         g = ReqIntProp(ctx, 0, "green");
         b = ReqIntProp(ctx, 0, "blue");
     }
-    r = min(r, 255);
-    g = min(g, 255);
-    b = min(b, 255);
+    if ((r > 255) || (g > 255) || (b > 255)) {
+        duk_error(ctx, DUK_ERR_RANGE_ERROR, "Color value out of range");
+    }
     widget->base.optParams.bgColor = (r << 16) | (g << 8) | b;
     duk_pop(ctx);
     AJS_CPS_SignalMetadataChanged(AJS_GetBusAttachment(), widget);
@@ -1024,11 +1017,30 @@ static int NativeOptLabelGetter(duk_context* ctx)
     return 1;
 }
 
+static const duk_number_list_entry cp_constants[] = {
+    { "VERTICAL",      LAYOUT_HINT_VERTICAL_LINEAR },
+    { "HORIZONTAL",    LAYOUT_HINT_HORIZONTAL_LINEAR },
+    { "SWITCH",        PROPERTY_WIDGET_HINT_SWITCH },
+    { "CHECK_BOX",     PROPERTY_WIDGET_HINT_CHECKBOX },
+    { "SPINNER",       PROPERTY_WIDGET_HINT_SPINNER },
+    { "RADIO_BUTTON",  PROPERTY_WIDGET_HINT_RADIOBUTTON },
+    { "SLIDER",        PROPERTY_WIDGET_HINT_SLIDER },
+    { "TIME_PICKER",   PROPERTY_WIDGET_HINT_TIMEPICKER },
+    { "DATE_PICKER",   PROPERTY_WIDGET_HINT_DATEPICKER },
+    { "NUMBER_PICKER", PROPERTY_WIDGET_HINT_NUMBERPICKER },
+    { "KEYPAD",        PROPERTY_WIDGET_HINT_KEYPAD },
+    { "ROTARY_KNOB",   PROPERTY_WIDGET_HINT_ROTARYKNOB },
+    { "TEXT_VIEW",     PROPERTY_WIDGET_HINT_TEXTVIEW },
+    { "NUMERIC_VIEW",  PROPERTY_WIDGET_HINT_NUMERICVIEW },
+    { "EDIT_TEXT",     PROPERTY_WIDGET_HINT_EDITTEXT },
+    { NULL }
+};
+
 static int NativeControlPanel(duk_context* ctx)
 {
     AJS_Widget* widget = CreateWidget(ctx, WIDGET_TYPE_CONTAINER);
 
-    AddContainerFunctions(ctx, widget);
+    duk_put_function_list(ctx, -1, &container_functions[3]);
     widget->base.optParams.numHints = 2;
     widget->hints[0] = LAYOUT_HINT_VERTICAL_LINEAR;
     widget->hints[1] = LAYOUT_HINT_HORIZONTAL_LINEAR;
@@ -1062,25 +1074,11 @@ static int NativeControlPanel(duk_context* ctx)
     /*
      * Control panel constants
      */
-    SetIntProp(ctx, -1, "VERTICAL", LAYOUT_HINT_VERTICAL_LINEAR);
-    SetIntProp(ctx, -1, "HORIZONTAL", LAYOUT_HINT_HORIZONTAL_LINEAR);
-
-    SetIntProp(ctx, -1, "SWITCH", PROPERTY_WIDGET_HINT_SWITCH);
-    SetIntProp(ctx, -1, "CHECK_BOX", PROPERTY_WIDGET_HINT_CHECKBOX);
-    SetIntProp(ctx, -1, "SPINNER", PROPERTY_WIDGET_HINT_SPINNER);
-    SetIntProp(ctx, -1, "RADIO_BUTTON", PROPERTY_WIDGET_HINT_RADIOBUTTON);
-    SetIntProp(ctx, -1, "SLIDER", PROPERTY_WIDGET_HINT_SLIDER);
-    SetIntProp(ctx, -1, "TIME_PICKER", PROPERTY_WIDGET_HINT_TIMEPICKER);
-    SetIntProp(ctx, -1, "DATE_PICKER", PROPERTY_WIDGET_HINT_DATEPICKER);
-    SetIntProp(ctx, -1, "NUMBER_PICKER", PROPERTY_WIDGET_HINT_NUMBERPICKER);
-    SetIntProp(ctx, -1, "KEYPAD", PROPERTY_WIDGET_HINT_KEYPAD);
-    SetIntProp(ctx, -1, "ROTARY_KNOB", PROPERTY_WIDGET_HINT_ROTARYKNOB);
-    SetIntProp(ctx, -1, "TEXT_VIEW", PROPERTY_WIDGET_HINT_TEXTVIEW);
-    SetIntProp(ctx, -1, "NUMERIC_VIEW", PROPERTY_WIDGET_HINT_NUMERICVIEW);
-    SetIntProp(ctx, -1, "EDIT_TEXT", PROPERTY_WIDGET_HINT_EDITTEXT);
+    duk_put_number_list(ctx, -1, cp_constants);
     /*
      * The new object is the return value - leave it on the stack
      */
+    duk_compact(ctx, -1);
     return 1;
 }
 

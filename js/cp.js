@@ -18,32 +18,28 @@ require("AJ");
 var cp = AJ.controlPanel();
 
 function InitControlPanel(cp) {
-    var l1 = cp.labelWidget("one");
-    var c1 = cp.containerWidget();
-    var l2 = c1.labelWidget(["two", "deux"]);
+    var c1 = cp.containerWidget(cp.VERTICAL);
+    var l1 = c1.labelWidget("one");
+    var l2 = c1.labelWidget("two");
 
     var p1 = c1.propertyWidget(cp.RADIO_BUTTON, 2);
-    p1.enumeration = [ "cool", "warm", "hot" ];
+    p1.choices = [ "cool", "warm", "hot" ];
 
     var p2 = c1.propertyWidget(cp.SLIDER, 50);
-    p2.range = [0, 100];
+    p2.range = { min:0, max:100 };
 
-    var d1 = c1.dialogWidget("So do you want to do it?");
-    print("ok1");
+    var a1 = c1.actionWidget("What Now?");
+    var d1 = a1.dialogWidget("So do you want to do it?");
     d1.buttons = [
         { label:"ok", onClick: function() { print("ok"); } },
         { label:"cancel", onClick: function() { print("cancel"); } },
         { label:"apply", onClick: function() { print("apply"); } }
     ];
-    print("ok2");
 
-    cp.label="MyControlPanel";
-    print("ok3");
-    cp.color={red:255,green:0,blue:128};
-    print("ok4");
-    cp.load();
+    c1.color={red:255,green:0,blue:128};
 }
 
 InitControlPanel(cp);
 
+AJ.onAttach = function() { cp.load(); }
 

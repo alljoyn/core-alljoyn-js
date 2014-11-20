@@ -16,9 +16,9 @@
 require("AJ");
 
 var cp = AJ.controlPanel();
-var cw = cp.containerWidget();
-var aw = cw.actionWidget("Emergency!");
-var d1 = aw.dialogWidget("What do you want to do?");
+
+var c1 = cp.container(0);
+var d1 = c1.dialogWidget("What do you want to do?");
 
 d1.buttons = [
 { label:"ok", onClick: function() { print("ok"); } },
@@ -29,8 +29,8 @@ d1.buttons = [
 cp.load();
 
 var notif = AJ.notification(AJ.notification.Emergency, "I've fallen and I can't get up!");
-notif.controlPanelPath = d1.path;
+notif.controlPanelPath = c1.path;
 
 
-AJ.onAttach = function() { notif.send(100); }
+AJ.onAttach = function() { setTimeout(function() {notif.send(100)}, 5000) }
 

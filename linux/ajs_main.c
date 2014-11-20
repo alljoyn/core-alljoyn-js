@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
     dbgBUS = 0;
     dbgINTROSPECT = 0;
     dbgAJCPS = 0;
-    dbgAJS = 0;
+    dbgAJS = 1;
     dbgHEAP = 0;
     dbgNET = 0;
     dbgHEAPDUMP = 0;

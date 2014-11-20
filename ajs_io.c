@@ -76,8 +76,7 @@ static int NativeSetTrigger(duk_context* ctx)
         duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Error %s", AJ_StatusText(status));
     }
 
-    duk_push_global_object(ctx);
-    duk_get_prop_string(ctx, -1, "IO");
+    duk_get_global_string(ctx, "IO");
     duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("trigs"));
 
     if ((mode & AJS_IO_PIN_TRIGGER_ON_RISE) || (mode & AJS_IO_PIN_TRIGGER_ON_FALL)) {
@@ -99,7 +98,7 @@ static int NativeSetTrigger(duk_context* ctx)
             duk_del_prop_index(ctx, -1, trigId);
         }
     }
-    duk_pop_3(ctx);
+    duk_pop_2(ctx);
     /*
      * Leave pin object on the stack
      */
@@ -617,34 +616,42 @@ static int NativeI2cFinalizer(duk_context* ctx)
     return 0;
 }
 
-/*
- * Uses "magic" property to determine if i2c is being configured as master or slave.
- */
-static int NativeIoI2c(duk_context* ctx)
+static int NativeIoI2cMaster(duk_context* ctx)
 {
     AJ_Status status;
-    uint8_t address = 0;
     uint32_t clock = 0;
     void* i2cCtx;
-    uint8_t mode = duk_get_current_magic(ctx);
     uint8_t sda = GetPinId(ctx, 0, AJS_IO_FUNCTION_I2C_SDA);
     uint8_t scl = GetPinId(ctx, 1, AJS_IO_FUNCTION_I2C_SCL);
 
-    if (mode == AJS_I2C_MODE_MASTER) {
-        if (!duk_is_undefined(ctx, 2)) {
-            clock = duk_require_int(ctx, 2);
-        }
-    } else {
-        address = duk_require_int(ctx, 2);
+    if (!duk_is_undefined(ctx, 2)) {
+        clock = duk_require_int(ctx, 2);
     }
-    status = AJS_TargetIO_I2cOpen(sda, scl, clock, mode, address, &i2cCtx);
+    status = AJS_TargetIO_I2cOpen(sda, scl, clock, AJS_I2C_MODE_MASTER, 0, &i2cCtx);
     if (status != AJ_OK) {
-        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Failed to open I2C device\n");
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Failed to open I2C device in master mode\n");
     }
     NewIOObject(ctx, i2cCtx, NativeI2cFinalizer);
     duk_push_c_function(ctx, NativeI2cTransfer, 3);
     duk_put_prop_string(ctx, -2, "transfer");
+    return 1;
+}
 
+static int NativeIoI2cSlave(duk_context* ctx)
+{
+    AJ_Status status;
+    void* i2cCtx;
+    uint8_t sda = GetPinId(ctx, 0, AJS_IO_FUNCTION_I2C_SDA);
+    uint8_t scl = GetPinId(ctx, 1, AJS_IO_FUNCTION_I2C_SCL);
+    uint8_t address = duk_require_int(ctx, 2);
+
+    status = AJS_TargetIO_I2cOpen(sda, scl, 0, AJS_I2C_MODE_SLAVE, address, &i2cCtx);
+    if (status != AJ_OK) {
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Failed to open I2C device in slave mode\n");
+    }
+    NewIOObject(ctx, i2cCtx, NativeI2cFinalizer);
+    duk_push_c_function(ctx, NativeI2cTransfer, 3);
+    duk_put_prop_string(ctx, -2, "transfer");
     return 1;
 }
 
@@ -708,6 +715,29 @@ static int NativeInfoGetter(duk_context* ctx)
     return 1;
 }
 
+static const duk_number_list_entry io_constants[] = {
+    { "openDrain",   AJS_IO_PIN_OPEN_DRAIN },
+    { "pullUp",      AJS_IO_PIN_PULL_UP },
+    { "pullDown",    AJS_IO_PIN_PULL_DOWN },
+    { "risingEdge",  AJS_IO_PIN_TRIGGER_ON_RISE },
+    { "fallingEdge", AJS_IO_PIN_TRIGGER_ON_FALL },
+    { NULL }
+};
+
+static const duk_function_list_entry io_native_functions[] = {
+
+    { "digitalIn",  NativeIoDigitalIn,  2 },
+    { "digitalOut", NativeIoDigitalOut, 2 },
+    { "analogIn",   NativeIoAnalogIn,   2 },
+    { "analogOut",  NativeIoAnalogOut,  2 },
+    { "system",     NativeIoSystem,     1 },
+    { "spi",        NativeIoSpi,        5 },
+    { "uart",       NativeIoUart,       3 },
+    { "i2cMaster",  NativeIoI2cMaster,  3 },
+    { "i2cSlave",   NativeIoI2cSlave,   3 },
+    { NULL }
+};
+
 AJ_Status AJS_RegisterIO(duk_context* ctx)
 {
     duk_idx_t ioIdx;
@@ -715,9 +745,7 @@ AJ_Status AJS_RegisterIO(duk_context* ctx)
     duk_idx_t i;
     uint16_t numPins = AJS_TargetIO_GetNumPins();
 
-    duk_push_global_object(ctx);
     ioIdx = duk_push_object(ctx);
-
     /*
      * Create base pin protoype
      */
@@ -736,56 +764,24 @@ AJ_Status AJS_RegisterIO(duk_context* ctx)
     }
     duk_put_prop_string(ctx, ioIdx, "pin");
     duk_pop(ctx);
-
-    duk_push_c_function(ctx, NativeIoDigitalIn, 2);
-    duk_put_prop_string(ctx, ioIdx, "digitalIn");
-
-    duk_push_c_function(ctx, NativeIoDigitalOut, 2);
-    duk_put_prop_string(ctx, ioIdx, "digitalOut");
-
-    duk_push_c_function(ctx, NativeIoAnalogIn, 2);
-    duk_put_prop_string(ctx, ioIdx, "analogIn");
-
-    duk_push_c_function(ctx, NativeIoAnalogOut, 2);
-    duk_put_prop_string(ctx, ioIdx, "analogOut");
-
-    duk_push_c_function(ctx, NativeIoSystem, 1);
-    duk_put_prop_string(ctx, ioIdx, "system");
-
-    duk_push_c_function(ctx, NativeIoSpi, 5);
-    duk_put_prop_string(ctx, ioIdx, "spi");
-
-    duk_push_c_function(ctx, NativeIoUart, 3);
-    duk_put_prop_string(ctx, ioIdx, "uart");
-
-    duk_push_c_function(ctx, NativeIoI2c, 3);
-    duk_set_magic(ctx, -1, AJS_I2C_MODE_MASTER);
-    duk_put_prop_string(ctx, ioIdx, "i2cMaster");
-
-    duk_push_c_function(ctx, NativeIoI2c, 3);
-    duk_set_magic(ctx, -1, AJS_I2C_MODE_SLAVE);
-    duk_put_prop_string(ctx, ioIdx, "i2cSlave");
+    /*
+     * Register the native functions
+     */
+    duk_put_function_list(ctx, ioIdx, io_native_functions);
     /*
      * GPIO attribute constants
      */
-    duk_push_int(ctx, AJS_IO_PIN_OPEN_DRAIN);
-    duk_put_prop_string(ctx, ioIdx, "openDrain");
-    duk_push_int(ctx, AJS_IO_PIN_PULL_UP);
-    duk_put_prop_string(ctx, ioIdx, "pullUp");
-    duk_push_int(ctx, AJS_IO_PIN_PULL_DOWN);
-    duk_put_prop_string(ctx, ioIdx, "pullDown");
-    duk_push_int(ctx, AJS_IO_PIN_TRIGGER_ON_RISE);
-    duk_put_prop_string(ctx, ioIdx, "risingEdge");
-    duk_push_int(ctx, AJS_IO_PIN_TRIGGER_ON_FALL);
-    duk_put_prop_string(ctx, ioIdx, "fallingEdge");
+    duk_put_number_list(ctx, ioIdx, io_constants);
     /*
-     * Property for keeping track of triggers
+     * A hidden property for keeping track of triggers
      */
     duk_push_array(ctx);
     duk_put_prop_string(ctx, ioIdx, AJS_HIDDEN_PROP("trigs"));
-
-    duk_put_prop_string(ctx, -2, "IO");
-    duk_pop(ctx);
+    /*
+     * Compact the IO object then register it with the global object
+     */
+    duk_compact(ctx, ioIdx);
+    duk_put_global_string(ctx, "IO");
 
     return AJ_OK;
 }
@@ -801,8 +797,7 @@ AJ_Status AJS_ServiceIO(duk_context* ctx)
         /*
          * Lookup the pin object in the triggers array
          */
-        duk_push_global_object(ctx);
-        duk_get_prop_string(ctx, -1, "IO");
+        duk_get_global_string(ctx, "IO");
         duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("trigs"));
         do {
             duk_get_prop_index(ctx, -1, trigId);
@@ -826,7 +821,7 @@ AJ_Status AJS_ServiceIO(duk_context* ctx)
             duk_pop(ctx);
             trigId = AJS_TargetIO_PinTrigId(&level);
         } while (trigId != AJS_IO_PIN_NO_TRIGGER);
-        duk_pop_3(ctx);
+        duk_pop_2(ctx);
     }
     return AJ_OK;
 }

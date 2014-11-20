@@ -207,7 +207,7 @@ const char* AJSVC_PropertyStore_GetValueForLang(int8_t field, int8_t index)
             /*
              * Stabilize the string
              */
-            val = AJS_StashString(ctx, duk_get_string(ctx, -1));
+            val = AJS_PinString(ctx, -1);
         }
         duk_pop_2(ctx);
     }

@@ -266,9 +266,7 @@ static void StorePropInNVRAM(duk_context* ctx, const char* propName, duk_idx_t i
     /*
      * Use duktape JX encoding so buffers are appropriately encoded
      */
-    duk_push_global_object(ctx);
-    duk_get_prop_string(ctx, -1, "Duktape");
-    duk_remove(ctx, -2);
+    duk_get_global_string(ctx, "Duktape");
     duk_get_prop_string(ctx, -1, "enc");
     duk_remove(ctx, -2);
     duk_push_string(ctx, "jx");
@@ -307,9 +305,7 @@ static void LoadPropFromNVRAM(duk_context* ctx, const char* propName)
         /*
          * Use the duktape JX decoder so buffer objects get decoded.
          */
-        duk_push_global_object(ctx);
-        duk_get_prop_string(ctx, -1, "Duktape");
-        duk_remove(ctx, -2);
+        duk_get_global_string(ctx, "Duktape");
         duk_get_prop_string(ctx, -1, "dec");
         duk_remove(ctx, -2);
         duk_push_string(ctx, "jx");
@@ -369,21 +365,19 @@ static int NativeStoreProperty(duk_context* ctx)
     return 0;
 }
 
+static const duk_function_list_entry aj_native_functions[] = {
+    { "addMatch",          NativeAddMatch,          2 },
+    { "findService",       NativeFindService,       2 },
+    { "findServiceByName", NativeFindServiceByName, 3 },
+    { "advertiseName",     NativeAdvertiseName,     1 },
+    { "load",              NativeLoadProperty,      1 },
+    { "store",             NativeStoreProperty,     2 },
+    { NULL }
+};
+
 AJ_Status AJS_RegisterHandlers(AJ_BusAttachment* bus, duk_context* ctx, duk_idx_t ajIdx)
 {
     ajBus = bus;
-
-    duk_push_c_function(ctx, NativeAddMatch, 2);
-    duk_put_prop_string(ctx, ajIdx, "addMatch");
-    duk_push_c_function(ctx, NativeFindService, 2);
-    duk_put_prop_string(ctx, ajIdx, "findService");
-    duk_push_c_function(ctx, NativeFindServiceByName, 3);
-    duk_put_prop_string(ctx, ajIdx, "findServiceByName");
-    duk_push_c_function(ctx, NativeAdvertiseName, 1);
-    duk_put_prop_string(ctx, ajIdx, "advertiseName");
-    duk_push_c_function(ctx, NativeLoadProperty, 1);
-    duk_put_prop_string(ctx, ajIdx, "load");
-    duk_push_c_function(ctx, NativeStoreProperty, 2);
-    duk_put_prop_string(ctx, ajIdx, "store");
+    duk_put_function_list(ctx, ajIdx, aj_native_functions);
     return AJ_OK;
 }

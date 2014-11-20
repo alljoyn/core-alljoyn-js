@@ -35,6 +35,19 @@ static AJ_InterfaceDescription* interfaceTable;
 static AJ_Object* objectList;
 static AJ_Object proxyList[2];
 
+static size_t NumProps(duk_context* ctx, duk_idx_t idx)
+{
+    size_t num = 0;
+    AJ_ASSERT(duk_is_object(ctx, idx));
+    duk_enum(ctx, idx, DUK_ENUM_OWN_PROPERTIES_ONLY);
+    while (duk_next(ctx, -1, 0)) {
+        duk_pop(ctx);
+        ++num;
+    }
+    duk_pop(ctx); // enum
+    return num;
+}
+
 static void AddArgs(duk_context* ctx, duk_idx_t strIdx, char inout)
 {
     int i;
@@ -171,12 +184,17 @@ static void BuildInterfaceTable(duk_context* ctx, duk_idx_t ajIdx)
 
     duk_get_prop_string(ctx, ajIdx, "interfaceDefinition");
     /*
-     * Nothing to do if interfaceDefition is not defined
+     * Nothing to do if interfaceDefinition is not defined
      */
     if (duk_is_undefined(ctx, -1)) {
         return;
     }
-    allocSz = (AJS_NumProps(ctx, -1) + 2) * sizeof(AJ_InterfaceDescription*);
+    /*
+     * The interfaceDefinition table cannot change after the tables have been constructed
+     */
+    AJS_ObjectFreeze(ctx, -1);
+
+    allocSz = (NumProps(ctx, -1) + 2) * sizeof(AJ_InterfaceDescription*);
     /*
      * Allocate space for a NULL terminated interface table
      */
@@ -188,7 +206,7 @@ static void BuildInterfaceTable(duk_context* ctx, duk_idx_t ajIdx)
     interfaceTable[0] = AJ_PropertiesIface;
     duk_enum(ctx, -1, DUK_ENUM_OWN_PROPERTIES_ONLY);
     for (i = 1; duk_next(ctx, -1, 1); ++i) {
-        size_t numMembers = AJS_NumProps(ctx, -1);
+        size_t numMembers = NumProps(ctx, -1);
         const char* ifcName = duk_require_string(ctx, -2);
         /*
          * Allocate space for a NULL terminated interface description
@@ -221,7 +239,7 @@ static AJ_InterfaceDescription LookupInterface(duk_context* ctx, const char* ifa
 
 static void BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
 {
-    size_t numObjects = AJS_NumProps(ctx, ajIdx) + 1;
+    size_t numObjects = NumProps(ctx, ajIdx) + 1;
     size_t allocSz;
     AJ_Object* jsObjects;
 
@@ -257,6 +275,11 @@ static void BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
             duk_pop(ctx);
             continue;
         }
+        /*
+         * The interface array cannot change after the object table has been built
+         */
+        AJS_ObjectFreeze(ctx, -1);
+
         numInterfaces = duk_get_length(ctx, -1);
         interfaces = duk_alloc(ctx, (numInterfaces + 2) * sizeof(AJ_InterfaceDescription*));
         memset((void*)interfaces, 0, (numInterfaces + 2) * sizeof(AJ_InterfaceDescription*));

@@ -19,11 +19,10 @@
 
 #include "ajs.h"
 
-#define IsIntervalTimer(t)  ((t).interval > 0)
-
 typedef struct _AJS_TIMER {
+    uint8_t isInterval; /* TRUE for an interval timer */
     uint32_t id;        /* Id for the timer composed from index + salt value */
-    int32_t interval;   /* Scheduling interval in milliseconds - negative value indicates a one-shot timer */
+    uint32_t interval;  /* Scheduling interval in milliseconds - not used for oneshot timers */
     uint32_t countDown; /* Count down time */
 } AJS_TIMER;
 
@@ -33,7 +32,7 @@ typedef struct _AJS_TIMER {
 
 
 #define GET_TIMER_INDEX(id)   ((id) >> 24)
-#define SALT_TIMER_ID(index)  ((index << 24) || (++timerSalt & 0xFFFFFF))
+#define SALT_TIMER_ID(index)  ((index << 24) | (++timerSalt & 0xFFFFFF))
 
 /*
  * Salt for uniquefying timer identifiers
@@ -48,7 +47,7 @@ static uint32_t deadline = 0;
 /*
  * The same function is used to register interval and one-shot timers
  */
-static int RegisterTimer(duk_context* ctx, int32_t ms)
+static int RegisterTimer(duk_context* ctx, uint32_t ms, uint8_t isInterval)
 {
     AJS_TIMER* timers;
     size_t numTimers;
@@ -83,7 +82,7 @@ static int RegisterTimer(duk_context* ctx, int32_t ms)
         /*
          * Zero indicates an unused timer entry
          */
-        if (timers[timerEntry].interval == 0) {
+        if (timers[timerEntry].id == 0) {
             break;
         }
     }
@@ -102,14 +101,18 @@ static int RegisterTimer(duk_context* ctx, int32_t ms)
     duk_pop_3(ctx);
     /*
      * Push the salted timer index, this is what we will return from this call
+     * Zero is reserved to indicate unused entries.
      */
-    timers[timerEntry].id = SALT_TIMER_ID(timerEntry);
+    do {
+        timers[timerEntry].id = SALT_TIMER_ID(timerEntry);
+    } while (!timers[timerEntry].id);
     duk_push_int(ctx, timers[timerEntry].id);
     /*
      * Set the interval and initialize the countDown timer
      */
+    timers[timerEntry].isInterval = isInterval;
     timers[timerEntry].interval = ms;
-    timers[timerEntry].countDown = abs(ms);
+    timers[timerEntry].countDown = ms;
     /*
      * We need to recompute the deadline
      */
@@ -138,7 +141,7 @@ static AJS_TIMER* GetTimer(duk_context* ctx, uint8_t isInterval)
     /*
      * Check timer has the expected type
      */
-    if (isInterval != IsIntervalTimer(timers[timerEntry])) {
+    if (isInterval != timers[timerEntry].isInterval) {
         duk_error(ctx, DUK_ERR_TYPE_ERROR, "Timer has wrong type for this operation");
     }
     duk_pop_3(ctx);
@@ -153,15 +156,14 @@ static int ClearTimer(duk_context* ctx, uint8_t isInterval)
     /*
      * Clear timer
      */
-    memset(timer, 0, sizeof(AJS_TIMER));
+    timer->id = 0;
     /*
-     * Remove reference to timer callback function
+     * Delete the timer entry
      */
     duk_push_global_stash(ctx);
     duk_get_prop_string(ctx, -1, "timerFuncs");
-    duk_push_undefined(ctx);
-    duk_put_prop_index(ctx, -2, timerEntry);
-    duk_pop(ctx);
+    duk_del_prop_index(ctx, -1, timerEntry);
+    duk_pop_2(ctx);
     /*
      * We need to recompute the deadline
      */
@@ -171,39 +173,36 @@ static int ClearTimer(duk_context* ctx, uint8_t isInterval)
 
 static int NativeSetInterval(duk_context* ctx)
 {
-    int32_t ms = duk_require_int(ctx, 1);
+    uint32_t ms = duk_require_uint(ctx, 1);
 
-    if (ms <= 0) {
-        duk_error(ctx, DUK_ERR_RANGE_ERROR, "Interval must be >= 0");
+    if (ms == 0) {
+        duk_error(ctx, DUK_ERR_RANGE_ERROR, "Interval must be > 0");
     }
     AJ_InfoPrintf(("setInterval(%d)", ms));
-    return RegisterTimer(ctx, ms);
+    return RegisterTimer(ctx, ms, TRUE);
 }
 
 static int NativeSetTimeout(duk_context* ctx)
 {
-    int32_t ms = duk_require_int(ctx, 1);
+    uint32_t ms = duk_require_uint(ctx, 1);
 
-    if (ms <= 0) {
-        duk_error(ctx, DUK_ERR_RANGE_ERROR, "Timeout must be >= 0");
-    }
     AJ_InfoPrintf(("setTimeout(%d)", ms));
-    return RegisterTimer(ctx, -ms);
+    return RegisterTimer(ctx, ms, FALSE);
 }
 
 static int ResetTimer(duk_context* ctx, uint8_t isInterval)
 {
-    int32_t ms = duk_require_int(ctx, 1);
+    uint32_t ms = duk_require_uint(ctx, 1);
     AJS_TIMER* timer = GetTimer(ctx, isInterval);
 
-    if (ms <= 0) {
-        duk_error(ctx, DUK_ERR_RANGE_ERROR, "%s must be >= 0", isInterval ? "Interval" : "Timeout");
+    if (isInterval && (ms == 0)) {
+        duk_error(ctx, DUK_ERR_RANGE_ERROR, "Interval must be > 0");
     }
     /*
      * Reset the timer properties
      */
-    timer->interval = isInterval ? ms : -1;
-    timer->countDown = (uint32_t)(ms);
+    timer->interval = ms;
+    timer->countDown = ms;
     /*
      * We need to recompute the deadline
      */
@@ -235,6 +234,16 @@ static int NativeClearTimeout(duk_context* ctx)
     return ClearTimer(ctx, FALSE);
 }
 
+static const duk_function_list_entry timer_native_functions[] = {
+    { "setInterval",   NativeSetInterval,   2 },
+    { "clearInterval", NativeClearInterval, 1 },
+    { "resetInterval", NativeResetInterval, 2 },
+    { "setTimeout",    NativeSetTimeout,    2 },
+    { "clearTimeout",  NativeClearTimeout,  1 },
+    { "resetTimeout",  NativeResetTimeout,  2 },
+    { NULL }
+};
+
 AJ_Status AJS_RegisterTimerFuncs(duk_context* ctx)
 {
     /*
@@ -252,18 +261,7 @@ AJ_Status AJS_RegisterTimerFuncs(duk_context* ctx)
      * Register interval and timeout functions
      */
     duk_push_global_object(ctx);
-    duk_push_c_function(ctx, NativeSetInterval, 2);
-    duk_put_prop_string(ctx, -2, "setInterval");
-    duk_push_c_function(ctx, NativeClearInterval, 1);
-    duk_put_prop_string(ctx, -2, "clearInterval");
-    duk_push_c_function(ctx, NativeResetInterval, 2);
-    duk_put_prop_string(ctx, -2, "resetInterval");
-    duk_push_c_function(ctx, NativeSetTimeout, 2);
-    duk_put_prop_string(ctx, -2, "setTimeout");
-    duk_push_c_function(ctx, NativeClearTimeout, 1);
-    duk_put_prop_string(ctx, -2, "clearTimeout");
-    duk_push_c_function(ctx, NativeResetTimeout, 2);
-    duk_put_prop_string(ctx, -2, "resetTimeout");
+    duk_put_function_list(ctx, -1, timer_native_functions);
     duk_pop(ctx);
 
     deadline = 0;
@@ -277,18 +275,17 @@ AJ_Status AJS_RunTimers(duk_context* ctx, AJ_Time* clock, uint32_t* currentTO)
     size_t numTimers;
     size_t timerEntry;
     uint32_t elapsed;
-    uint32_t prevDeadline = deadline;
 
     /*
      * Time elapsed since this function was last called
      */
     elapsed = AJ_GetElapsedTime(clock, FALSE);
+    AJ_InfoPrintf(("AJS_RunTimers deadline=%d elapsed=%d newTO=%d\n", deadline, elapsed, *currentTO));
     /*
      * Not much to do if there is a current timeout and we are working towards a deadline
      */
     if ((elapsed < *currentTO) && deadline) {
         *currentTO -= elapsed;
-        //AJ_InfoPrintf(("AJS_RunTimers elapsed=%d newTO=%d\n", elapsed, *currentTO));
         return AJ_OK;
     }
     /*
@@ -303,9 +300,10 @@ AJ_Status AJS_RunTimers(duk_context* ctx, AJ_Time* clock, uint32_t* currentTO)
      * Iterate over the timers and call functions at or past the deadline
      */
     for (timerEntry = 0; timerEntry < numTimers; ++timerEntry) {
-        if (timers[timerEntry].interval != 0) {
-            AJ_InfoPrintf(("timer[%d].countDown = %d\n", (int)timerEntry, timers[timerEntry].countDown));
-            if (timers[timerEntry].countDown <= prevDeadline) {
+        AJS_TIMER* timer = &timers[timerEntry];
+        if (timer->id != 0) {
+            AJ_InfoPrintf(("timer[%d].countDown = %d\n", (int)timerEntry, timer->countDown));
+            if (timer->countDown <= elapsed) {
                 /*
                  * Get timer function on the stack
                  */
@@ -313,12 +311,16 @@ AJ_Status AJS_RunTimers(duk_context* ctx, AJ_Time* clock, uint32_t* currentTO)
                 /*
                  * Update an interval timer or delete a one-shot timeout timer.
                  */
-                if (IsIntervalTimer(timers[timerEntry])) {
-                    timers[timerEntry].countDown = timers[timerEntry].interval;
+                if (timer->isInterval) {
+                    uint32_t delta = elapsed - deadline;
+                    if (delta > timer->interval) {
+                        AJ_ErrPrintf(("Unable to meet interval schedule\n"));
+                        delta = 0;
+                    }
+                    timer->countDown = timer->interval - delta;
                 } else {
-                    memset(&timers[timerEntry], 0, sizeof(AJS_TIMER));
-                    duk_push_undefined(ctx);
-                    duk_put_prop_index(ctx, -2, timerEntry);
+                    timer->id = 0;
+                    duk_del_prop_index(ctx, -2, timerEntry);
                 }
                 /*
                  * Call the timer function
@@ -328,7 +330,7 @@ AJ_Status AJS_RunTimers(duk_context* ctx, AJ_Time* clock, uint32_t* currentTO)
                 }
                 duk_pop(ctx); // return value
             } else {
-                timers[timerEntry].countDown -= prevDeadline;
+                timer->countDown -= elapsed;
             }
         }
     }
@@ -341,9 +343,9 @@ AJ_Status AJS_RunTimers(duk_context* ctx, AJ_Time* clock, uint32_t* currentTO)
      */
     timers = duk_get_buffer(ctx, -1, &numTimers);
     numTimers = numTimers / sizeof(AJS_TIMER);
-    deadline = 0x7FFFFFFF;
+    deadline = 0xFFFFFFFF;
     for (timerEntry = 0; timerEntry < numTimers; ++timerEntry) {
-        if (timers[timerEntry].interval != 0) {
+        if (timers[timerEntry].id != 0) {
             deadline = min(timers[timerEntry].countDown, deadline);
         }
     }

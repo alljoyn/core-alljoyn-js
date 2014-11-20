@@ -83,14 +83,13 @@ int AJS_IncrementProperty(duk_context* ctx, const char* intProp, duk_idx_t objId
  * @param prop     The name of the property
  * @param setter   The native setter function for the property - can be NULL
  * @param getter   The native getter function for the property - can be NULL
- *
- * @return  AJ_OK or an error status code
  */
-AJ_Status AJS_SetPropertyAccessors(duk_context* ctx, duk_idx_t objIdx, const char* prop, duk_c_function setter, duk_c_function getter);
+void AJS_SetPropertyAccessors(duk_context* ctx, duk_idx_t objIdx, const char* prop, duk_c_function setter, duk_c_function getter);
 
 /**
- * Get a string property from the object at the top of the stack. This is a convenience function
- * that leaves the duktape stack unchanged.
+ * Get a string property from the object on the stack. This is a convenience function that leaves
+ * the duktape stack unchanged. Note that the returned string is only guaranteed to be live while
+ * the object remains on the stack.
  *
  * @param ctx   An opaque pointer to a duktape context structure
  * @param idx   Index on the duktape stack of object with the required property
@@ -133,21 +132,21 @@ void AJS_GetGlobalStashArray(duk_context* ctx, const char* name);
 
 /**
  * Temporarily stabilize a string by storing it in the global stash. The returned string pointer
- * will remain stable until AJ_ClearStringStash() is called.
+ * will remain stable until AJ_ClearPinnedStrings() is called.
  *
  * @param ctx   An opaque pointer to a duktape context structure
- * @param str   The string to be stabilized
+ * @param idx   Duktape stack index for the string to be stabilized
  *
  * @return  Returns a pointer to the stable string.
  */
-const char* AJS_StashString(duk_context* ctx, const char* str);
+const char* AJS_PinString(duk_context* ctx, duk_idx_t idx);
 
 /**
- * Clear the string stash. Pointers to previous stashed strings become invalid.
+ * Clear the all pinned strings. Pointers to previous pinned strings become invalid.
  *
  * @param ctx   An opaque pointer to a duktape context structure
  */
-void AJS_ClearStringStash(duk_context* ctx);
+void AJS_ClearPinnedStrings(duk_context* ctx);
 
 /**
  * Get a property of the global AllJoyn object.
@@ -160,12 +159,14 @@ void AJS_ClearStringStash(duk_context* ctx);
 duk_idx_t AJS_GetAllJoynProperty(duk_context* ctx, const char* prop);
 
 /**
- * Count the number of enumerable properties on the object on the duktape stack
+ * This function does the equivalent of the following JavaScript
  *
- * @param ctx   An opaque pointer to a duktape context structure
- * @param idx   An index on the duktape stack
+ * Object.freeze(<obj>);
+ *
+ * @param ctx      An opaque pointer to a duktape context structure
+ * @param objIdx   Index on duktape stack for the object
  */
-size_t AJS_NumProps(duk_context* ctx, duk_idx_t idx);
+void AJS_ObjectFreeze(duk_context* ctx, duk_idx_t objIdx);
 
 /**
  * Prints out the JSON for an object on the duktape stack

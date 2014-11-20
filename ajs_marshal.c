@@ -83,12 +83,12 @@ static AJ_Status MarshalScalarArg(AJ_Message* msg, uint8_t typeId, double n)
         break;
 
     case AJ_ARG_UINT64:
-        /* TODO this will lose precision for numbers ~> 2^52*/
+        /* TODO this will lose precision for numbers ~> 2^53*/
         status = AJ_MarshalArgs(msg, sig, (uint64_t)n);
         break;
 
     case AJ_ARG_INT64:
-        /* TODO this will lose precision for numbers ~> 2^52*/
+        /* TODO this will lose precision for numbers ~> 2^53*/
         status = AJ_MarshalArgs(msg, sig, (int64_t)n);
         break;
     }

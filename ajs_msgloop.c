@@ -269,9 +269,9 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
             AJ_ASSERT(duk_get_top_index(ctx) == top);
         }
         /*
-         * The string stash is only valid while running script
+         * Pinned strings are only valid while running script
          */
-        AJS_ClearStringStash(ctx);
+        AJS_ClearPinnedStrings(ctx);
         /*
          * Check if there are any pending I/O operations to perform.
          */

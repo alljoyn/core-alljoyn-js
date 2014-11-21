@@ -38,17 +38,15 @@ const char* AJS_AllJoynObject = "AJ";
 /*
  * Initialization of the AllJoyn root object required for any application
  */
-static const char aj_init[] =
-    "var AJ={"
-    "interfaceDefinition:{},"
-    "objectDefinition:{},"
-    "config:{linkTimeout:10000,callTimeout:10000},"
-    "METHOD:0,"
-    "SIGNAL:1,"
-    "PROPERTY:2,"
-    "};"
-    "print('AJ initialized\\n');";
-
+static const char aj_json[] =
+    "{"
+    "\"interfaceDefinition\":{},"
+    "\"objectDefinition\":{},"
+    "\"config\":{\"linkTimeout\":10000,\"callTimeout\":10000},"
+    "\"METHOD\":0,"
+    "\"SIGNAL\":1,"
+    "\"PROPERTY\":2"
+    "}";
 
 static void ErrorHandler(duk_context* ctx, duk_errcode_t code, const char* msg)
 {
@@ -85,18 +83,6 @@ static void AJRegistrations(AJ_BusAttachment* aj, duk_context* ctx, duk_idx_t aj
      * Register control panel support
      */
     AJS_RegisterControlPanelHandlers(aj, ctx, ajIdx);
-    /*
-     * Register target-specific I/O functions
-     */
-    AJS_RegisterIO(ctx);
-    /*
-     * Register setTimeout, setInterval timer functions.
-     */
-    AJS_RegisterTimerFuncs(ctx);
-    /*
-     * Register translations table
-     */
-    AJS_RegisterTranslations(ctx, ajIdx);
 }
 
 static uint8_t ajRunning = FALSE;
@@ -107,15 +93,24 @@ uint8_t AJS_IsRunning()
     return ajRunning;
 }
 
-static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx, int ajIdx)
+static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx)
 {
     AJ_Status status = AJ_OK;
+    duk_idx_t ajIdx = -1;
 
-    /*
-     * Add JavaScript objects and interfaces
-     */
-    status = AJS_InitTables(ctx);
-
+    if (duk_get_global_string(ctx, AJS_AllJoynObject)) {
+        ajIdx = duk_get_top_index(ctx);
+        /*
+         * Add JavaScript objects and interfaces registered by the script
+         */
+        status = AJS_InitTables(ctx, ajIdx);
+        /*
+         * Register translations table
+         */
+        if (status == AJ_OK) {
+            AJS_RegisterTranslations(ctx, ajIdx);
+        }
+    }
     while (status == AJ_OK) {
         /*
          * Attach our BusAttachment to an AllJoyn routing node
@@ -140,19 +135,21 @@ static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx, int ajIdx)
         /*
          * Let JavaScript know we are attached to the bus
          */
-        ajRunning = TRUE;
-        duk_get_prop_string(ctx, ajIdx, "onAttach");
-        if (duk_is_callable(ctx, -1)) {
-            duk_dup(ctx, ajIdx);
-            if (duk_pcall_method(ctx, 0) != DUK_EXEC_SUCCESS) {
-                AJS_ConsoleSignalError(ctx);
+        if (ajIdx >= 0) {
+            ajRunning = TRUE;
+            duk_get_prop_string(ctx, ajIdx, "onAttach");
+            if (duk_is_callable(ctx, -1)) {
+                duk_dup(ctx, ajIdx);
+                if (duk_pcall_method(ctx, 0) != DUK_EXEC_SUCCESS) {
+                    AJS_ConsoleSignalError(ctx);
+                }
             }
+            duk_pop(ctx);
         }
-        duk_pop(ctx);
         /*
          * Start running
          */
-        status = AJS_MessageLoop(ctx, aj);
+        status = AJS_MessageLoop(ctx, aj, ajIdx);
     }
     AJ_WarnPrintf(("Exiting AJS main loop with status=%s\n", AJ_StatusText(status)));
     /*
@@ -186,6 +183,7 @@ static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx, int ajIdx)
         duk_pop(ctx);
         ajRunning = FALSE;
     }
+    duk_pop_2(ctx);
     return status;
 }
 
@@ -193,15 +191,52 @@ static const uint8_t icon[] = {
 #include "icon.inc"
 };
 
-static int NativeOverrideAlert(duk_context* ctx)
+static duk_ret_t NativeOverrideAlert(duk_context* ctx)
 {
     AJS_AlertHandler(ctx, 1 /* alert */);
     return 0;
 }
 
-static int NativeOverridePrint(duk_context* ctx)
+static duk_ret_t NativeOverridePrint(duk_context* ctx)
 {
     AJS_AlertHandler(ctx, 0 /* print */);
+    return 0;
+}
+
+static void InitAllJoynObject(duk_context* ctx)
+{
+    duk_idx_t ajIdx;
+
+    printf("InitAllJoynObject\n");
+    duk_push_string(ctx, aj_json);
+    duk_json_decode(ctx, -1);
+    ajIdx = duk_get_top_index(ctx);
+    /*
+     * Register various functions and object on the AJ object
+     */
+    AJRegistrations(&ajBus, ctx, ajIdx);
+    /*
+     * Register AllJoyn with the global object
+     */
+    duk_put_global_string(ctx, AJS_AllJoynObject);
+}
+
+static duk_ret_t NativeModuleLoader(duk_context* ctx)
+{
+    const char* id = duk_require_string(ctx, 0);
+    printf("Load module %s\n", id);
+
+    if (strcmp(id, AJS_AllJoynObject) == 0) {
+        InitAllJoynObject(ctx);
+    } else if (strcmp(id, "IO") == 0) {
+        /*
+         * Register target-specific I/O functions
+         */
+        AJS_RegisterIO(ctx);
+    } else {
+        duk_push_sprintf(ctx, "Unknown module: \"%s\"\n", id);
+        duk_throw(ctx);
+    }
     return 0;
 }
 
@@ -210,7 +245,6 @@ AJ_Status AJS_Main(const char* deviceName)
     AJ_Status status = AJ_OK;
     duk_context* ctx;
     duk_int_t ret;
-    duk_idx_t ajIdx;
 
     AJ_AboutSetIcon(icon, sizeof(icon), "image/jpeg", NULL);
 
@@ -233,52 +267,30 @@ AJ_Status AJS_Main(const char* deviceName)
             break;
         }
         AJS_HeapDump();
-        duk_push_string(ctx, "AJInit.js");
-        ret = duk_pcompile_lstring_filename(ctx, 0, aj_init, sizeof(aj_init) - 1);
-        if (ret == DUK_EXEC_SUCCESS) {
-            ret = duk_pcall(ctx, 0);
-        }
-        if (ret != DUK_EXEC_SUCCESS) {
-            AJ_ErrPrintf(("AJ init script failed %s\n", duk_safe_to_string(ctx, -1)));
-            status = AJ_ERR_RESOURCES;
-            duk_destroy_heap(ctx);
-            AJS_HeapDestroy();
-            break;
-        }
-        duk_pcall(ctx, 0);
+        /*
+         * Register module loader (search) function with the Duktape object
+         */
+        duk_get_global_string(ctx, "Duktape");
+        duk_push_c_function(ctx, NativeModuleLoader, 4);
+        duk_put_prop_string(ctx, -2, "modSearch");
         duk_pop(ctx);
-
-        AJS_HeapDump();
-        duk_gc(ctx, 0);
-        AJS_HeapDump();
-
-        status = AJS_PropertyStoreInit(ctx, deviceName);
-        if (status != AJ_OK) {
-            AJ_ErrPrintf(("Failed to initialize property store\n"));
-        }
-
-        duk_push_global_object(ctx);
         /*
          * Override the builtin alert and print functions so we can redirect output to debug output
          * or the console if one is attached.
          */
         duk_push_c_function(ctx, NativeOverridePrint, DUK_VARARGS);
-        duk_put_prop_string(ctx, -2, "print");
+        duk_put_global_string(ctx, "print");
         duk_push_c_function(ctx, NativeOverrideAlert, DUK_VARARGS);
-        duk_put_prop_string(ctx, -2, "alert");
+        duk_put_global_string(ctx, "alert");
+
+        status = AJS_PropertyStoreInit(ctx, deviceName);
+        if (status != AJ_OK) {
+            AJ_ErrPrintf(("Failed to initialize property store\n"));
+        }
         /*
-         * Get the AJ object on the top of the duk stack
+         * Register setTimeout, setInterval timer functions.
          */
-        duk_get_prop_string(ctx, -1, AJS_AllJoynObject);
-        /*
-         * Don't need the global object
-         */
-        duk_remove(ctx, -2);
-        ajIdx = duk_get_top_index(ctx);
-        /*
-         * Register various functions and object on the AJ object
-         */
-        AJRegistrations(&ajBus, ctx, ajIdx);
+        AJS_RegisterTimerFuncs(ctx);
         /*
          * Evaluate the installed script
          */
@@ -317,11 +329,6 @@ AJ_Status AJS_Main(const char* deviceName)
                     status = AJ_ERR_FAILURE;
                 }
                 duk_pop(ctx);
-                if (duk_get_top_index(ctx) != ajIdx) {
-                    AJ_ErrPrintf(("ajIdx == %d, top_index == %d\n", (int)ajIdx, (int)duk_get_top_index(ctx)));
-                    AJ_ASSERT(duk_get_top_index(ctx) == ajIdx);
-                }
-                AJS_HeapDump();
                 if (status == AJ_OK) {
                     AJ_InfoPrintf(("Installed script from NVRAM\n"));
                 } else {
@@ -339,7 +346,7 @@ AJ_Status AJS_Main(const char* deviceName)
             }
         }
         if (status == AJ_OK) {
-            status = Run(&ajBus, ctx, ajIdx);
+            status = Run(&ajBus, ctx);
         }
         if (status == AJ_ERR_RESTART_APP) {
             status = AJ_OK;

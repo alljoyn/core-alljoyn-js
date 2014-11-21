@@ -160,7 +160,7 @@ static void BuildMemberList(duk_context* ctx, const char** ifc)
     duk_pop(ctx);
 }
 
-static void BuildInterfaceTable(duk_context* ctx)
+static void BuildInterfaceTable(duk_context* ctx, duk_idx_t ajIdx)
 {
     size_t i;
     size_t allocSz;
@@ -169,7 +169,13 @@ static void BuildInterfaceTable(duk_context* ctx)
 
     AJ_InfoPrintf(("BuildInterfaceTables\n"));
 
-    duk_get_prop_string(ctx, -1, "interfaceDefinition");
+    duk_get_prop_string(ctx, ajIdx, "interfaceDefinition");
+    /*
+     * Nothing to do if interfaceDefition is not defined
+     */
+    if (duk_is_undefined(ctx, -1)) {
+        return;
+    }
     allocSz = (AJS_NumProps(ctx, -1) + 2) * sizeof(AJ_InterfaceDescription*);
     /*
      * Allocate space for a NULL terminated interface table
@@ -213,9 +219,9 @@ static AJ_InterfaceDescription LookupInterface(duk_context* ctx, const char* ifa
     return NULL;
 }
 
-static void BuildLocalObjects(duk_context* ctx)
+static void BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
 {
-    size_t numObjects = AJS_NumProps(ctx, -1) + 1;
+    size_t numObjects = AJS_NumProps(ctx, ajIdx) + 1;
     size_t allocSz;
     AJ_Object* jsObjects;
 
@@ -223,7 +229,13 @@ static void BuildLocalObjects(duk_context* ctx)
 
     AJ_InfoPrintf(("BuildLocalObjects\n"));
 
-    duk_get_prop_string(ctx, -1, "objectDefinition");
+    duk_get_prop_string(ctx, ajIdx, "objectDefinition");
+    /*
+     * Nothing to do if objectDefinition is not defined
+     */
+    if (duk_is_undefined(ctx, -1)) {
+        return;
+    }
     allocSz = numObjects * sizeof(AJ_Object);
 
     objectList = duk_alloc(ctx, allocSz);
@@ -354,11 +366,11 @@ static const char* DescriptionFinder(uint32_t descId, const char* lang)
     return description;
 }
 
-AJ_Status AJS_InitTables(duk_context* ctx)
+AJ_Status AJS_InitTables(duk_context* ctx, duk_idx_t ajIdx)
 {
     AJ_Status status;
-    BuildInterfaceTable(ctx);
-    BuildLocalObjects(ctx);
+    BuildInterfaceTable(ctx, ajIdx);
+    BuildLocalObjects(ctx, ajIdx);
     AJ_RegisterObjectList(proxyList, AJ_PRX_ID_FLAG);
     /*
      * Have to register this global so DescriptionFinder has access to the duktape context

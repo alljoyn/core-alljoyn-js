@@ -42,7 +42,7 @@ typedef struct {
 static const char* hex(const uint8_t* p, int len)
 {
     static char buf[65];
-    char *s = buf;
+    char*s = buf;
 
     if (p) {
         while (len--) {

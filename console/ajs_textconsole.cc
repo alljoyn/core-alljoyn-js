@@ -23,12 +23,11 @@ static volatile sig_atomic_t g_interrupt = false;
 
 using namespace qcc;
 
-class AJS_TextConsole : public AJS_Console
-{
-public:
+class AJS_TextConsole : public AJS_Console {
+  public:
     virtual void Print(const char* fmt, ...);
 
-private:
+  private:
     static const size_t printBufLen = 1024;
     char printBuf[printBufLen];
 };

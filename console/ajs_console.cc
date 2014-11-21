@@ -183,13 +183,14 @@ class AJS_Console::Event {
 };
 #endif
 
-AJS_Console::AJS_Console() : BusListener(), sessionId(0), proxy(NULL), connectedBusName(NULL), aj(NULL), ev(new Event()), verbose(false), deviceName() { }
+AJS_Console::AJS_Console() : BusListener(), sessionId(0), proxy(NULL), connectedBusName(NULL), aj(NULL), ev(new Event()), verbose(false), deviceName() {
+}
 
 AJS_Console::~AJS_Console() {
-     delete proxy;
-     delete aj;
-     delete ev;
-     free(connectedBusName);
+    delete proxy;
+    delete aj;
+    delete ev;
+    free(connectedBusName);
 }
 
 void AJS_Console::Announced(const char* busName, uint16_t version, SessionPort port, const MsgArg& objectDescriptionArg, const MsgArg& aboutDataArg)

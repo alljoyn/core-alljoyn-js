@@ -74,8 +74,7 @@ AJ_Status AJS_SetPropertyAccessors(duk_context* ctx, duk_idx_t objIdx, const cha
      */
     objIdx = duk_normalize_index(ctx, objIdx);
 
-    duk_push_global_object(ctx);
-    duk_get_prop_string(ctx, -1, "Object");
+    duk_get_global_string(ctx, "Object");
     duk_get_prop_string(ctx, -1, "defineProperty");
     duk_dup(ctx, objIdx);
     duk_push_string(ctx, prop);
@@ -92,7 +91,7 @@ AJ_Status AJS_SetPropertyAccessors(duk_context* ctx, duk_idx_t objIdx, const cha
         duk_put_prop_string(ctx, -2, "get");
     }
     duk_call(ctx, 3);
-    duk_pop_3(ctx);
+    duk_pop_2(ctx);
     return AJ_OK;
 }
 
@@ -150,11 +149,10 @@ void AJS_GetGlobalStashArray(duk_context* ctx, const char* name)
 
 duk_idx_t AJS_GetAllJoynProperty(duk_context* ctx, const char* prop)
 {
-    duk_push_global_object(ctx);
-    duk_get_prop_string(ctx, -1, AJS_AllJoynObject);
-    duk_get_prop_string(ctx, -1, prop);
-    duk_remove(ctx, -2);
-    duk_remove(ctx, -2);
+    if (duk_get_global_string(ctx, AJS_AllJoynObject)) {
+        duk_get_prop_string(ctx, -1, prop);
+        duk_remove(ctx, -2);
+    }
     return duk_get_top_index(ctx);
 }
 
@@ -203,14 +201,13 @@ void AJS_DumpJX(duk_context* ctx, const char* tag, duk_idx_t idx)
             AJ_AlwaysPrintf(("%s\n", tag));
         }
         idx = duk_normalize_index(ctx, idx);
-        duk_push_global_object(ctx);
-        duk_get_prop_string(ctx, -1, "Duktape");
+        duk_get_global_string(ctx, "Duktape");
         duk_get_prop_string(ctx, -1, "enc");
         duk_push_string(ctx, "jx");
         duk_dup(ctx, idx);
         duk_pcall(ctx, 2);
         AJ_AlwaysPrintf(("%s\n", duk_get_string(ctx, -1)));
-        duk_pop_3(ctx);
+        duk_pop_2(ctx);
     }
 #endif
 }

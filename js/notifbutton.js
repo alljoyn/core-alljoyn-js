@@ -13,8 +13,8 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-require("AJ");
-require("IO");
+var AJ = require('AllJoyn');
+var IO = require('IO');
 
 var pbA=IO.digitalIn(IO.pin[8], IO.pullDown);
 var pbB=IO.digitalIn(IO.pin[9], IO.pullDown);

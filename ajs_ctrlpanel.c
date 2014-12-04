@@ -47,8 +47,7 @@ static AJS_Widget* CreateWidget(duk_context* ctx, uint8_t type)
 {
     AJS_Widget* widget;
 
-    duk_get_global_string(ctx, AJS_AllJoynObject);
-    duk_get_prop_string(ctx, -1, "controlPanel");
+    AJS_GetAllJoynProperty(ctx, "controlPanel");
     duk_get_prop_string(ctx, -1, "baseWidget");
     /*
      * Create a new object from this protoype
@@ -57,8 +56,8 @@ static AJS_Widget* CreateWidget(duk_context* ctx, uint8_t type)
     /*
      * Clean up stack leaving new widget on the top
      */
-    duk_swap_top(ctx, -4);
-    duk_pop_n(ctx, 3);
+    duk_swap_top(ctx, -3);
+    duk_pop_2(ctx);
     /*
      * Allocate a buffer for the CPS widget and set it
      */
@@ -154,7 +153,8 @@ static AJS_Widget* AddWidget(duk_context* ctx, uint8_t type)
      * Set the object path on the widget. Dialogs are not child objects of the control panel.
      */
     if ((type == WIDGET_TYPE_DIALOG) && (strcmp(parent, "/ControlPanel") == 0)) {
-        duk_push_sprintf(ctx, "/%d", WidgetTypeTxt(type), num);
+        //duk_push_sprintf(ctx, "/NotificationActions/%s%d", WidgetTypeTxt(type), num);
+        duk_push_sprintf(ctx, "/NotificationActions");
     } else {
         duk_push_sprintf(ctx, "%s/%s%d", parent, WidgetTypeTxt(type), num);
     }
@@ -826,6 +826,13 @@ static int NativeDialogWidget(duk_context* ctx)
         duk_push_string(ctx, "");
     }
     duk_put_prop_string(ctx, -2, "message");
+    if (numArgs > 1) {
+        duk_require_string(ctx, 1);
+        duk_dup(ctx, 1);
+    } else {
+        duk_push_string(ctx, "");
+    }
+    duk_put_prop_string(ctx, -2, "label");
     /*
      * Set dialog callbacks
      */
@@ -852,7 +859,7 @@ static int NativeActionWidget(duk_context* ctx)
     /*
      * An action widget can contain a dialog widget
      */
-    duk_push_c_function(ctx, NativeDialogWidget, 1);
+    duk_push_c_function(ctx, NativeDialogWidget, 2);
     duk_put_prop_string(ctx, -2, "dialogWidget");
     /*
      * The new object is the return value - leave it on the stack
@@ -906,10 +913,10 @@ static int NativeLoadControlPanel(duk_context* ctx)
     /*
      * Create the AllJoyn object list and put it in the global stash
      */
-    objList = duk_push_fixed_buffer(ctx, (num + 1) * sizeof(AJ_Object));
+    objList = duk_push_fixed_buffer(ctx, (num + 2) * sizeof(AJ_Object));
     duk_put_prop_string(ctx, -3, "cpsObjects");
     /*
-     * Initialize the object list
+     * Initialize the object list - note we reserve the last slot
      */
     for (i = 0; i < num; ++i) {
         AJS_Widget* widget;
@@ -1038,12 +1045,8 @@ static const duk_number_list_entry cp_constants[] = {
 
 static int NativeControlPanel(duk_context* ctx)
 {
-    AJS_Widget* widget = CreateWidget(ctx, WIDGET_TYPE_CONTAINER);
-
+    CreateWidget(ctx, WIDGET_TYPE_CONTAINER);
     duk_put_function_list(ctx, -1, &container_functions[3]);
-    widget->base.optParams.numHints = 2;
-    widget->hints[0] = LAYOUT_HINT_VERTICAL_LINEAR;
-    widget->hints[1] = LAYOUT_HINT_HORIZONTAL_LINEAR;
     /*
      * Set the path on the control panel
      */
@@ -1058,7 +1061,7 @@ static int NativeControlPanel(duk_context* ctx)
     duk_put_prop_index(ctx, -2, 0);
     duk_pop(ctx);
     /*
-     * Dialog widgets reside at the top level
+     * Notification action dialog widgets reside at the top level
      */
     duk_push_c_function(ctx, NativeDialogWidget, 1);
     duk_put_prop_string(ctx, -2, "dialogWidget");

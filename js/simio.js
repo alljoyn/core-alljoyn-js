@@ -13,7 +13,7 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-require("IO");
+var IO = require('IO');
 
 var led1=IO.digitalOut(IO.pin[0]);
 var led2=IO.digitalOut(IO.pin[1], 0);

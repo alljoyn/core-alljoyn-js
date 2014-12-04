@@ -65,9 +65,14 @@ extern uint8_t dbgAJS;
 #define AJS_DEFAULT_SLS_TTL       30
 
 /**
- * The name of the AllJoyn object
+ * The internal name for looking up the AllJoyn object
  */
-extern const char* AJS_AllJoynObject;
+extern const char* AJS_AJObjectName;
+
+/**
+ * The internal name for looking up the IO object
+ */
+extern const char* AJS_IOObjectName;
 
 /*
  * Flags that a message call is not a property accessor (Get/Set/GetAll)
@@ -244,8 +249,9 @@ int AJS_MethodCallError(duk_context* ctx);
  * Register native 'C' functions for target-specific I/O
  *
  * @param ctx     An opaque pointer to a duktape context structure
+ * @param ioIdx   Index for the IO object
  */
-AJ_Status AJS_RegisterIO(duk_context* ctx);
+AJ_Status AJS_RegisterIO(duk_context* ctx, duk_idx_t ioIdx);
 
 /**
  * Called to check if there are any asynchronous I/O events to service

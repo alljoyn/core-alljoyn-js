@@ -121,19 +121,19 @@ int main(int argc, char* argv[])
     int daemonize = FALSE;
     AJ_Status status = AJ_OK;
 #ifndef NDEBUG
-    AJ_DbgLevel = 4;
+    AJ_DbgLevel = 2;
     dbgMSG = 0;
     dbgHELPER = 0;
     dbgABOUT = 0;
     dbgBUS = 0;
     dbgINTROSPECT = 0;
     dbgAJCPS = 0;
-    dbgAJS = 1;
+    dbgAJS = 0;
     dbgHEAP = 0;
     dbgNET = 0;
     dbgHEAPDUMP = 0;
     dbgCONSOLE = 0;
-    dbgGPIO = 1;
+    dbgGPIO = 0;
 #endif
 
     AJ_Initialize();

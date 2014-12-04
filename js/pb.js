@@ -13,7 +13,7 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-require("IO");
+var IO = require('IO');
 
 pb=IO.digitalIn(IO.pin[6], IO.pullDown);
 pb.trigger(IO.FallingEdge, function(){ print("button down"); });

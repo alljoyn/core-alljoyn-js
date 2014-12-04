@@ -33,20 +33,8 @@ uint8_t dbgAJS = 1;
 
 static AJ_BusAttachment ajBus;
 
-const char* AJS_AllJoynObject = "AJ";
-
-/*
- * Initialization of the AllJoyn root object required for any application
- */
-static const char aj_json[] =
-    "{"
-    "\"interfaceDefinition\":{},"
-    "\"objectDefinition\":{},"
-    "\"config\":{\"linkTimeout\":10000,\"callTimeout\":10000},"
-    "\"METHOD\":0,"
-    "\"SIGNAL\":1,"
-    "\"PROPERTY\":2"
-    "}";
+const char* AJS_AJObjectName = "\377AJ";
+const char* AJS_IOObjectName = "\377IO";
 
 static void ErrorHandler(duk_context* ctx, duk_errcode_t code, const char* msg)
 {
@@ -84,6 +72,10 @@ static void AJRegistrations(AJ_BusAttachment* aj, duk_context* ctx, duk_idx_t aj
      */
     AJS_RegisterControlPanelHandlers(aj, ctx, ajIdx);
     /*
+     * Register translations table
+     */
+    AJS_RegisterTranslations(ctx, ajIdx);
+    /*
      * Compact the AllJoyn object
      */
     duk_compact(ctx, ajIdx);
@@ -102,18 +94,12 @@ static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx)
     AJ_Status status = AJ_OK;
     duk_idx_t ajIdx = -1;
 
-    if (duk_get_global_string(ctx, AJS_AllJoynObject)) {
+    if (duk_get_global_string(ctx, AJS_AJObjectName)) {
         ajIdx = duk_get_top_index(ctx);
         /*
          * Add JavaScript objects and interfaces registered by the script
          */
         status = AJS_InitTables(ctx, ajIdx);
-        /*
-         * Register translations table
-         */
-        if (status == AJ_OK) {
-            AJS_RegisterTranslations(ctx, ajIdx);
-        }
     }
     while (status == AJ_OK) {
         /*
@@ -187,7 +173,7 @@ static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx)
         duk_pop(ctx);
         ajRunning = FALSE;
     }
-    duk_pop_2(ctx);
+    duk_pop(ctx);
     return status;
 }
 
@@ -207,36 +193,52 @@ static duk_ret_t NativeOverridePrint(duk_context* ctx)
     return 0;
 }
 
-static void InitAllJoynObject(duk_context* ctx)
-{
-    duk_idx_t ajIdx;
+static const duk_number_list_entry AJ_constants[] = {
+    { "METHOD",      0 },
+    { "SIGNAL",      1 },
+    { "PROPERTY",    2 },
+    { NULL }
+};
 
-    printf("InitAllJoynObject\n");
-    duk_push_string(ctx, aj_json);
-    duk_json_decode(ctx, -1);
-    ajIdx = duk_get_top_index(ctx);
+static const duk_number_list_entry AJ_config_constants[] = {
+    { "linkTimeout", 10000 },
+    { "callTimeout", 10000 },
+    { NULL }
+};
+
+static void InitAllJoynObject(duk_context* ctx, duk_idx_t ajIdx)
+{
+    duk_put_number_list(ctx, ajIdx, AJ_constants);
+    duk_push_object(ctx);
+    duk_put_number_list(ctx, -1, AJ_config_constants);
+    duk_put_prop_string(ctx, ajIdx, "config");
+    duk_push_object(ctx);
+    duk_put_prop_string(ctx, ajIdx, "interfaceDefinition");
+    duk_push_object(ctx);
+    duk_put_prop_string(ctx, ajIdx, "objectDefinition");
     /*
-     * Register various functions and object on the AJ object
+     * Register exported properties on the AllJoyn object
      */
     AJRegistrations(&ajBus, ctx, ajIdx);
     /*
-     * Register AllJoyn with the global object
+     * We need an internal name so other code can lookup the AllJoyn object.
+     * We use a hidden name for this.
      */
-    duk_put_global_string(ctx, AJS_AllJoynObject);
+    duk_dup(ctx, ajIdx);
+    duk_put_global_string(ctx, AJS_AJObjectName);
 }
 
 static duk_ret_t NativeModuleLoader(duk_context* ctx)
 {
     const char* id = duk_require_string(ctx, 0);
-    printf("Load module %s\n", id);
 
-    if (strcmp(id, AJS_AllJoynObject) == 0) {
-        InitAllJoynObject(ctx);
+    if (strcmp(id, "AllJoyn") == 0) {
+        InitAllJoynObject(ctx, 2);
     } else if (strcmp(id, "IO") == 0) {
         /*
          * Register target-specific I/O functions
          */
-        AJS_RegisterIO(ctx);
+        AJS_RegisterIO(ctx, 2);
     } else {
         duk_push_sprintf(ctx, "Unknown module: \"%s\"\n", id);
         duk_throw(ctx);

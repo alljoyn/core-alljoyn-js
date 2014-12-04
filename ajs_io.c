@@ -76,7 +76,7 @@ static int NativeSetTrigger(duk_context* ctx)
         duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Error %s", AJ_StatusText(status));
     }
 
-    duk_get_global_string(ctx, "IO");
+    duk_get_global_string(ctx, AJS_IOObjectName);
     duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("trigs"));
 
     if ((mode & AJS_IO_PIN_TRIGGER_ON_RISE) || (mode & AJS_IO_PIN_TRIGGER_ON_FALL)) {
@@ -738,14 +738,12 @@ static const duk_function_list_entry io_native_functions[] = {
     { NULL }
 };
 
-AJ_Status AJS_RegisterIO(duk_context* ctx)
+AJ_Status AJS_RegisterIO(duk_context* ctx, duk_idx_t ioIdx)
 {
-    duk_idx_t ioIdx;
     duk_idx_t pinIdx;
     duk_idx_t i;
     uint16_t numPins = AJS_TargetIO_GetNumPins();
 
-    ioIdx = duk_push_object(ctx);
     /*
      * Create base pin protoype
      */
@@ -778,11 +776,11 @@ AJ_Status AJS_RegisterIO(duk_context* ctx)
     duk_push_array(ctx);
     duk_put_prop_string(ctx, ioIdx, AJS_HIDDEN_PROP("trigs"));
     /*
-     * Compact the IO object then register it with the global object
+     * Compact the IO object and set it on the global object
      */
     duk_compact(ctx, ioIdx);
-    duk_put_global_string(ctx, "IO");
-
+    duk_dup(ctx, ioIdx);
+    duk_put_global_string(ctx, AJS_IOObjectName);
     return AJ_OK;
 }
 
@@ -797,7 +795,7 @@ AJ_Status AJS_ServiceIO(duk_context* ctx)
         /*
          * Lookup the pin object in the triggers array
          */
-        duk_get_global_string(ctx, "IO");
+        duk_get_global_string(ctx, AJS_IOObjectName);
         duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("trigs"));
         do {
             duk_get_prop_index(ctx, -1, trigId);

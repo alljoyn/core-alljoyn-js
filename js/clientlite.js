@@ -13,7 +13,7 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-require("AJ");
+var AJ = require('AllJoyn');
 
 AJ.interfaceDefinition["org.alljoyn.alljoyn_test"] =
 {

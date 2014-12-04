@@ -79,6 +79,21 @@ const char* AJS_GetTranslatedString(duk_context* ctx, duk_idx_t idx, uint16_t la
     return GetTranslatedString(ctx, idx, langNum, NULL);
 }
 
+static int NativeTranslate(duk_context* ctx)
+{
+    const char* trans = NULL;
+
+    if (duk_is_number(ctx, 1)) {
+        trans = GetTranslatedString(ctx, 0, duk_get_int(ctx, 1), NULL);
+    } else if (duk_is_string(ctx, 1)) {
+        trans = GetTranslatedString(ctx, 0, 0, duk_get_string(ctx, 1));
+    } else {
+        trans = GetTranslatedString(ctx, 0, 0, AJS_GetCurrentLanguageName());
+    }
+    duk_push_string(ctx, trans);
+    return 1;
+}
+
 /*
  * Translations is an object where the properties are arrays of translation strings. The property
  * names are the respective languages.
@@ -105,7 +120,7 @@ static int NativeTranslationsSetter(duk_context* ctx)
     /*
      * Array for languages
      */
-    duk_get_global_string(ctx, AJS_AllJoynObject);
+    duk_push_this(ctx);
     duk_push_array(ctx);
     /*
      * Count the languages and accumulate them in an array
@@ -123,6 +138,11 @@ static int NativeTranslationsSetter(duk_context* ctx)
      * Add the languages array to the AllJoyn object
      */
     duk_put_prop_string(ctx, -2, "languages");
+    /*
+     * Register the translate function
+     */
+    duk_push_c_function(ctx, NativeTranslate, 2);
+    duk_put_prop_string(ctx, -2, "translate");
     duk_pop(ctx);
     /*
      * The translation array is stored in the global stash
@@ -135,7 +155,9 @@ static int NativeTranslationsSetter(duk_context* ctx)
      * Freeze the translations object
      */
     AJS_ObjectFreeze(ctx, 0);
-
+    /*
+     * AllJoyn needs to know about the languages list
+     */
     AJ_RegisterDescriptionLanguages((const char* const*)languagesList);
     /*
      * Announce the change
@@ -144,29 +166,13 @@ static int NativeTranslationsSetter(duk_context* ctx)
     return 0;
 }
 
-static int NativeTranslate(duk_context* ctx)
-{
-    const char* trans = NULL;
-
-    if (duk_is_number(ctx, 1)) {
-        trans = GetTranslatedString(ctx, 0, duk_get_int(ctx, 1), NULL);
-    } else if (duk_is_string(ctx, 1)) {
-        trans = GetTranslatedString(ctx, 0, 0, duk_get_string(ctx, 1));
-    } else {
-        trans = GetTranslatedString(ctx, 0, 0, AJS_GetCurrentLanguageName());
-    }
-    duk_push_string(ctx, trans);
-    return 1;
-}
-
 void AJS_RegisterTranslations(duk_context* ctx, duk_idx_t ajIdx)
 {
     /*
-     * Setter for handling language translations
+     * The only thing we do here is register a setter to do the required initializations when a
+     * translations table is provided.
      */
     AJS_SetPropertyAccessors(ctx, ajIdx, "translations", NativeTranslationsSetter, NULL);
-    duk_push_c_function(ctx, NativeTranslate, 2);
-    duk_put_prop_string(ctx, ajIdx, "translate");
 }
 
 const char* AJS_GetLanguageName(duk_context* ctx, uint8_t langIndex)

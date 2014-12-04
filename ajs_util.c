@@ -163,7 +163,7 @@ void AJS_GetGlobalStashArray(duk_context* ctx, const char* name)
 
 duk_idx_t AJS_GetAllJoynProperty(duk_context* ctx, const char* prop)
 {
-    if (duk_get_global_string(ctx, AJS_AllJoynObject)) {
+    if (duk_get_global_string(ctx, AJS_AJObjectName)) {
         duk_get_prop_string(ctx, -1, prop);
         duk_remove(ctx, -2);
     }

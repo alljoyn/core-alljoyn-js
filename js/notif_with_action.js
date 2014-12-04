@@ -13,12 +13,11 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-require("AJ");
+var AJ = require('AllJoyn');
 
 var cp = AJ.controlPanel();
 
-var c1 = cp.container(0);
-var d1 = c1.dialogWidget("What do you want to do?");
+var d1 = cp.dialogWidget("What do you want to do?", "Decision");
 
 d1.buttons = [
 { label:"ok", onClick: function() { print("ok"); } },
@@ -26,11 +25,9 @@ d1.buttons = [
 { label:"apply", onClick: function() { print("apply"); } }
 ];
 
-cp.load();
-
 var notif = AJ.notification(AJ.notification.Emergency, "I've fallen and I can't get up!");
-notif.controlPanelPath = c1.path;
+print("controlPanelPath " + d1.path);
+notif.controlPanelPath = d1.path;
 
-
-AJ.onAttach = function() { setTimeout(function() {notif.send(100)}, 5000) }
+AJ.onAttach = function() { cp.load(); setTimeout(function() {notif.send(100)}, 5000) }
 

@@ -351,19 +351,26 @@ AJ_Status AJS_CP_Terminate()
 AJ_Status AJS_CP_Init(AJ_Object* cpObjects)
 {
     AJ_Status status;
+    AJ_Object* w = cpObjects;
+
+    while (w->path) {
+        ++w;
+    }
+    w->path = "/NotificationActions";
+    w->interfaces = NotificationActionInterfaces;
     /*
      * The control panel object is the only one that gets announced
      */
-    cpObjects[0].flags = AJ_OBJ_FLAG_ANNOUNCED;
-    /*
-     * The control panel is a container widget but doesn't implement the container widget interface.
-     */
     cpObjects[0].interfaces = ControlPanelInterfaces;
+    cpObjects[0].flags = AJ_OBJ_FLAG_ANNOUNCED;
+
     status = AJCPS_Start(cpObjects, CPSMessageHandler, CallInvolvesWidget, SignalInvolvesWidget, InvolvesRootWidget);
     if (status == AJ_OK) {
         AJ_WarnPrintf(("Control panel service succesfully initialized\n"));
         objectList = cpObjects;
         AJ_AboutSetShouldAnnounce();
+        AJ_PrintXML(cpObjects);
+
     }
     return status;
 }

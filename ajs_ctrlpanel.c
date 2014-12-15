@@ -684,7 +684,6 @@ static const char* DialogLabel(DialogWidget* widget, uint8_t action, uint16_t la
     AJS_Widget* ajsWidget = (AJS_Widget*)widget;
     duk_context* ctx = ajsWidget->dukCtx;
     const char* label = "";
-    int top = duk_get_top_index(ctx);
 
     AJ_InfoPrintf(("DialogLabel from %s\n", ajsWidget->path));
 
@@ -702,7 +701,6 @@ static const char* DialogLabel(DialogWidget* widget, uint8_t action, uint16_t la
         duk_pop(ctx);
     }
     duk_pop_2(ctx);
-    AJ_ASSERT(top == duk_get_top_index(ctx));
     AJ_InfoPrintf(("DialogLabel returning %s\n", label));
     return label;
 }

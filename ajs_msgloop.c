@@ -170,6 +170,9 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
         case AJ_PROP_GET_ALL:
             func = "onPropGetAll";
             break;
+
+        default:
+            return AJ_ERR_INVALID;
         }
         duk_get_prop_string(ctx, ajIdx, func);
     } else {

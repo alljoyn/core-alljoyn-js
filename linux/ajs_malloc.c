@@ -95,7 +95,7 @@ void* AJS_Realloc(void* userData, void* mem, size_t newSz)
 }
 
 #ifndef NDEBUG
-void AJS_HeapDump()
+void AJS_HeapDump(void)
 {
 }
 #endif

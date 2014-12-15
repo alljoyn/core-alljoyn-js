@@ -81,7 +81,7 @@ static void CheckPeerIsAlive(duk_context* ctx, const char* peer)
  */
 static const char* FindInterfaceForMember(duk_context* ctx, duk_idx_t mbrIdx, const char** member)
 {
-    const char* iface;
+    const char* iface = NULL;
     uint8_t found = FALSE;
     size_t numInterfaces;
     duk_idx_t listIdx;

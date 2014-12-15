@@ -204,6 +204,7 @@ static AJ_Status EvalReply(duk_context* ctx, AJ_Message* msg, int dukStatus)
     case DUK_RET_EVAL_ERROR:
     case DUK_RET_TYPE_ERROR:
     case DUK_RET_RANGE_ERROR:
+        replyStatus = SCRIPT_EVAL_ERROR;
         break;
 
     case DUK_RET_SYNTAX_ERROR:

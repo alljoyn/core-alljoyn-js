@@ -21,7 +21,7 @@
 #include <alljoyn/onboarding/OnboardingService.h>
 #include <alljoyn/onboarding/OnboardingManager.h>
 
-AJOBS_State AJOBS_GetState()
+int8_t AJOBS_GetState()
 {
     return AJOBS_STATE_CONFIGURED_VALIDATED;
 }

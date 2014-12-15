@@ -125,9 +125,13 @@ int8_t AJSVC_PropertyStore_GetFieldIndex(const char* fieldName)
 
 static const char* PeekProp(int8_t field)
 {
+    duk_context* ctx = duktape;
+    const char* prop;
     AJ_NV_DATASET* handle = AJ_NVRAM_Open(NVRAM_ID(field), "r", 0);
     if (handle) {
-        const char* prop = AJ_NVRAM_Peek(handle);
+        duk_push_string(ctx, AJ_NVRAM_Peek(handle));
+        prop = AJS_PinString(ctx, -1);
+        duk_pop(ctx);
         AJ_NVRAM_Close(handle);
         return prop;
     } else {

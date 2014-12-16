@@ -1,8 +1,4 @@
-#ifndef _DUK_CUSTOM_H
-#define _DUK_CUSTOM_H
-/**
- * @file
- */
+
 /******************************************************************************
  * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
  *
@@ -18,31 +14,15 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
+var AJ = require('AllJoyn');
 
-/*
- * Force alignment for testing
- */
-#ifdef DUK_FORCE_ALIGNED_ACCESS
-#undef DUK_USE_UNALIGNED_ACCESSES_POSSIBLE
-#undef DUK_USE_HASHBYTES_UNALIGNED_U32_ACCESS
-#undef DUK_USE_HOBJECT_UNALIGNED_LAYOUT
-#endif
+var cp = AJ.controlPanel();
 
-#if DUK_VERSION < 10100
-#define duk_push_c_lightfunc(c, f, a, x, y) duk_push_c_function(c, f, a)
-#endif
+var c1 = cp.containerWidget();
+var b1 = c1.actionWidget("Button 1");
+var b2 = c1.actionWidget("Button 2");
 
-#define DUK_OPT_HEAPPTR_ENC16(p) AJS_EncodePtr16(p) 
-#define DUK_OPT_HEAPPTR_DEC16(x) AJS_DecodePtr16(x)
-#define DUK_OPT_EXTSTR_INTERN_CHECK(p,l) AJS_ExternalStringCheck(p,l)
-#define DUK_OPT_EXTSTR_FREE(p) AJS_ExternalStringFree(p)
+b1.onClick = function() { print("Button 1 pressed") }
+b2.onClick = function() { print("Button 2 pressed") }
 
-duk_uint16_t AJS_EncodePtr16(void *p);
-
-void* AJS_DecodePtr16(duk_uint16_t x);
-
-const void* AJS_ExternalStringCheck(const void *ptr, duk_size_t len);
-
-void AJS_ExternalStringFree(const void *ptr);
-
-#endif
+AJ.onAttach = function() { cp.load(); }

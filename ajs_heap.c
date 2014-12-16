@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "duktape.h"
 #include "aj_target.h"
 #include "aj_debug.h"
 #include "ajs_heap.h"
@@ -48,6 +49,7 @@ typedef struct {
 #ifndef NDEBUG
     uint16_t use;      /* Number of entries in use */
     uint16_t hwm;      /* High-water mark */
+    uint16_t min;      /* Min allocation from this pool */
     uint16_t max;      /* Max allocation from this pool */
 #endif
 } Pool;
@@ -103,6 +105,19 @@ AJ_Status AJS_HeapInit(void** heap, size_t* heapSz, const AJS_HeapConfig* heapCo
         return AJ_ERR_RESOURCES;
     }
     /*
+     * Pointer compresson is only supported when there is a single heap smaller than 256K
+     */
+#ifdef DUK_OPT_HEAPPTR_ENC16
+    if (numHeaps > 1) {
+        AJ_ErrPrintf(("Pointer compression not allowed with multiple heaps\n"));
+        return AJ_ERR_RESOURCES;
+    }
+    if (*heapSz >= (256 * 1024)) {
+        AJ_ErrPrintf(("Pointer compression not allowed for heaps >= 256K\n"));
+        return AJ_ERR_RESOURCES;
+    }
+#endif
+    /*
      * Pre-allocate the pool table from the first heap
      */
     heapInfo.pools = (Pool*)heap[0];
@@ -150,6 +165,7 @@ AJ_Status AJS_HeapInit(void** heap, size_t* heapSz, const AJS_HeapConfig* heapCo
         p->use = 0;
         p->hwm = 0;
         p->max = 0;
+        p->min = 0xFFFF;
 #endif
     }
     return AJ_OK;
@@ -190,6 +206,7 @@ void* AJS_Alloc(void* userData, size_t sz)
             ++p->use;
             p->hwm = max(p->use, p->hwm);
             p->max = max(p->max, sz);
+            p->min = min(p->min, sz);
 #endif
             return (void*)block;
         }
@@ -197,6 +214,26 @@ void* AJS_Alloc(void* userData, size_t sz)
     AJ_ErrPrintf(("AJS_Alloc of %d bytes failed\n", (int)sz));
     AJS_HeapDump();
     return NULL;
+}
+
+duk_uint16_t AJS_EncodePtr16(void* ptr)
+{
+    if (ptr) {
+        ptrdiff_t offset = (ptrdiff_t)ptr - (ptrdiff_t)heapInfo.pools;
+        return (duk_uint16_t)(offset >> 2);
+    } else {
+        return 0;
+    }
+}
+
+void* AJS_DecodePtr16(duk_uint16_t enc)
+{
+    if (enc) {
+        ptrdiff_t offset = ((ptrdiff_t)enc) << 2;
+        return (void*)(offset + (ptrdiff_t)heapInfo.pools);
+    } else {
+        return NULL;
+    }
 }
 
 void AJS_Free(void* userData, void* mem)
@@ -276,21 +313,27 @@ void* AJS_Realloc(void* userData, void* mem, size_t newSz)
 #ifndef NDEBUG
 void AJS_HeapDump(void)
 {
-    uint8_t i;
-    size_t memUse = 0;
-    size_t memHigh = 0;
-    size_t memTotal = 0;
-    Pool* p = heapInfo.pools;
+    if (dbgHEAPDUMP) {
+        uint8_t i;
+        size_t memUse = 0;
+        size_t memHigh = 0;
+        size_t memTotal = 0;
+        Pool* p = heapInfo.pools;
 
-    AJ_AlwaysPrintf(("======= dump of %d heap pools ======\n", heapInfo.numPools));
-    for (i = 0; i < heapInfo.numPools; ++i, ++p) {
-        AJ_AlwaysPrintf(("heap[%d] pool[%d] used=%d free=%d high-water=%d max-alloc=%d\n",
-                         heapInfo.config[i].heapIndex, heapInfo.config[i].size, p->use, heapInfo.config[i].entries - p->use, p->hwm, p->max));
-        memUse += p->use * heapInfo.config[i].size;
-        memHigh += p->hwm * heapInfo.config[i].size;
-        memTotal += p->hwm * p->max;
+        AJ_AlwaysPrintf(("======= dump of %d heap pools ======\n", heapInfo.numPools));
+        for (i = 0; i < heapInfo.numPools; ++i, ++p) {
+            if (p->hwm == 0) {
+                AJ_AlwaysPrintf(("heap[%d] pool[%d] unused\n", heapInfo.config[i].heapIndex, heapInfo.config[i].size));
+            } else {
+                AJ_AlwaysPrintf(("heap[%d] pool[%d] used=%d free=%d high-water=%d min-alloc=%d max-alloc=%d\n",
+                                 heapInfo.config[i].heapIndex, heapInfo.config[i].size, p->use, heapInfo.config[i].entries - p->use, p->hwm, p->min, p->max));
+            }
+            memUse += p->use * heapInfo.config[i].size;
+            memHigh += p->hwm * heapInfo.config[i].size;
+            memTotal += p->hwm * p->max;
+        }
+        AJ_AlwaysPrintf(("======= heap hwm = %d use = %d waste = %d ======\n", (int)memHigh, (int)memUse, (int)(memHigh - memTotal)));
     }
-    AJ_AlwaysPrintf(("======= heap hwm = %d use = %d waste = %d ======\n", (int)memHigh, (int)memUse, (int)(memHigh - memTotal)));
 }
 #endif
 

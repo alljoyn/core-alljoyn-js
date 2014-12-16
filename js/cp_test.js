@@ -13,6 +13,7 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
+var AJ = require('AllJoyn');
 
 /*
  * This file demonstrates how to use the control panel
@@ -39,7 +40,7 @@ var click_action = c1.actionWidget("Last action");
  * This is a dialog widget. It will pop up when the action widget is pressed
  * You can add multiple buttons which can have different actions
  */
-var dw = click_action.dialogWidget("Back");
+var dw = click_action.dialogWidget("Back", "Back");
 dw.buttons = [
    { label:"ok", onClick: function() {click_action.label = "Last action"; } }
 ];

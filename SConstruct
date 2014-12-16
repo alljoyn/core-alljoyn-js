@@ -40,6 +40,7 @@ vars.Add(PathVariable('GTEST_DIR', 'The path to googletest sources', os.environ.
 vars.Add(EnumVariable('WS', 'Whitespace Policy Checker', 'off', allowed_values=('check', 'detail', 'fix', 'off')))
 vars.Add(EnumVariable('FORCE32', 'Force building 32 bit on 64 bit architecture', 'false', allowed_values=('false', 'true')))
 vars.Add(EnumVariable('POOL_MALLOC', 'Use pool based memory allocation - default is native malloc', 'false', allowed_values=('false', 'true')))
+vars.Add(EnumVariable('SHORT_SIZES', 'Use 16 bit sizes and pointers - only applies is using pool malloc', 'true', allowed_values=('false', 'true')))
 vars.Add(EnumVariable('DUKTAPE_SEPARATE', 'Use seperate rather than combined duktape source files', 'false', allowed_values=('false', 'true')))
 vars.Add(PathVariable('ARM_TOOLCHAIN_DIR', 'Path to the GNU ARM toolchain bin folder', os.environ.get('ARM_TOOLCHAIN_DIR'), PathVariable.PathIsDir))
 vars.Add(PathVariable('STM_SRC_DIR', 'Path to the source code for the STM32 microcontroller', os.environ.get('STM_SRC_DIR'), PathVariable.PathIsDir))
@@ -230,17 +231,31 @@ env.Append(CPPDEFINES=['DUK_OPT_DEBUG_BUFSIZE=256'])
 env.Append(CPPDEFINES=['DUK_OPT_HAVE_CUSTOM_H'])
 env.Append(CPPDEFINES=['DUK_OPT_NO_FILE_IO'])
 env.Append(CPPDEFINES=['DUK_OPT_FORCE_ALIGN=4'])
+env.Append(CPPDEFINES=['DDUK_OPT_LIGHTFUNC_BUILTINS'])
 
 # Additional duktape options when building for debug mode
 if env['VARIANT'] == 'debug':
     env.Append(CPPDEFINES=['DUK_OPT_ASSERTIONS'])
     #env.Append(CPPDEFINES=['DUK_OPT_DEBUG'])
 
-# AllJoyn.js added defines
-env.Append(CPPDEFINES=['DUK_OPT_SHORT_SIZES'])
-
+# Only use short (16 bit) sizes and pointers if using pool-based allocator
 if env['POOL_MALLOC'] == 'false':
     env.Append(CPPDEFINES=['AJS_USE_NATIVE_MALLOC'])
+elif env['SHORT_SIZES'] == 'true':
+    env.Append(CPPDEFINES=['DUK_OPT_REFCOUNT16'])
+    env.Append(CPPDEFINES=['DUK_OPT_STRHASH16'])
+    env.Append(CPPDEFINES=['DUK_OPT_STRLEN16'])
+    env.Append(CPPDEFINES=['DUK_OPT_BUFLEN16'])
+    env.Append(CPPDEFINES=['DUK_OPT_OBJSIZES16'])
+    env.Append(CPPDEFINES=['DUK_OPT_HEAPPTR16'])
+    env.Append(CPPDEFINES=['\"DUK_OPT_HEAPPTR_ENC16(p)=AJS_EncodePtr16(p)\"'])
+    env.Append(CPPDEFINES=['\"DUK_OPT_HEAPPTR_DEC16(x)=AJS_DecodePtr16(x)\"'])
+
+env.Append(CPPDEFINES=['DUK_OPT_EXTERNAL_STRINGS'])
+env.Append(CPPDEFINES=['\"DUK_OPT_EXTSTR_INTERN_CHECK(p,l)=AJS_ExternalStringCheck(p,l)\"'])
+env.Append(CPPDEFINES=['\"DUK_OPT_EXTSTR_FREE(p)=AJS_ExternalStringFree(p)\"'])
+env.Append(CPPDEFINES=['DUK_OPT_STRTAB_CHAIN'])
+env.Append(CPPDEFINES=['DUK_OPT_STRTAB_CHAIN_SIZE=128'])
 
 #######################################################
 # Services defines

@@ -40,6 +40,7 @@ ajs_sources = [
      'ajs_console.c',
      'ajs_cps.c',
      'ajs_ctrlpanel.c',
+     'ajs_extstr.c',
      'ajs_io.c',
      'ajs_handlers.c',
      'ajs_heap.c',

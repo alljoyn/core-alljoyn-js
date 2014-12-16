@@ -369,7 +369,11 @@ AJ_Status AJS_CP_Init(AJ_Object* cpObjects)
         AJ_WarnPrintf(("Control panel service succesfully initialized\n"));
         objectList = cpObjects;
         AJ_AboutSetShouldAnnounce();
-        AJ_PrintXML(cpObjects);
+#ifndef NDEBUG
+        if (dbgAJS) {
+            AJ_PrintXML(cpObjects);
+        }
+#endif
 
     }
     return status;

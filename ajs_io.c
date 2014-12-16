@@ -224,13 +224,13 @@ static int NativeIoDigitalOut(duk_context* ctx)
     /*
      * Toggle function
      */
-    duk_push_c_function(ctx, NativeTogglePin, 0);
+    duk_push_c_lightfunc(ctx, NativeTogglePin, 0, 0, 0);
     duk_put_prop_string(ctx, idx, "toggle");
     /*
      * Only allow if the PWM functions is supported
      */
     if (AJS_TargetIO_GetInfo(pin)->functions & AJS_IO_FUNCTION_PWM) {
-        duk_push_c_function(ctx, NativePWM, 2);
+        duk_push_c_lightfunc(ctx, NativePWM, 2, 0, 0);
         duk_put_prop_string(ctx, idx, "pwm");
     }
     /*
@@ -273,7 +273,7 @@ static int NativeIoDigitalIn(duk_context* ctx)
     /*
      * Function to set a trigger
      */
-    duk_push_c_function(ctx, NativeSetTrigger, 3);
+    duk_push_c_lightfunc(ctx, NativeSetTrigger, 3, 0, 0);
     duk_put_prop_string(ctx, idx, "setTrigger");
     /*
      * Return the digital input pin object
@@ -524,10 +524,10 @@ static int NativeIoSpi(duk_context* ctx)
     }
     idx = NewIOObject(ctx, spiCtx, NativeSpiFinalizer);
 
-    duk_push_c_function(ctx, NativeSpiRead, 1);
+    duk_push_c_lightfunc(ctx, NativeSpiRead, 1, 0, 0);
     duk_put_prop_string(ctx, idx, "read");
 
-    duk_push_c_function(ctx, NativeSpiWrite, 1);
+    duk_push_c_lightfunc(ctx, NativeSpiWrite, 1, 0, 0);
     duk_put_prop_string(ctx, idx, "write");
 
     return 1;
@@ -578,10 +578,10 @@ static int NativeIoUart(duk_context* ctx)
     }
     idx = NewIOObject(ctx, uartCtx, NativeUartFinalizer);
 
-    duk_push_c_function(ctx, NativeUartRead, 1);
+    duk_push_c_lightfunc(ctx, NativeUartRead, 1, 0, 0);
     duk_put_prop_string(ctx, idx, "read");
 
-    duk_push_c_function(ctx, NativeUartWrite, 1);
+    duk_push_c_lightfunc(ctx, NativeUartWrite, 1, 0, 0);
     duk_put_prop_string(ctx, idx, "write");
 
     return 1;
@@ -644,7 +644,7 @@ static int NativeIoI2cMaster(duk_context* ctx)
         duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Failed to open I2C device in master mode\n");
     }
     NewIOObject(ctx, i2cCtx, NativeI2cFinalizer);
-    duk_push_c_function(ctx, NativeI2cTransfer, 3);
+    duk_push_c_lightfunc(ctx, NativeI2cTransfer, 3, 0, 0);
     duk_put_prop_string(ctx, -2, "transfer");
     return 1;
 }
@@ -662,7 +662,7 @@ static int NativeIoI2cSlave(duk_context* ctx)
         duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Failed to open I2C device in slave mode\n");
     }
     NewIOObject(ctx, i2cCtx, NativeI2cFinalizer);
-    duk_push_c_function(ctx, NativeI2cTransfer, 3);
+    duk_push_c_lightfunc(ctx, NativeI2cTransfer, 3, 0, 0);
     duk_put_prop_string(ctx, -2, "transfer");
     return 1;
 }
@@ -777,7 +777,7 @@ AJ_Status AJS_RegisterIO(duk_context* ctx, duk_idx_t ioIdx)
     /*
      * Register the native functions
      */
-    duk_put_function_list(ctx, ioIdx, io_native_functions);
+    AJS_PutFunctionList(ctx, ioIdx, io_native_functions, TRUE);
     /*
      * GPIO attribute constants
      */

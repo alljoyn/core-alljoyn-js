@@ -20,6 +20,20 @@
 #include "ajs.h"
 #include "ajs_util.h"
 
+void AJS_PutFunctionList(duk_context* ctx, duk_idx_t objIdx, const duk_function_list_entry *funcList, uint8_t light)
+{
+    if (light) {
+        objIdx = duk_normalize_index(ctx, objIdx);
+        while (funcList->key) {
+            duk_push_c_lightfunc(ctx, funcList->value, funcList->nargs, 0, 0);
+            duk_put_prop_string(ctx, objIdx, funcList->key);
+            ++funcList;
+        }
+    } else {
+        duk_put_function_list(ctx, objIdx, funcList);
+    }
+}
+
 void AJS_RegisterFinalizer(duk_context* ctx, duk_idx_t objIdx, duk_c_function finFunc)
 {
     objIdx = duk_normalize_index(ctx, objIdx);

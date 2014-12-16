@@ -13,7 +13,7 @@
  *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
-var AJ = var AJ = require('AllJoyn');
+var AJ = require('AllJoyn');
 
 print(JSON.stringify(AJ));
 

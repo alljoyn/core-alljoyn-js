@@ -211,7 +211,7 @@ static int NativeMethod(duk_context* ctx)
     /*
      * Register function for actually calling this method
      */
-    duk_push_c_function(ctx, AJS_MarshalMethodCall, DUK_VARARGS);
+    duk_push_c_lightfunc(ctx, AJS_MarshalMethodCall, DUK_VARARGS, 0, 0);
     duk_put_prop_string(ctx, -2, "call");
     /* return the method object we just created */
     return 1;
@@ -255,7 +255,7 @@ static void InitSignal(duk_context* ctx, const char* dest, uint32_t session)
     MessageSetup(ctx, iface, member, path, AJ_MSG_SIGNAL);
     duk_dup(ctx, 0);
     duk_put_prop_string(ctx, -2, "path");
-    duk_push_c_function(ctx, AJS_MarshalSignal, DUK_VARARGS);
+    duk_push_c_lightfunc(ctx, AJS_MarshalSignal, DUK_VARARGS, 0, 0);
     duk_put_prop_string(ctx, -2, "send");
 }
 
@@ -292,7 +292,7 @@ static int NativeSetProp(duk_context* ctx)
     if (!duk_is_string(ctx, 0)) {
         duk_error(ctx, DUK_ERR_TYPE_ERROR, "First argument must be the property name");
     }
-    duk_push_c_function(ctx, AJS_MarshalMethodCall, 3);
+    duk_push_c_lightfunc(ctx, AJS_MarshalMethodCall, 3, 0, 0);
     prop = duk_get_string(ctx, 0);
     duk_push_this(ctx);
     iface = FindInterfaceForMember(ctx, 0, &prop);
@@ -312,7 +312,7 @@ static int NativeGetProp(duk_context* ctx)
     if (!duk_is_string(ctx, 0)) {
         duk_error(ctx, DUK_ERR_TYPE_ERROR, "Lone argument must be the property name");
     }
-    duk_push_c_function(ctx, AJS_MarshalMethodCall, 2);
+    duk_push_c_lightfunc(ctx, AJS_MarshalMethodCall, 2, 0, 0);
     prop = duk_get_string(ctx, 0);
     duk_push_this(ctx);
     iface = FindInterfaceForMember(ctx, 0, &prop);
@@ -328,7 +328,7 @@ static int NativeGetAllProps(duk_context* ctx)
     if (!duk_is_string(ctx, 0)) {
         duk_error(ctx, DUK_ERR_TYPE_ERROR, "First argument must be the interface name");
     }
-    duk_push_c_function(ctx, AJS_MarshalMethodCall, 1);
+    duk_push_c_lightfunc(ctx, AJS_MarshalMethodCall, 1, 0, 0);
     duk_push_this(ctx);
     MessageSetup(ctx, &AJ_PropertiesIface[0][1], "GetAll", NULL, AJ_MSG_METHOD_CALL);
     duk_dup(ctx, 0);
@@ -363,7 +363,7 @@ void AJS_RegisterMsgFunctions(AJ_BusAttachment* bus, duk_context* ctx, duk_idx_t
      */
     objIdx = duk_push_object(ctx);
     duk_put_number_list(ctx, objIdx, peer_native_numbers);
-    duk_put_function_list(ctx, objIdx, peer_native_functions);
+    AJS_PutFunctionList(ctx, objIdx, peer_native_functions, TRUE);
     /*
      * Finalizer function called when the object is deleted
      */

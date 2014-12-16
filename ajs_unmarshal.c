@@ -50,9 +50,9 @@ duk_idx_t AJS_UnmarshalMessage(duk_context* ctx, AJ_Message* msg, uint8_t access
             /*
              * Register the reply functions
              */
-            duk_push_c_function(ctx, AJS_MethodCallReply, DUK_VARARGS);
+            duk_push_c_lightfunc(ctx, AJS_MethodCallReply, DUK_VARARGS, 0, 0);
             duk_put_prop_string(ctx, objIndex, "reply");
-            duk_push_c_function(ctx, AJS_MethodCallError, DUK_VARARGS);
+            duk_push_c_lightfunc(ctx, AJS_MethodCallError, DUK_VARARGS, 0, 0);
             duk_put_prop_string(ctx, objIndex, "errorReply");
         }
     } else {

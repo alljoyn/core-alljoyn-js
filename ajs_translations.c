@@ -141,7 +141,7 @@ static int NativeTranslationsSetter(duk_context* ctx)
     /*
      * Register the translate function
      */
-    duk_push_c_function(ctx, NativeTranslate, 2);
+    duk_push_c_lightfunc(ctx, NativeTranslate, 2, 0, 0);
     duk_put_prop_string(ctx, -2, "translate");
     duk_pop(ctx);
     /*

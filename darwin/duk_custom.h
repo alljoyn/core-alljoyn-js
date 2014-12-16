@@ -28,4 +28,8 @@
 #undef DUK_USE_HOBJECT_UNALIGNED_LAYOUT
 #endif
 
+#if DUK_VERSION < 10100
+#define duk_push_c_lightfunc(c, f, a, x, y) duk_push_c_function(c, f, a)
+#endif
+
 #endif

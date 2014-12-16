@@ -378,6 +378,6 @@ static const duk_function_list_entry aj_native_functions[] = {
 AJ_Status AJS_RegisterHandlers(AJ_BusAttachment* bus, duk_context* ctx, duk_idx_t ajIdx)
 {
     ajBus = bus;
-    duk_put_function_list(ctx, ajIdx, aj_native_functions);
+    AJS_PutFunctionList(ctx, ajIdx, aj_native_functions, TRUE);
     return AJ_OK;
 }

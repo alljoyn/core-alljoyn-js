@@ -400,7 +400,11 @@ AJ_Status AJS_InitTables(duk_context* ctx, duk_idx_t ajIdx)
      */
     dukContext = ctx;
     status = AJ_RegisterObjectListWithDescriptions(objectList, JS_OBJ_INDEX, DescriptionFinder);
-    AJ_PrintXMLWithDescriptions(objectList, "en");
+#ifndef NDEBUG
+    if (dbgAJS) {
+        AJ_PrintXMLWithDescriptions(objectList, "en");
+    }
+#endif
     return status;
 }
 

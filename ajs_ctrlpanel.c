@@ -153,7 +153,6 @@ static AJS_Widget* AddWidget(duk_context* ctx, uint8_t type)
      * Set the object path on the widget. Dialogs are not child objects of the control panel.
      */
     if ((type == WIDGET_TYPE_DIALOG) && (strcmp(parent, "/ControlPanel") == 0)) {
-        //duk_push_sprintf(ctx, "/NotificationActions/%s%d", WidgetTypeTxt(type), num);
         duk_push_sprintf(ctx, "/NotificationActions");
     } else {
         duk_push_sprintf(ctx, "%s/%s%d", parent, WidgetTypeTxt(type), num);
@@ -857,7 +856,7 @@ static int NativeActionWidget(duk_context* ctx)
     /*
      * An action widget can contain a dialog widget
      */
-    duk_push_c_function(ctx, NativeDialogWidget, 2);
+    duk_push_c_lightfunc(ctx, NativeDialogWidget, 2, 0, 0);
     duk_put_prop_string(ctx, -2, "dialogWidget");
     /*
      * The new object is the return value - leave it on the stack
@@ -879,7 +878,7 @@ static int NativeContainerWidget(duk_context* ctx)
 
     AJS_Widget* widget = AddWidget(ctx, WIDGET_TYPE_CONTAINER);
     AJ_InfoPrintf(("Creating container widget\n"));
-    duk_put_function_list(ctx, -1, container_functions);
+    AJS_PutFunctionList(ctx, -1, container_functions, TRUE);
 
     widget->base.optParams.numHints = 1;
     if (numArgs == 0) {
@@ -1044,7 +1043,7 @@ static const duk_number_list_entry cp_constants[] = {
 static int NativeControlPanel(duk_context* ctx)
 {
     CreateWidget(ctx, WIDGET_TYPE_CONTAINER);
-    duk_put_function_list(ctx, -1, &container_functions[3]);
+    AJS_PutFunctionList(ctx, -1, &container_functions[3], TRUE);
     /*
      * Set the path on the control panel
      */
@@ -1061,12 +1060,12 @@ static int NativeControlPanel(duk_context* ctx)
     /*
      * Notification action dialog widgets reside at the top level
      */
-    duk_push_c_function(ctx, NativeDialogWidget, 1);
+    duk_push_c_lightfunc(ctx, NativeDialogWidget, 1, 0, 0);
     duk_put_prop_string(ctx, -2, "dialogWidget");
     /*
      * Add the load function that actually registers the AllJoyn objects for the widget tree
      */
-    duk_push_c_function(ctx, NativeLoadControlPanel, 0);
+    duk_push_c_lightfunc(ctx, NativeLoadControlPanel, 0, 0, 0);
     duk_put_prop_string(ctx, -2, "load");
     /*
      * Register a finalizer so we can unload the control panel

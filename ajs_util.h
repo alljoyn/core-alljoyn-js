@@ -38,6 +38,16 @@ extern uint8_t dbgAJS;
 #define AJS_HIDDEN_PROP(n) "\377" n
 
 /**
+ * Put a list of functions. This is very similar to the duktape duk_put_function_list() helper API but
+ * allows the caller to specify if the functions being pushed are lightfuncs or regular funct.
+ *
+ * @param ctx      An opaque pointer to a duktape context structure
+ * @param objIdx   Index on dulktape stack for the object
+ * @param funcList The functions to push
+ */
+void AJS_PutFunctionList(duk_context* ctx, duk_idx_t objIdx, const duk_function_list_entry *funcList, uint8_t light);
+
+/**
  * Register a finalizer on an object
  *
  * @param ctx      An opaque pointer to a duktape context structure

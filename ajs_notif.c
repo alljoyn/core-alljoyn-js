@@ -182,9 +182,9 @@ static int NativeNotification(duk_context* ctx)
     AddStringProp(ctx, "iconPath");
     AddStringProp(ctx, "audioPath");
     AddStringProp(ctx, "controlPanelPath");
-    duk_push_c_function(ctx, NativeSendNotification, 1);
+    duk_push_c_lightfunc(ctx, NativeSendNotification, 1, 0, 0);
     duk_put_prop_string(ctx, -2, "send");
-    duk_push_c_function(ctx, NativeCancelNotification, 0);
+    duk_push_c_lightfunc(ctx, NativeCancelNotification, 0, 0, 0);
     duk_put_prop_string(ctx, -2, "cancel");
     /*
      * The new object is the return value - leave it on the stack
@@ -192,22 +192,17 @@ static int NativeNotification(duk_context* ctx)
     return 1;
 }
 
+static const duk_number_list_entry notif_constants[] = {
+    { "Emergency", 0 },
+    { "Warning",   1 },
+    { "Info",      2 },
+    { NULL }
+};
+
 AJ_Status AJS_RegisterNotifHandlers(AJ_BusAttachment* bus, duk_context* ctx, duk_idx_t ajIdx)
 {
-    duk_idx_t notifIdx;
-
-    notifIdx = duk_push_c_function(ctx, NativeNotification, DUK_VARARGS);
-    /*
-     * Notification type consts
-     */
-    duk_push_int(ctx, 0);
-    duk_put_prop_string(ctx, notifIdx, "Emergency");
-    duk_push_int(ctx, 1);
-    duk_put_prop_string(ctx, notifIdx, "Warning");
-    duk_push_int(ctx, 2);
-    duk_put_prop_string(ctx, notifIdx, "Info");
-
+    duk_idx_t notifIdx = duk_push_c_function(ctx, NativeNotification, DUK_VARARGS);
+    duk_put_number_list(ctx, notifIdx, notif_constants);
     duk_put_prop_string(ctx, ajIdx, "notification");
-
     return AJ_OK;
 }

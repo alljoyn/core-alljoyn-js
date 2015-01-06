@@ -41,6 +41,7 @@ vars.Add(EnumVariable('WS', 'Whitespace Policy Checker', 'off', allowed_values=(
 vars.Add(EnumVariable('FORCE32', 'Force building 32 bit on 64 bit architecture', 'false', allowed_values=('false', 'true')))
 vars.Add(EnumVariable('POOL_MALLOC', 'Use pool based memory allocation - default is native malloc', 'false', allowed_values=('false', 'true')))
 vars.Add(EnumVariable('SHORT_SIZES', 'Use 16 bit sizes and pointers - only applies is using pool malloc', 'true', allowed_values=('false', 'true')))
+vars.Add(EnumVariable('EXT_STRINGS', 'Enable external string support', 'false', allowed_values=('false', 'true')))
 vars.Add(EnumVariable('DUKTAPE_SEPARATE', 'Use seperate rather than combined duktape source files', 'false', allowed_values=('false', 'true')))
 vars.Add(PathVariable('ARM_TOOLCHAIN_DIR', 'Path to the GNU ARM toolchain bin folder', os.environ.get('ARM_TOOLCHAIN_DIR'), PathVariable.PathIsDir))
 vars.Add(PathVariable('STM_SRC_DIR', 'Path to the source code for the STM32 microcontroller', os.environ.get('STM_SRC_DIR'), PathVariable.PathIsDir))
@@ -251,11 +252,12 @@ elif env['SHORT_SIZES'] == 'true':
     env.Append(CPPDEFINES=['\"DUK_OPT_HEAPPTR_ENC16(p)=AJS_EncodePtr16(p)\"'])
     env.Append(CPPDEFINES=['\"DUK_OPT_HEAPPTR_DEC16(x)=AJS_DecodePtr16(x)\"'])
 
-env.Append(CPPDEFINES=['DUK_OPT_EXTERNAL_STRINGS'])
-env.Append(CPPDEFINES=['\"DUK_OPT_EXTSTR_INTERN_CHECK(p,l)=AJS_ExternalStringCheck(p,l)\"'])
-env.Append(CPPDEFINES=['\"DUK_OPT_EXTSTR_FREE(p)=AJS_ExternalStringFree(p)\"'])
-env.Append(CPPDEFINES=['DUK_OPT_STRTAB_CHAIN'])
-env.Append(CPPDEFINES=['DUK_OPT_STRTAB_CHAIN_SIZE=128'])
+if env['EXT_STRINGS'] == 'true':
+    env.Append(CPPDEFINES=['DUK_OPT_EXTERNAL_STRINGS'])
+    env.Append(CPPDEFINES=['\"DUK_OPT_EXTSTR_INTERN_CHECK(p,l)=AJS_ExternalStringCheck(p,l)\"'])
+    env.Append(CPPDEFINES=['\"DUK_OPT_EXTSTR_FREE(p)=AJS_ExternalStringFree(p)\"'])
+    env.Append(CPPDEFINES=['DUK_OPT_STRTAB_CHAIN'])
+    env.Append(CPPDEFINES=['DUK_OPT_STRTAB_CHAIN_SIZE=128'])
 
 #######################################################
 # Services defines

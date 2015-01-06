@@ -4,7 +4,7 @@
  * @file
  */
 /******************************************************************************
- * Copyright (c) 2013, 2014, AllSeen Alliance. All rights reserved.
+ * Copyright (c) 2013-2015, AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -41,6 +41,10 @@ extern "C" {
  */
 #ifndef NDEBUG
 extern uint8_t dbgAJS;
+#endif
+
+#if DUK_VERSION < 10099
+#define duk_push_c_lightfunc(c, f, a, x, y) duk_push_c_function(c, f, a)
 #endif
 
 /*

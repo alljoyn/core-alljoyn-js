@@ -4,7 +4,7 @@
  * @file
  */
 /******************************************************************************
- * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
+ * Copyright (c) 2014-2015, AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -26,10 +26,6 @@
 #undef DUK_USE_UNALIGNED_ACCESSES_POSSIBLE
 #undef DUK_USE_HASHBYTES_UNALIGNED_U32_ACCESS
 #undef DUK_USE_HOBJECT_UNALIGNED_LAYOUT
-#endif
-
-#if DUK_VERSION < 10100
-#define duk_push_c_lightfunc(c, f, a, x, y) duk_push_c_function(c, f, a)
 #endif
 
 #define DUK_OPT_HEAPPTR_ENC16(p) AJS_EncodePtr16(p) 

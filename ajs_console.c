@@ -2,7 +2,7 @@
  * @file
  */
 /******************************************************************************
- * Copyright (c) 2013, 2014, AllSeen Alliance. All rights reserved.
+ * Copyright (c) 2013-2015, AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -112,36 +112,41 @@ static uint32_t MaxScriptLen()
 static uint32_t consoleSession = 0;
 static char consoleBusName[16];
 
-static void SignalConsole(duk_context* ctx, uint32_t sigId)
+static void SignalConsole(duk_context* ctx, uint32_t sigId, int nargs)
 {
     AJ_Status status;
     AJ_Message msg;
     size_t len = 0;
-    duk_idx_t top = duk_get_top_index(ctx);
-    const char* str = NULL;
     AJ_BusAttachment* bus = AJS_GetBusAttachment();
+    int i;
 
-#if DUK_VERSION < 10100
-#define duk_is_error(ctx, idx) (1)
-#endif
-    if (duk_is_error(ctx, top)) {
-        duk_get_prop_string(ctx, top, "stack");
-        if (duk_is_string(ctx, -1)) {
-            duk_replace(ctx, top);
-        } else {
-            duk_pop(ctx);
-        }
+    /*
+     * We need to know the total string length before we start to marshal
+     */
+    for (i = 0; i < nargs; ++i) {
+        size_t sz;
+        duk_safe_to_lstring(ctx, i, &sz);
+        len += sz;
     }
+
     status = AJ_MarshalSignal(bus, &msg, sigId, consoleBusName, consoleSession, 0, 0);
     if (status == AJ_OK) {
-        str = duk_safe_to_lstring(ctx, top, &len);
         status = AJ_DeliverMsgPartial(&msg, len + 1 + sizeof(uint32_t));
     }
     if (status == AJ_OK) {
         status = AJ_MarshalRaw(&msg, &len, 4);
     }
+    for (i = 0; (status == AJ_OK) && (i < nargs); ++i) {
+        size_t sz;
+        const char* str = duk_safe_to_lstring(ctx, i, &sz);
+        status = AJ_MarshalRaw(&msg, str, sz);
+    }
+    /*
+     * Marshal final NUL
+     */
     if (status == AJ_OK) {
-        status = AJ_MarshalRaw(&msg, str, len + 1);
+        char nul = 0;
+        status = AJ_MarshalRaw(&msg, &nul, 1);
     }
     if (status == AJ_OK) {
         status = AJ_DeliverMsg(&msg);
@@ -151,31 +156,19 @@ static void SignalConsole(duk_context* ctx, uint32_t sigId)
     }
 }
 
-static void AlertLocal(duk_context* ctx, uint8_t alert)
-{
-    const char* str;
-    int nargs = duk_get_top(ctx);
-    int i;
-
-    for (i = 0; i < nargs; ++i) {
-        duk_dup(ctx, i);
-    }
-    duk_concat(ctx, nargs);
-    str = duk_get_string(ctx, -1);
-    if (alert) {
-        AJ_Printf("ALERT: %s\n", str);
-    } else {
-        AJ_Printf("PRINT: %s\n", str);
-    }
-    duk_pop(ctx);
-}
-
 void AJS_AlertHandler(duk_context* ctx, uint8_t alert)
 {
+    int nargs = duk_get_top(ctx);
+
     if (consoleSession) {
-        SignalConsole(ctx, alert ? ALERT_SIGNAL_MSGID : PRINT_SIGNAL_MSGID);
+        SignalConsole(ctx, alert ? ALERT_SIGNAL_MSGID : PRINT_SIGNAL_MSGID, nargs);
     } else {
-        AlertLocal(ctx, alert);
+        int i;
+        AJ_Printf("%s: ", alert ? "ALERT" : "PRINT");
+        for (i = 0; i < nargs; ++i) {
+            AJ_Printf("%s", duk_safe_to_string(ctx, i));
+        }
+        AJ_Printf("\n");
     }
 }
 
@@ -185,8 +178,21 @@ static int SafeAlert(duk_context* ctx)
     return 0;
 }
 
+static int GetStackSafe(duk_context* ctx)
+{
+#if DUK_VERSION < 10099
+#define duk_is_error(ctx, idx) (1)
+#endif
+    if (duk_is_object(ctx, -1) && duk_has_prop_string(ctx, -1, "stack") && duk_is_error(ctx, -1)) {
+        duk_get_prop_string(ctx, -1, "stack");
+        duk_remove(ctx, -2);
+    }
+    return 1;
+}
+
 void AJS_ConsoleSignalError(duk_context* ctx)
 {
+    duk_safe_call(ctx, GetStackSafe, 1, 1);
     duk_safe_call(ctx, SafeAlert, 0, 0);
 }
 

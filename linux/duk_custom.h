@@ -28,11 +28,6 @@
 #undef DUK_USE_HOBJECT_UNALIGNED_LAYOUT
 #endif
 
-#define DUK_OPT_HEAPPTR_ENC16(p) AJS_EncodePtr16(p) 
-#define DUK_OPT_HEAPPTR_DEC16(x) AJS_DecodePtr16(x)
-#define DUK_OPT_EXTSTR_INTERN_CHECK(p,l) AJS_ExternalStringCheck(p,l)
-#define DUK_OPT_EXTSTR_FREE(p) AJS_ExternalStringFree(p)
-
 duk_uint16_t AJS_EncodePtr16(void *p);
 
 void* AJS_DecodePtr16(duk_uint16_t x);

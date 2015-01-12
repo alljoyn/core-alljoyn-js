@@ -44,7 +44,7 @@ thismodule = Extension('AJSConsole',
                            distdir + 'cpp/lib/liballjoyn.a',
                            distdir + 'cpp/lib/liballjoyn_about.a',
                        ],
-                       libraries = ['crypto', 'ssl'],
+                       libraries = ['crypto', 'ssl', 'rt'],
                                        
                        sources = ['ajs_console.cc', 'ajs_pyconsole.cc'])
 

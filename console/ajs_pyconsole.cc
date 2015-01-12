@@ -26,6 +26,8 @@ using namespace ajn;
 
 class AJS_PyConsole : public AJS_Console {
   public:
+    AJS_PyConsole();
+
     virtual void Notification(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg);
 
     virtual void Print(const char* fmt, ...);
@@ -36,7 +38,7 @@ class AJS_PyConsole : public AJS_Console {
 
     void Msg(const char* msgType, const char* msgText);
 
-    PyObject* pycallback = NULL; /* Only modify when Python GIL is held */
+    PyObject* pycallback; /* Only modify when Python GIL is held */
 
   private:
     virtual void RegisterHandlers(BusAttachment* ajb);
@@ -44,6 +46,10 @@ class AJS_PyConsole : public AJS_Console {
 };
 
 static AJS_PyConsole* console = NULL;
+
+
+AJS_PyConsole::AJS_PyConsole() : AJS_Console(), pycallback(NULL) {
+}
 
 void AJS_PyConsole::Print(const char* fmt, ...)
 {

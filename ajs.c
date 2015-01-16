@@ -2,7 +2,7 @@
  * @file
  */
 /******************************************************************************
- * Copyright (c) 2013, 2014, AllSeen Alliance. All rights reserved.
+ * Copyright (c) 2013-2015, AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -328,7 +328,9 @@ AJ_Status AJS_Main(const char* deviceName)
                 ret = duk_pcompile_lstring_filename(ctx, 0, (const char*)js, len);
                 AJ_NVRAM_Close(ds);
                 if (ret == DUK_EXEC_SUCCESS) {
+                    AJS_SetWatchdogTimer(AJS_DEFAULT_WATCHDOG_TIMEOUT);
                     ret = duk_pcall(ctx, 0);
+                    AJS_ClearWatchdogTimer();
                 }
                 if (ret != DUK_EXEC_SUCCESS) {
                     AJS_ConsoleSignalError(ctx);

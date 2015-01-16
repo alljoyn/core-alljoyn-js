@@ -216,7 +216,7 @@ void* AJS_Alloc(void* userData, size_t sz)
     return NULL;
 }
 
-duk_uint16_t AJS_EncodePtr16(void* ptr)
+duk_uint16_t AJS_EncodePtr16(void* userData, const void* ptr)
 {
     if (ptr) {
         ptrdiff_t offset = (ptrdiff_t)ptr - (ptrdiff_t)heapInfo.pools;
@@ -226,7 +226,7 @@ duk_uint16_t AJS_EncodePtr16(void* ptr)
     }
 }
 
-void* AJS_DecodePtr16(duk_uint16_t enc)
+void* AJS_DecodePtr16(void* userData, duk_uint16_t enc)
 {
     if (enc) {
         ptrdiff_t offset = ((ptrdiff_t)enc) << 2;

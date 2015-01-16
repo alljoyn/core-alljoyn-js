@@ -19,14 +19,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-/*
- * Force alignment for testing
- */
-#ifdef DUK_FORCE_ALIGNED_ACCESS
-#undef DUK_USE_UNALIGNED_ACCESSES_POSSIBLE
-#undef DUK_USE_HASHBYTES_UNALIGNED_U32_ACCESS
-#undef DUK_USE_HOBJECT_UNALIGNED_LAYOUT
-#endif
+#include "ajs_duk.h"
 
 #define vPortSVCHandler SVC_Handler
 #define xPortPendSVHandler PendSV_Handler

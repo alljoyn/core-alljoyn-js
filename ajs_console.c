@@ -283,7 +283,9 @@ static AJ_Status Eval(duk_context* ctx, AJ_Message* msg)
         retval = duk_pcompile_lstring_filename(ctx, DUK_COMPILE_EVAL, (const char*)js, len);
         AJ_Free(js);
         if (retval == DUK_EXEC_SUCCESS) {
+            AJS_SetWatchdogTimer(AJS_DEFAULT_WATCHDOG_TIMEOUT);
             retval = duk_pcall(ctx, 0);
+            AJS_ClearWatchdogTimer();
         }
         /*
          * Eval leaves the engine in an unknown state

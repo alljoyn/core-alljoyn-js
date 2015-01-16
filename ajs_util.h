@@ -4,7 +4,7 @@
  * @file
  */
 /******************************************************************************
- * Copyright (c) 2013, 2014, AllSeen Alliance. All rights reserved.
+ * Copyright (c) 2013-2015, AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -33,6 +33,11 @@ extern uint8_t dbgAJS;
 #endif
 
 /*
+ * Watchdog timer for detecting infinite loops
+ */
+#define AJS_DEFAULT_WATCHDOG_TIMEOUT   (10 * 1000)
+
+/*
  * Prefixing a property name with 0xFF makes it a hidden property
  */
 #define AJS_HIDDEN_PROP(n) "\377" n
@@ -45,7 +50,7 @@ extern uint8_t dbgAJS;
  * @param objIdx   Index on dulktape stack for the object
  * @param funcList The functions to push
  */
-void AJS_PutFunctionList(duk_context* ctx, duk_idx_t objIdx, const duk_function_list_entry *funcList, uint8_t light);
+void AJS_PutFunctionList(duk_context* ctx, duk_idx_t objIdx, const duk_function_list_entry*funcList, uint8_t light);
 
 /**
  * Register a finalizer on an object
@@ -177,6 +182,18 @@ duk_idx_t AJS_GetAllJoynProperty(duk_context* ctx, const char* prop);
  * @param objIdx   Index on duktape stack for the object
  */
 void AJS_ObjectFreeze(duk_context* ctx, duk_idx_t objIdx);
+
+/**
+ * Set the watchdog timer to trap infinite loops or use of blocking calls.
+ *
+ * @param timeout  Watchdog timer timeout value in milliseconds.
+ */
+void AJS_SetWatchdogTimer(uint32_t timeout);
+
+/**
+ * Clear the current watchdog timer.
+ */
+void AJS_ClearWatchdogTimer();
 
 /**
  * Prints out the JSON for an object on the duktape stack

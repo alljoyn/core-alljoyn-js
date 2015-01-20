@@ -19,6 +19,8 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#include "ajs_duk.h"
+
 /*
  * Force alignment for testing
  */
@@ -27,13 +29,5 @@
 #undef DUK_USE_HASHBYTES_UNALIGNED_U32_ACCESS
 #undef DUK_USE_HOBJECT_UNALIGNED_LAYOUT
 #endif
-
-duk_uint16_t AJS_EncodePtr16(void *p);
-
-void* AJS_DecodePtr16(duk_uint16_t x);
-
-const void* AJS_ExternalStringCheck(const void *ptr, duk_size_t len);
-
-void AJS_ExternalStringFree(const void *ptr);
 
 #endif

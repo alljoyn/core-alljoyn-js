@@ -2,7 +2,7 @@
  * @file
  */
 /******************************************************************************
- * Copyright (c) 2013, 2014, AllSeen Alliance. All rights reserved.
+ * Copyright (c) 2013-2015, AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -20,7 +20,7 @@
 #include "ajs.h"
 #include "ajs_util.h"
 
-void AJS_PutFunctionList(duk_context* ctx, duk_idx_t objIdx, const duk_function_list_entry *funcList, uint8_t light)
+void AJS_PutFunctionList(duk_context* ctx, duk_idx_t objIdx, const duk_function_list_entry*funcList, uint8_t light)
 {
     if (light) {
         objIdx = duk_normalize_index(ctx, objIdx);
@@ -208,6 +208,33 @@ void AJS_ClearPinnedStrings(duk_context* ctx)
         duk_pop(ctx);
         pinnedStrings = FALSE;
     }
+}
+
+static AJ_Time watchdogTimer;
+static uint32_t watchdogTimeout;
+
+void AJS_SetWatchdogTimer(uint32_t timeout)
+{
+    AJ_InitTimer(&watchdogTimer);
+    watchdogTimeout = timeout;
+}
+
+void AJS_ClearWatchdogTimer()
+{
+    watchdogTimeout = 0;
+}
+
+/*
+ * This function gets called periodically by the duktape bytecode executor.
+ */
+int AJS_ExecTimeoutCheck(const void*udata)
+{
+    if (watchdogTimeout) {
+        if (AJ_GetElapsedTime(&watchdogTimer, TRUE) > watchdogTimeout) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 void AJS_DumpJX(duk_context* ctx, const char* tag, duk_idx_t idx)

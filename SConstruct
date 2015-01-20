@@ -249,15 +249,19 @@ elif env['SHORT_SIZES'] == 'true':
     env.Append(CPPDEFINES=['DUK_OPT_BUFLEN16'])
     env.Append(CPPDEFINES=['DUK_OPT_OBJSIZES16'])
     env.Append(CPPDEFINES=['DUK_OPT_HEAPPTR16'])
-    env.Append(CPPDEFINES=['\"DUK_OPT_HEAPPTR_ENC16(u,p)=AJS_EncodePtr16(p)\"'])
-    env.Append(CPPDEFINES=['\"DUK_OPT_HEAPPTR_DEC16(u,x)=AJS_DecodePtr16(x)\"'])
+    env.Append(CPPDEFINES=['\"DUK_OPT_HEAPPTR_ENC16(u,p)=AJS_EncodePtr16(u,p)\"'])
+    env.Append(CPPDEFINES=['\"DUK_OPT_HEAPPTR_DEC16(u,x)=AJS_DecodePtr16(u,x)\"'])
 
 if env['EXT_STRINGS'] == 'true':
     env.Append(CPPDEFINES=['DUK_OPT_EXTERNAL_STRINGS'])
-    env.Append(CPPDEFINES=['\"DUK_OPT_EXTSTR_INTERN_CHECK(u,p,l)=AJS_ExternalStringCheck(p,l)\"'])
-    env.Append(CPPDEFINES=['\"DUK_OPT_EXTSTR_FREE(u,p)=AJS_ExternalStringFree(p)\"'])
+    env.Append(CPPDEFINES=['\"DUK_OPT_EXTSTR_INTERN_CHECK(u,p,l)=AJS_ExternalStringCheck(u,p,l)\"'])
+    env.Append(CPPDEFINES=['\"DUK_OPT_EXTSTR_FREE(u,p)=AJS_ExternalStringFree(u,p)\"'])
     env.Append(CPPDEFINES=['DUK_OPT_STRTAB_CHAIN'])
     env.Append(CPPDEFINES=['DUK_OPT_STRTAB_CHAIN_SIZE=128'])
+
+# Enable timeout checks
+env.Append(CPPDEFINES=['DUK_OPT_INTERRUPT_COUNTER'])
+env.Append(CPPDEFINES=['\"DUK_OPT_EXEC_TIMEOUT_CHECK(u)=AJS_ExecTimeoutCheck(u)\"'])
 
 #######################################################
 # Services defines

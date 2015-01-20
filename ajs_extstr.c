@@ -417,7 +417,7 @@ static const char* const sortedWords[] = {
     "\377wbuf"
 };
 
-const void* AJS_ExternalStringCheck(const void *ptr, duk_size_t len)
+const void* AJS_ExternalStringCheck(void* userData, const void* ptr, duk_size_t len)
 {
     const char* str = ptr;
     size_t min;
@@ -459,7 +459,8 @@ const void* AJS_ExternalStringCheck(const void *ptr, duk_size_t len)
     return NULL;
 }
 
-void AJS_ExternalStringFree(const void *ptr)
+void AJS_ExternalStringFree(void* userData, const void* extStr)
 {
+    /* No-op */
 }
 

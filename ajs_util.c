@@ -212,6 +212,17 @@ void AJS_ClearPinnedStrings(duk_context* ctx)
 
 static AJ_Time watchdogTimer;
 static uint32_t watchdogTimeout;
+static uint8_t watchdogEnabled = TRUE;
+
+void AJS_EnableWatchdogTimer(void)
+{
+    watchdogEnabled = TRUE;
+}
+
+void AJS_DisableWatchdogTimer(void)
+{
+    watchdogEnabled = FALSE;
+}
 
 void AJS_SetWatchdogTimer(uint32_t timeout)
 {
@@ -229,11 +240,15 @@ void AJS_ClearWatchdogTimer()
  */
 int AJS_ExecTimeoutCheck(const void*udata)
 {
-    if (watchdogTimeout) {
-        if (AJ_GetElapsedTime(&watchdogTimer, TRUE) > watchdogTimeout) {
-            return 1;
+    if (watchdogEnabled) {
+        if (watchdogTimeout) {
+            if (AJ_GetElapsedTime(&watchdogTimer, TRUE) > watchdogTimeout) {
+                return 1;
+            }
         }
+        return 0;
     }
+    watchdogTimeout = 0;
     return 0;
 }
 

@@ -55,6 +55,7 @@ ajs_sources = [
      'ajs_translations.c',
      'ajs_unmarshal.c',
      'ajs_util.c',
+     'ajs_debugger.c',
      env['os'] + '/ajs_main.c',
      env['os'] + '/ajs_malloc.c',
      env['os'] + '/ajs_obs_stubs.c'
@@ -88,5 +89,6 @@ if env['WS'] != 'off' and not env.GetOption('clean') and not env.GetOption('help
     env.Command('#/ws_ajtcl', Dir('$DISTDIR'), wsbuild)
 
 prog = env.Program('alljoynjs', sources)
+
 
 Return('prog')

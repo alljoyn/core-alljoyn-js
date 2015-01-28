@@ -184,6 +184,18 @@ duk_idx_t AJS_GetAllJoynProperty(duk_context* ctx, const char* prop);
 void AJS_ObjectFreeze(duk_context* ctx, duk_idx_t objIdx);
 
 /**
+ * Enable the watchdog timer
+ */
+void AJS_EnableWatchdogTimer(void);
+
+/**
+ * Disable the watchdog timer.
+ * Warning: This disables protection against malicious scripts
+ * that could cause infinite loops.
+ */
+void AJS_DisableWatchdogTimer(void);
+
+/**
  * Set the watchdog timer to trap infinite loops or use of blocking calls.
  *
  * @param timeout  Watchdog timer timeout value in milliseconds.

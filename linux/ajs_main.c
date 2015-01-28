@@ -85,6 +85,16 @@ static AJ_Status InstallScript(const char* fn)
                 AJ_NVRAM_Write(data, len, ds);
                 AJ_NVRAM_Close(ds);
             }
+            len += 4;
+            /*
+             * Store the scripts length
+             */
+            ds = AJ_NVRAM_Open(AJS_SCRIPT_SIZE_ID, "w", sizeof(uint32_t));
+            if (AJ_NVRAM_Write(&len, sizeof(len), ds) != sizeof(len)) {
+                status = AJ_ERR_RESOURCES;
+                return status;
+            }
+            AJ_NVRAM_Close(ds);
             /*
              * Now store the script name
              */
@@ -94,6 +104,8 @@ static AJ_Status InstallScript(const char* fn)
                 AJ_NVRAM_Write(fn, len, ds);
                 AJ_NVRAM_Close(ds);
             }
+
+
         }
         CloseScript(&sf);
     }

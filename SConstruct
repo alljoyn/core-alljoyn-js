@@ -46,6 +46,8 @@ vars.Add(EnumVariable('DUKTAPE_SEPARATE', 'Use seperate rather than combined duk
 vars.Add(PathVariable('ARM_TOOLCHAIN_DIR', 'Path to the GNU ARM toolchain bin folder', os.environ.get('ARM_TOOLCHAIN_DIR'), PathVariable.PathIsDir))
 vars.Add(PathVariable('STM_SRC_DIR', 'Path to the source code for the STM32 microcontroller', os.environ.get('STM_SRC_DIR'), PathVariable.PathIsDir))
 vars.Add(PathVariable('FREE_RTOS_DIR','Directory to FreeRTOS source code', os.environ.get('FREE_RTOS_DIR'), PathVariable.PathIsDir))
+vars.Add(EnumVariable('DUK_DEBUG', 'Turn on standard output for the duktape engine', 'off', allowed_values=('on', 'off')))
+
 
 if default_msvc_version:
     vars.Add(EnumVariable('MSVC_VERSION', 'MSVC compiler version - Windows', default_msvc_version, allowed_values=('8.0', '9.0', '10.0', '11.0', '11.0Exp', '12.0', '12.0Exp')))
@@ -167,6 +169,9 @@ if env['TARG'] == 'linux':
         env.Append(CFLAGS=['-O0'])
         env.Append(CPPDEFINES=['AJ_DEBUG_RESTRICT=5'])
         env.Append(CPPDEFINES=['DBGAll'])
+        env.Append(CPPDEFINES=['DUK_OPT_DEBUGGER_SUPPORT'])
+        env.Append(CPPDEFINES=['DUK_OPT_INTERRUPT_COUNTER'])
+        env.Append(CPPDEFINES=['DUK_CMDLINE_DEBUGGER_SUPPORT'])
     else:
         env.Append(CPPDEFINES=['NDEBUG'])
         env.Append(CFLAGS=['-Os'])
@@ -233,6 +238,9 @@ env.Append(CPPDEFINES=['DUK_OPT_HAVE_CUSTOM_H'])
 env.Append(CPPDEFINES=['DUK_OPT_NO_FILE_IO'])
 env.Append(CPPDEFINES=['DUK_OPT_FORCE_ALIGN=4'])
 env.Append(CPPDEFINES=['DDUK_OPT_LIGHTFUNC_BUILTINS'])
+if env['DUK_DEBUG'] == 'on':
+    env.Append(CPPDEFINES=['DUK_OPT_DEBUG'])
+    env.Append(CPPDEFINES=['DUK_OPT_DPRINT'])
 
 # Additional duktape options when building for debug mode
 if env['VARIANT'] == 'debug':

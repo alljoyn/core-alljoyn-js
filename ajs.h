@@ -59,6 +59,7 @@ extern uint8_t dbgAJS;
  */
 #define AJS_SCRIPT_NAME_NVRAM_ID  (AJ_NVRAM_ID_FOR_APPS + 0)
 #define AJS_SCRIPT_NVRAM_ID       (AJ_NVRAM_ID_FOR_APPS + 1)
+#define AJS_SCRIPT_SIZE_ID        (AJ_NVRAM_ID_FOR_APPS + 2)
 #define AJS_PROPSTORE_NVRAM_ID    (AJ_NVRAM_ID_FOR_APPS + 32)
 #define AJS_PROPSTORE_NVRAM_MIN   (AJS_PROPSTORE_NVRAM_ID + 1)
 #define AJS_PROPSTORE_NVRAM_MAX   (AJS_PROPSTORE_NVRAM_MIN + 256)
@@ -109,6 +110,27 @@ typedef struct {
  * Is the AllJoyn bus up and running and ready to send/receiver messages.
  */
 uint8_t AJS_IsRunning();
+
+/**
+ * Gets the size of the script currently in NVRAM
+ *
+ * @return      Script size
+ */
+uint32_t AJS_GetScriptSize(void);
+
+/**
+ * Get the console bus name once a connection is made
+ *
+ * @return      Name of the console bus
+ */
+char* AJS_GetConsoleBusName(void);
+
+/**
+ * Get the console's session ID
+ *
+ * @return      Session ID
+ */
+uint32_t AJS_GetConsoleSession(void);
 
 /**
  * Get a pointer to the bus attachment

@@ -2,7 +2,7 @@
  * @file
  */
 /******************************************************************************
- * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
+ * Copyright (c) 2014, 2015 AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -26,8 +26,6 @@
 #ifndef NDEBUG
 uint8_t dbgDEBUGGER = 0;
 #endif
-
-#define DBG_PRINT_CHUNKS
 
 static uint8_t readBuffer[DEBUG_BUFFER_SIZE];
 static uint8_t writeBuffer[DEBUG_BUFFER_SIZE];
@@ -80,123 +78,130 @@ static uint16_t unmarhsalBuffer(uint8_t* buffer, uint32_t length, uint16_t offse
         case (AJ_DUK_TYPE_NULL):
         case (AJ_DUK_TYPE_TRUE):
         case (AJ_DUK_TYPE_FALSE):
-        {
-            uint8_t* u8;
-            u8 = (uint8_t*)va_arg(args, uint8_t*);
-            memcpy(u8, ptr, sizeof(uint8_t));
-            ptr += 1;
-            numBytes += 1;
-        }
-        break;
+            {
+                uint8_t* u8;
+                u8 = (uint8_t*)va_arg(args, uint8_t*);
+                memcpy(u8, ptr, sizeof(uint8_t));
+                ptr += 1;
+                numBytes += 1;
+            }
+            break;
+
         case (AJ_DUK_TYPE_UINT32):
-        {
-            uint32_t* u32;
-            u32 = (uint32_t*)va_arg(args, uint32_t*);
-            if (*ptr != DBG_TYPE_INTEGER4) {
-                goto ErrorUnmarshal;
+            {
+                uint32_t* u32;
+                u32 = (uint32_t*)va_arg(args, uint32_t*);
+                if (*ptr != DBG_TYPE_INTEGER4) {
+                    goto ErrorUnmarshal;
+                }
+                /* Advance past identifier */
+                ptr++;
+                numBytes++;
+                memcpy(u32, ptr, sizeof(uint32_t));
+                ptr += sizeof(uint32_t);
+                numBytes += sizeof(uint32_t);
             }
-            /* Advance past identifier */
-            ptr++;
-            numBytes++;
-            memcpy(u32, ptr, sizeof(uint32_t));
-            ptr += sizeof(uint32_t);
-            numBytes += sizeof(uint32_t);
-        }
-        break;
+            break;
+
         case (AJ_DUK_TYPE_STRING4):
-        {
-            char** str;
-            uint32_t size;
-            if (*ptr != DBG_TYPE_STRING4) {
-                goto ErrorUnmarshal;
+            {
+                char** str;
+                uint32_t size;
+                if (*ptr != DBG_TYPE_STRING4) {
+                    goto ErrorUnmarshal;
+                }
+                /* Advance past identifier */
+                ptr++;
+                numBytes++;
+                memcpy(&size, ptr, sizeof(uint32_t));
+                ptr += sizeof(uint32_t);
+                numBytes += sizeof(uint32_t);
+                str = (char**)va_arg(args, char*);
+                *str = (char*)AJ_Malloc(sizeof(char) * size + 1);
+                memcpy(*str, ptr, sizeof(char) * size + 1);
+                (*str)[size] = '\0';
+                ptr += size;
+                numBytes += size;
             }
-            /* Advance past identifier */
-            ptr++;
-            numBytes++;
-            memcpy(&size, ptr, sizeof(uint32_t));
-            ptr += sizeof(uint32_t);
-            numBytes += sizeof(uint32_t);
-            str = (char**)va_arg(args, char*);
-            *str = (char*)AJ_Malloc(sizeof(char) * size + 1);
-            memcpy(*str, ptr, sizeof(char) * size + 1);
-            (*str)[size] = '\0';
-            ptr += size;
-            numBytes += size;
-        }
-        break;
+            break;
+
         case (AJ_DUK_TYPE_STRING2):
-        {
-            char** str;
-            uint16_t size;
-            if (*ptr != DBG_TYPE_STRING2) {
-                goto ErrorUnmarshal;
+            {
+                char** str;
+                uint16_t size;
+                if (*ptr != DBG_TYPE_STRING2) {
+                    goto ErrorUnmarshal;
+                }
+                /* Advance past identifier */
+                ptr++;
+                numBytes++;
+                memcpy(&size, ptr, sizeof(uint16_t));
+                ptr += sizeof(uint16_t);
+                numBytes += sizeof(uint16_t);
+                str = (char**)va_arg(args, char*);
+                *str = (char*)AJ_Malloc(sizeof(char) * size + 1);
+                memcpy(*str, ptr, sizeof(char) * size + 1);
+                (*str)[size] = '\0';
+                ptr += size;
+                numBytes += size;
             }
-            /* Advance past identifier */
-            ptr++;
-            numBytes++;
-            memcpy(&size, ptr, sizeof(uint16_t));
-            ptr += sizeof(uint16_t);
-            numBytes += sizeof(uint16_t);
-            str = (char**)va_arg(args, char*);
-            *str = (char*)AJ_Malloc(sizeof(char) * size + 1);
-            memcpy(*str, ptr, sizeof(char) * size + 1);
-            (*str)[size] = '\0';
-            ptr += size;
-            numBytes += size;
-        }
-        break;
+            break;
+
         case (AJ_DUK_TYPE_BUFFER4):
-        {
-            uint8_t** buf;
-            uint32_t size;
-            if (*ptr != DBG_TYPE_BUFFER4) {
-                goto ErrorUnmarshal;
+            {
+                uint8_t** buf;
+                uint32_t size;
+                if (*ptr != DBG_TYPE_BUFFER4) {
+                    goto ErrorUnmarshal;
+                }
+                ptr++;
+                numBytes++;
+                memcpy(&size, ptr, sizeof(uint32_t));
+                ptr += sizeof(uint32_t);
+                numBytes += sizeof(uint32_t);
+                buf = (uint8_t**)va_arg(args, uint8_t*);
+                *buf = (uint8_t*)AJ_Malloc(sizeof(uint8_t) * size);
+                memcpy(*buf, ptr, sizeof(uint8_t) * size);
+                ptr += size;
+                numBytes += size;
             }
-            ptr++;
-            numBytes++;
-            memcpy(&size, ptr, sizeof(uint32_t));
-            ptr += sizeof(uint32_t);
-            numBytes += sizeof(uint32_t);
-            buf = (uint8_t**)va_arg(args, uint8_t*);
-            *buf = (uint8_t*)AJ_Malloc(sizeof(uint8_t) * size);
-            memcpy(*buf, ptr, sizeof(uint8_t) * size);
-            ptr += size;
-            numBytes += size;
-        }
-        break;
+            break;
+
         case (AJ_DUK_TYPE_BUFFER2):
-        {
-            uint8_t** buf;
-            uint16_t size;
-            if (*ptr != DBG_TYPE_BUFFER4) {
-                goto ErrorUnmarshal;
+            {
+                uint8_t** buf;
+                uint16_t size;
+                if (*ptr != DBG_TYPE_BUFFER4) {
+                    goto ErrorUnmarshal;
+                }
+                ptr++;
+                numBytes++;
+                memcpy(&size, ptr, sizeof(uint16_t));
+                ptr += sizeof(uint16_t);
+                numBytes += sizeof(uint16_t);
+                buf = (uint8_t**)va_arg(args, uint8_t*);
+                *buf = (uint8_t*)AJ_Malloc(sizeof(uint8_t) * size);
+                memcpy(*buf, ptr, sizeof(uint8_t) * size);
+                ptr += size;
+                numBytes += size;
             }
-            ptr++;
-            numBytes++;
-            memcpy(&size, ptr, sizeof(uint16_t));
-            ptr += sizeof(uint16_t);
-            numBytes += sizeof(uint16_t);
-            buf = (uint8_t**)va_arg(args, uint8_t*);
-            *buf = (uint8_t*)AJ_Malloc(sizeof(uint8_t) * size);
-            memcpy(*buf, ptr, sizeof(uint8_t) * size);
-            ptr += size;
-            numBytes += size;
-        }
-        break;
+            break;
+
         case (AJ_DUK_TYPE_NUMBER):
-        {
-            uint64_t* number;
-            if (*ptr != DBG_TYPE_NUMBER) {
-                goto ErrorUnmarshal;
+            {
+                uint64_t* number;
+                if (*ptr != DBG_TYPE_NUMBER) {
+                    goto ErrorUnmarshal;
+                }
+                ptr++;
+                numBytes++;
+                number = (uint64_t*)va_arg(args, uint64_t*);
+                memcpy(number, ptr, sizeof(uint64_t));
+                ptr += sizeof(uint64_t);
+                numBytes += sizeof(uint64_t);
             }
-            ptr++;
-            numBytes++;
-            number = (uint64_t*)va_arg(args, uint64_t*);
-            memcpy(number, ptr, sizeof(uint64_t));
-            ptr += sizeof(uint64_t);
-            numBytes += sizeof(uint64_t);
-        }
-        break;
+            break;
+
         case (AJ_DUK_TYPE_OBJECT):
         case (AJ_DUK_TYPE_POINTER):
         case (AJ_DUK_TYPE_LIGHTFUNC):
@@ -204,51 +209,54 @@ static uint16_t unmarhsalBuffer(uint8_t* buffer, uint32_t length, uint16_t offse
             //TODO: Implement object, pointer, light func, and heap pointer types
             AJ_ErrPrintf(("Currently object, pointer, lightfunc and heap pointer types are not implemented\n"));
             goto ErrorUnmarshal;
+
         case (AJ_DUK_TYPE_STRING):
-        {
-            char** str;
-            uint8_t size;
-            if ((*ptr < DBG_TYPE_STRLOW) || (*ptr > DBG_TYPE_STRHIGH)) {
-                goto ErrorUnmarshal;
+            {
+                char** str;
+                uint8_t size;
+                if ((*ptr < DBG_TYPE_STRLOW) || (*ptr > DBG_TYPE_STRHIGH)) {
+                    goto ErrorUnmarshal;
+                }
+                size = (*ptr) - 0x60;
+                ptr++;
+                numBytes++;
+                str = (char**)va_arg(args, char*);
+                *str = (char*)AJ_Malloc(sizeof(char) * size + 1);
+                memcpy(*str, ptr, sizeof(char) * size + 1);
+                (*str)[size] = '\0';
+                ptr += size;
+                numBytes += size;
             }
-            size = (*ptr) - 0x60;
-            ptr++;
-            numBytes++;
-            str = (char**)va_arg(args, char*);
-            *str = (char*)AJ_Malloc(sizeof(char) * size + 1);
-            memcpy(*str, ptr, sizeof(char) * size + 1);
-            (*str)[size] = '\0';
-            ptr += size;
-            numBytes += size;
-        }
-        break;
+            break;
+
         case (AJ_DUK_TYPE_INTSM):
-        {
-            uint8_t* u8;
-            if ((*ptr < 0x80) || (*ptr > 0xbf)) {
-                goto ErrorUnmarshal;
+            {
+                uint8_t* u8;
+                if ((*ptr < 0x80) || (*ptr > 0xbf)) {
+                    goto ErrorUnmarshal;
+                }
+                u8 = (uint8_t*)va_arg(args, uint8_t*);
+                memcpy(u8, ptr, sizeof(uint8_t));
+                *u8 -= 0x80;
+                ptr += 1;
+                numBytes += 1;
             }
-            u8 = (uint8_t*)va_arg(args, uint8_t*);
-            memcpy(u8, ptr, sizeof(uint8_t));
-            *u8 -= 0x80;
-            ptr += 1;
-            numBytes += 1;
-        }
-        break;
+            break;
+
         case (AJ_DUK_TYPE_INTLG):
-        {
-            uint16_t* u16;
-            if ((*ptr < 0xc0) || (*ptr > 0xff)) {
-                goto ErrorUnmarshal;
+            {
+                uint16_t* u16;
+                if ((*ptr < 0xc0) || (*ptr > 0xff)) {
+                    goto ErrorUnmarshal;
+                }
+                u16 = (uint16_t*)va_arg(args, uint16_t*);
+                /* ((byte0 - 0xc0) << 8) + byte1 */
+                memcpy(u16, ptr, sizeof(uint16_t));
+                //*u16 = ((((*ptr) - 0xc0) << 8) | *(ptr + 1));
+                ptr += 2;
+                numBytes += 2;
             }
-            u16 = (uint16_t*)va_arg(args, uint16_t*);
-            /* ((byte0 - 0xc0) << 8) + byte1 */
-            memcpy(u16, ptr, sizeof(uint16_t));
-            //*u16 = ((((*ptr) - 0xc0) << 8) | *(ptr + 1));
-            ptr += 2;
-            numBytes += 2;
-        }
-        break;
+            break;
         }
     }
     va_end(args);
@@ -265,11 +273,11 @@ AJS_DebuggerState* AJS_InitDebugger(duk_context* ctx)
     state->read = AJ_Malloc(sizeof(AJ_IOBuffer));
     state->write = AJ_Malloc(sizeof(AJ_IOBuffer));
     /* Init write buffer */
-    memset(writeBuffer, 0 , sizeof(writeBuffer));
+    memset(writeBuffer, 0, sizeof(writeBuffer));
     AJ_IOBufInit(state->write, writeBuffer, sizeof(writeBuffer), 0, NULL);
 
     /* Init read buffer */
-    memset(readBuffer, 0 , sizeof(readBuffer));
+    memset(readBuffer, 0, sizeof(readBuffer));
     AJ_IOBufInit(state->read, readBuffer, sizeof(readBuffer), 0, NULL);
 
     state->ctx = ctx;
@@ -317,10 +325,10 @@ static uint32_t marshalTvalMsg(AJ_Message* msg, uint8_t valType, uint8_t* buffer
         }
         size += sizeof(uint64_t);
     } else if ((valType == DBG_TYPE_UNUSED) ||
-            (valType == DBG_TYPE_UNDEFINED) ||
-            (valType == DBG_TYPE_NULL) ||
-            (valType == DBG_TYPE_TRUE) ||
-            (valType == DBG_TYPE_FALSE)) {
+               (valType == DBG_TYPE_UNDEFINED) ||
+               (valType == DBG_TYPE_NULL) ||
+               (valType == DBG_TYPE_TRUE) ||
+               (valType == DBG_TYPE_FALSE)) {
         uint8_t value = valType;
         if (status == AJ_OK) {
             status = AJ_MarshalVariant(msg, "y");
@@ -488,7 +496,7 @@ static uint32_t copyToBuffers(AJS_DebuggerState* state, uint8_t* to, uint8_t* fr
     return newMinLen;
 }
 
-duk_size_t AJS_DebuggerRead(void* udata, char *buffer, duk_size_t length)
+duk_size_t AJS_DebuggerRead(void* udata, char*buffer, duk_size_t length)
 {
     AJS_DebuggerState* state = (AJS_DebuggerState*)udata;
     AJ_Status status;
@@ -534,273 +542,278 @@ duk_size_t AJS_DebuggerRead(void* udata, char *buffer, duk_size_t length)
                 status = AJ_BusHandleBusMessage(&msg);
                 AJ_CloseMsg(&msg);
                 break;
+
             case DBG_ADDBREAK_MSGID:
-            {
-                char* file;
-                uint8_t line;
-                uint8_t* tmp;
-                uint8_t msgLen;
-                status = AJ_UnmarshalArgs(&msg, "sy", &file, &line);
+                {
+                    char* file;
+                    uint8_t line;
+                    uint8_t* tmp;
+                    uint8_t msgLen;
+                    status = AJ_UnmarshalArgs(&msg, "sy", &file, &line);
 
-                if (status == AJ_OK) {
-                    msgLen = strlen(file) + 5;
-                    tmp = AJ_Malloc(msgLen);
-                    memset(tmp, DBG_TYPE_REQ, 1);
-                    memset(tmp + 1, (ADD_BREAK_REQ + 0x80), 1);
-                    memset(tmp + 2, (strlen(file) + 0x60), 1);
-                    memcpy(tmp + 3, file, strlen(file));
-                    memset(tmp + 3 + strlen(file), (line + 0x80), 1);
-                    memset(tmp + 3 + strlen(file) + 1, DBG_TYPE_EOM, 1);
+                    if (status == AJ_OK) {
+                        msgLen = strlen(file) + 5;
+                        tmp = AJ_Malloc(msgLen);
+                        memset(tmp, DBG_TYPE_REQ, 1);
+                        memset(tmp + 1, (ADD_BREAK_REQ + 0x80), 1);
+                        memset(tmp + 2, (strlen(file) + 0x60), 1);
+                        memcpy(tmp + 3, file, strlen(file));
+                        memset(tmp + 3 + strlen(file), (line + 0x80), 1);
+                        memset(tmp + 3 + strlen(file) + 1, DBG_TYPE_EOM, 1);
 
-                    /* Copy the bytes to the static buffer as well as the read buffer */
-                    newMinLen = copyToBuffers(state, (uint8_t*)buffer, tmp, (uint32_t)msgLen, (uint32_t)length);
+                        /* Copy the bytes to the static buffer as well as the read buffer */
+                        newMinLen = copyToBuffers(state, (uint8_t*)buffer, tmp, (uint32_t)msgLen, (uint32_t)length);
 
-                    memcpy(&state->lastMsg, &msg, sizeof(AJ_Message));
-                    state->lastMsgType = ADD_BREAK_REQ;
+                        memcpy(&state->lastMsg, &msg, sizeof(AJ_Message));
+                        state->lastMsgType = ADD_BREAK_REQ;
 
-                    AJ_CloseMsg(&msg);
-                    AJ_Free(tmp);
-                    return newMinLen;
-                }
-            }
-            break;
-            case DBG_DELBREAK_MSGID:
-            {
-                uint8_t index;
-                uint8_t msgLen = 4;
-                status = AJ_UnmarshalArgs(&msg, "y", &index);
-                if (status == AJ_OK) {
-                    uint32_t tmp = BUILD_DBG_MSG(DBG_TYPE_REQ, (DEL_BREAK_REQ + 0x80), (index + 0x80), DBG_TYPE_EOM);
-
-                    /* Copy the bytes to the static buffer as well as the read buffer */
-                    newMinLen = copyToBuffers(state, (uint8_t*)buffer, (uint8_t*)&tmp, msgLen, length);
-
-                    memcpy(&state->lastMsg, &msg, sizeof(AJ_Message));
-                    state->lastMsgType = DEL_BREAK_REQ;
-
-                    AJ_CloseMsg(&msg);
-                    return newMinLen;
-                }
-            }
-            break;
-            case DBG_GETVAR_MSGID:
-            {
-                char* var;
-                uint8_t varLen;
-                uint8_t* tmp;
-                uint8_t msgLen;
-                status = AJ_UnmarshalArgs(&msg, "s", &var);
-                if (status == AJ_OK) {
-                    varLen = strlen(var);
-                    msgLen = (varLen + 4);
-                    tmp = AJ_Malloc(msgLen);
-                    memset(tmp, DBG_TYPE_REQ, 1);
-                    memset(tmp + 1, (GET_VAR_REQ + 0x80), 1);
-                    memset(tmp + 2, (varLen + 0x60), 1);
-                    memcpy(tmp + 3, var, varLen);
-                    memset(tmp + 3 + varLen, DBG_TYPE_EOM, 1);
-
-                    /* Copy the bytes to the static buffer as well as the read buffer */
-                    newMinLen = copyToBuffers(state, (uint8_t*)buffer, tmp, msgLen, length);
-
-                    memcpy(&state->lastMsg, &msg, sizeof(AJ_Message));
-                    state->lastMsgType = GET_VAR_REQ;
-
-                    AJ_Free(tmp);
-                    AJ_CloseMsg(&msg);
-                    return newMinLen;
-                }
-            }
-            break;
-            case DBG_PUTVAR_MSGID:
-            {
-                char* name;
-                uint8_t type;
-                uint32_t size;
-                size_t sz;
-                uint8_t nameLen;
-                uint32_t runningLength = 0;
-                const void* raw;
-                status = AJ_UnmarshalArgs(&msg, "sy", &name, &type);
-                if (status == AJ_OK) {
-                    status = AJ_UnmarshalRaw(&msg, &raw, sizeof(size), &sz);
-                }
-                if (status == AJ_OK) {
-                    memcpy(&size, raw, sizeof(size));
-                }
-                nameLen = strlen(name);
-                /*
-                 * Check for room:
-                 * <REQ><PUTVAR><NAMELEN><NAME><TYPE>
-                 *   1  +  1   +   1   +   N  +  1
-                 */
-                if (AJ_IO_BUF_SPACE(state->read) < (nameLen + 4)) {
-                    AJ_ErrPrintf(("No space to write debug message\n"));
-                    return 0;
-                }
-                /*
-                 * Formulate the debug message header
-                 * <REQ><0x1b><NAME LEN><NAME STR><VAL TYPE><VALUE BYTES><EOM>
-                 */
-                memset(state->read->writePtr, DBG_TYPE_REQ, 1);
-                runningLength++;
-                state->read->writePtr++;
-                memset(state->read->writePtr, (PUT_VAR_REQ + 0x80), 1);
-                runningLength++;
-                state->read->writePtr++;
-                memset(state->read->writePtr, (nameLen + 0x60), 1);
-                runningLength++;
-                state->read->writePtr++;
-                memcpy(state->read->writePtr, name, nameLen);
-                runningLength += nameLen;
-                state->read->writePtr += nameLen;
-                memset(state->read->writePtr, type, 1);
-                runningLength++;
-                state->read->writePtr++;
-
-                /* Number (double) needs an endian swap */
-                if (type == DBG_TYPE_NUMBER) {
-                    uint64_t tmp = 0;
-                    uint8_t* t = (uint8_t*)&tmp;
-                    uint8_t pos = 0;
-                    while (size) {
-                        status = AJ_UnmarshalRaw(&msg, &raw, size, &sz);
-                        if (status != AJ_OK) {
-                            AJ_ErrPrintf(("AJS_DebuggerRead(): Error unmarshalling\n"));
-                            return 0;
-                        }
-
-                        memcpy((t + pos), raw, sz);
-                        pos += sz;
-                        runningLength += sz;
-                        size -= sz;
+                        AJ_CloseMsg(&msg);
+                        AJ_Free(tmp);
+                        return newMinLen;
                     }
+                }
+                break;
 
-                    tmp = (double)AJ_ByteSwap64(tmp);
-                    if (AJ_IO_BUF_SPACE(state->read) < 8) {
+            case DBG_DELBREAK_MSGID:
+                {
+                    uint8_t index;
+                    uint8_t msgLen = 4;
+                    status = AJ_UnmarshalArgs(&msg, "y", &index);
+                    if (status == AJ_OK) {
+                        uint32_t tmp = BUILD_DBG_MSG(DBG_TYPE_REQ, (DEL_BREAK_REQ + 0x80), (index + 0x80), DBG_TYPE_EOM);
+
+                        /* Copy the bytes to the static buffer as well as the read buffer */
+                        newMinLen = copyToBuffers(state, (uint8_t*)buffer, (uint8_t*)&tmp, msgLen, length);
+
+                        memcpy(&state->lastMsg, &msg, sizeof(AJ_Message));
+                        state->lastMsgType = DEL_BREAK_REQ;
+
+                        AJ_CloseMsg(&msg);
+                        return newMinLen;
+                    }
+                }
+                break;
+
+            case DBG_GETVAR_MSGID:
+                {
+                    char* var;
+                    uint8_t varLen;
+                    uint8_t* tmp;
+                    uint8_t msgLen;
+                    status = AJ_UnmarshalArgs(&msg, "s", &var);
+                    if (status == AJ_OK) {
+                        varLen = strlen(var);
+                        msgLen = (varLen + 4);
+                        tmp = AJ_Malloc(msgLen);
+                        memset(tmp, DBG_TYPE_REQ, 1);
+                        memset(tmp + 1, (GET_VAR_REQ + 0x80), 1);
+                        memset(tmp + 2, (varLen + 0x60), 1);
+                        memcpy(tmp + 3, var, varLen);
+                        memset(tmp + 3 + varLen, DBG_TYPE_EOM, 1);
+
+                        /* Copy the bytes to the static buffer as well as the read buffer */
+                        newMinLen = copyToBuffers(state, (uint8_t*)buffer, tmp, msgLen, length);
+
+                        memcpy(&state->lastMsg, &msg, sizeof(AJ_Message));
+                        state->lastMsgType = GET_VAR_REQ;
+
+                        AJ_Free(tmp);
+                        AJ_CloseMsg(&msg);
+                        return newMinLen;
+                    }
+                }
+                break;
+
+            case DBG_PUTVAR_MSGID:
+                {
+                    char* name;
+                    uint8_t type;
+                    uint32_t size;
+                    size_t sz;
+                    uint8_t nameLen;
+                    uint32_t runningLength = 0;
+                    const void* raw;
+                    status = AJ_UnmarshalArgs(&msg, "sy", &name, &type);
+                    if (status == AJ_OK) {
+                        status = AJ_UnmarshalRaw(&msg, &raw, sizeof(size), &sz);
+                    }
+                    if (status == AJ_OK) {
+                        memcpy(&size, raw, sizeof(size));
+                    }
+                    nameLen = strlen(name);
+                    /*
+                     * Check for room:
+                     * <REQ><PUTVAR><NAMELEN><NAME><TYPE>
+                     *   1  +  1   +   1   +   N  +  1
+                     */
+                    if (AJ_IO_BUF_SPACE(state->read) < (nameLen + 4)) {
                         AJ_ErrPrintf(("No space to write debug message\n"));
                         return 0;
                     }
-                    memcpy(state->read->writePtr, &tmp, 8);
-                    state->read->writePtr += 8;
-                } else {
                     /*
-                     * Copy value data into the read buffer
+                     * Formulate the debug message header
+                     * <REQ><0x1b><NAME LEN><NAME STR><VAL TYPE><VALUE BYTES><EOM>
                      */
-                    while (size) {
-                        status = AJ_UnmarshalRaw(&msg, &raw, size, &sz);
-                        if (status != AJ_OK) {
-                            AJ_ErrPrintf(("AJS_DebuggerRead(): Error unmarshalling\n"));
-                            return 0;
+                    memset(state->read->writePtr, DBG_TYPE_REQ, 1);
+                    runningLength++;
+                    state->read->writePtr++;
+                    memset(state->read->writePtr, (PUT_VAR_REQ + 0x80), 1);
+                    runningLength++;
+                    state->read->writePtr++;
+                    memset(state->read->writePtr, (nameLen + 0x60), 1);
+                    runningLength++;
+                    state->read->writePtr++;
+                    memcpy(state->read->writePtr, name, nameLen);
+                    runningLength += nameLen;
+                    state->read->writePtr += nameLen;
+                    memset(state->read->writePtr, type, 1);
+                    runningLength++;
+                    state->read->writePtr++;
+
+                    /* Number (double) needs an endian swap */
+                    if (type == DBG_TYPE_NUMBER) {
+                        uint64_t tmp = 0;
+                        uint8_t* t = (uint8_t*)&tmp;
+                        uint8_t pos = 0;
+                        while (size) {
+                            status = AJ_UnmarshalRaw(&msg, &raw, size, &sz);
+                            if (status != AJ_OK) {
+                                AJ_ErrPrintf(("AJS_DebuggerRead(): Error unmarshalling\n"));
+                                return 0;
+                            }
+
+                            memcpy((t + pos), raw, sz);
+                            pos += sz;
+                            runningLength += sz;
+                            size -= sz;
                         }
-                        if (AJ_IO_BUF_SPACE(state->read) < sz) {
+
+                        tmp = (double)AJ_ByteSwap64(tmp);
+                        if (AJ_IO_BUF_SPACE(state->read) < 8) {
                             AJ_ErrPrintf(("No space to write debug message\n"));
                             return 0;
                         }
-                        memcpy(state->read->writePtr, raw, sz);
-                        state->read->writePtr += sz;
-                        runningLength += sz;
-                        size -= sz;
+                        memcpy(state->read->writePtr, &tmp, 8);
+                        state->read->writePtr += 8;
+                    } else {
+                        /*
+                         * Copy value data into the read buffer
+                         */
+                        while (size) {
+                            status = AJ_UnmarshalRaw(&msg, &raw, size, &sz);
+                            if (status != AJ_OK) {
+                                AJ_ErrPrintf(("AJS_DebuggerRead(): Error unmarshalling\n"));
+                                return 0;
+                            }
+                            if (AJ_IO_BUF_SPACE(state->read) < sz) {
+                                AJ_ErrPrintf(("No space to write debug message\n"));
+                                return 0;
+                            }
+                            memcpy(state->read->writePtr, raw, sz);
+                            state->read->writePtr += sz;
+                            runningLength += sz;
+                            size -= sz;
+                        }
                     }
-                }
-                if (AJ_IO_BUF_SPACE(state->read) < 1) {
-                    AJ_ErrPrintf(("No space to write debug message\n"));
-                    return 0;
-                }
-                memset(state->read->writePtr, DBG_TYPE_EOM, 1);
-                runningLength++;
-                state->read->writePtr++;
-                /*
-                 * Copy the requested number of bytes into the supplied buffer
-                 */
-                newMinLen = min(length, runningLength);
+                    if (AJ_IO_BUF_SPACE(state->read) < 1) {
+                        AJ_ErrPrintf(("No space to write debug message\n"));
+                        return 0;
+                    }
+                    memset(state->read->writePtr, DBG_TYPE_EOM, 1);
+                    runningLength++;
+                    state->read->writePtr++;
+                    /*
+                     * Copy the requested number of bytes into the supplied buffer
+                     */
+                    newMinLen = min(length, runningLength);
 
-                if (AJ_IO_BUF_SPACE(state->read) < newMinLen) {
-                    AJ_ErrPrintf(("No space to write debug message\n"));
-                    return 0;
-                }
-                memcpy(buffer, state->read->readPtr, newMinLen);
-                state->read->readPtr += newMinLen;
-                AJ_IOBufRebase(state->read, 0);
-
-                memcpy(&state->lastMsg, &msg, sizeof(AJ_Message));
-                state->lastMsgType = PUT_VAR_REQ;
-
-                AJ_CloseMsg(&msg);
-                return newMinLen;
-            }
-            break;
-            case DBG_EVAL_MSGID:
-            {
-                char* var;
-                uint8_t varLen;
-                uint8_t* tmp;
-                uint8_t msgLen;
-                status = AJ_UnmarshalArgs(&msg, "s", &var);
-                if (status == AJ_OK) {
-                    varLen = strlen(var);
-                    msgLen = (varLen + 4);
-                    tmp = AJ_Malloc(msgLen);
-                    memset(tmp, DBG_TYPE_REQ, 1);
-                    memset(tmp + 1, (EVAL_REQ + 0x80), 1);
-                    memset(tmp + 2, (varLen + 0x60), 1);
-                    memcpy(tmp + 3, var, varLen);
-                    memset(tmp + 3 + varLen, DBG_TYPE_EOM, 1);
-
-                    /* Copy the bytes to the static buffer as well as the read buffer */
-                    newMinLen = copyToBuffers(state, (uint8_t*)buffer, tmp, msgLen, length);
+                    if (AJ_IO_BUF_SPACE(state->read) < newMinLen) {
+                        AJ_ErrPrintf(("No space to write debug message\n"));
+                        return 0;
+                    }
+                    memcpy(buffer, state->read->readPtr, newMinLen);
+                    state->read->readPtr += newMinLen;
+                    AJ_IOBufRebase(state->read, 0);
 
                     memcpy(&state->lastMsg, &msg, sizeof(AJ_Message));
-                    state->lastMsgType = EVAL_REQ;
+                    state->lastMsgType = PUT_VAR_REQ;
 
                     AJ_CloseMsg(&msg);
                     return newMinLen;
                 }
-            }
-            break;
+                break;
+
+            case DBG_EVAL_MSGID:
+                {
+                    char* var;
+                    uint8_t varLen;
+                    uint8_t* tmp;
+                    uint8_t msgLen;
+                    status = AJ_UnmarshalArgs(&msg, "s", &var);
+                    if (status == AJ_OK) {
+                        varLen = strlen(var);
+                        msgLen = (varLen + 4);
+                        tmp = AJ_Malloc(msgLen);
+                        memset(tmp, DBG_TYPE_REQ, 1);
+                        memset(tmp + 1, (EVAL_REQ + 0x80), 1);
+                        memset(tmp + 2, (varLen + 0x60), 1);
+                        memcpy(tmp + 3, var, varLen);
+                        memset(tmp + 3 + varLen, DBG_TYPE_EOM, 1);
+
+                        /* Copy the bytes to the static buffer as well as the read buffer */
+                        newMinLen = copyToBuffers(state, (uint8_t*)buffer, tmp, msgLen, length);
+
+                        memcpy(&state->lastMsg, &msg, sizeof(AJ_Message));
+                        state->lastMsgType = EVAL_REQ;
+
+                        AJ_CloseMsg(&msg);
+                        return newMinLen;
+                    }
+                }
+                break;
 
             case DBG_GETSCRIPT_MSGID:
-            {
-                AJ_Message reply;
-                const uint8_t* script;
-                AJ_NV_DATASET* ds = NULL;
-                AJ_NV_DATASET* dsize = NULL;
-                uint32_t sz = AJS_GetScriptSize();
+                {
+                    AJ_Message reply;
+                    const uint8_t* script;
+                    AJ_NV_DATASET* ds = NULL;
+                    AJ_NV_DATASET* dsize = NULL;
+                    uint32_t sz = AJS_GetScriptSize();
 
-                /* If the script was previously installed on another boot the size will be zero */
-                if (!sz) {
-                    dsize = AJ_NVRAM_Open(AJS_SCRIPT_SIZE_ID, "r", 0);
-                    if (dsize) {
-                        AJ_NVRAM_Read(&sz, sizeof(sz), dsize);
-                        AJ_NVRAM_Close(dsize);
+                    /* If the script was previously installed on another boot the size will be zero */
+                    if (!sz) {
+                        dsize = AJ_NVRAM_Open(AJS_SCRIPT_SIZE_ID, "r", 0);
+                        if (dsize) {
+                            AJ_NVRAM_Read(&sz, sizeof(sz), dsize);
+                            AJ_NVRAM_Close(dsize);
+                        }
+                    }
+
+                    ds = AJ_NVRAM_Open(AJS_SCRIPT_NVRAM_ID, "r", 0);
+                    if (ds) {
+                        script = AJ_NVRAM_Peek(ds);
+
+                        status = AJ_MarshalReplyMsg(&msg, &reply);
+                        if (status == AJ_OK) {
+                            status = AJ_DeliverMsgPartial(&reply, sz + sizeof(uint32_t));
+                        }
+                        if (status == AJ_OK) {
+                            status = AJ_MarshalRaw(&reply, &sz, sizeof(uint32_t));
+                        }
+                        if (status == AJ_OK) {
+                            status = AJ_MarshalRaw(&reply, script, sz);
+                        }
+                        if (status == AJ_OK) {
+                            status = AJ_DeliverMsg(&reply);
+                        }
+
+                        AJ_NVRAM_Close(ds);
+                    } else {
+                        AJ_ErrPrintf(("Error opening script NVRAM entry\n"));
                     }
                 }
-
-                ds = AJ_NVRAM_Open(AJS_SCRIPT_NVRAM_ID, "r", 0);
-                if (ds) {
-                    script = AJ_NVRAM_Peek(ds);
-
-                    status = AJ_MarshalReplyMsg(&msg, &reply);
-                    if (status == AJ_OK) {
-                        status = AJ_DeliverMsgPartial(&reply, sz + sizeof(uint32_t));
-                    }
-                    if (status == AJ_OK) {
-                        status = AJ_MarshalRaw(&reply, &sz, sizeof(uint32_t));
-                    }
-                    if (status == AJ_OK) {
-                        status = AJ_MarshalRaw(&reply, script, sz);
-                    }
-                    if (status == AJ_OK) {
-                        status = AJ_DeliverMsg(&reply);
-                    }
-
-                    AJ_NVRAM_Close(ds);
-                } else {
-                    AJ_ErrPrintf(("Error opening script NVRAM entry\n"));
-                }
-            }
-            AJ_CloseMsg(&msg);
-            continue;
+                AJ_CloseMsg(&msg);
+                continue;
 
             /*
              * Message format is the same for all simple commands
@@ -808,33 +821,43 @@ duk_size_t AJS_DebuggerRead(void* udata, char *buffer, duk_size_t length)
             case DBG_BASIC_MSGID:
                 type = BASIC_INFO_REQ;
                 break;
+
             case DBG_TRIGGER_MSGID:
                 type = TRIGGER_STATUS_REQ;
                 break;
+
             case DBG_PAUSE_MSGID:
                 type = PAUSE_REQ;
                 break;
+
             case DBG_RESUME_MSGID:
                 type = RESUME_REQ;
                 break;
+
             case DBG_STEPIN_MSGID:
                 type = STEP_INTO_REQ;
                 break;
+
             case DBG_STEPOVER_MSGID:
                 type = STEP_OVER_REQ;
                 break;
+
             case DBG_STEPOUT_MSGID:
                 type = STEP_OUT_REQ;
                 break;
+
             case DBG_LISTBREAK_MSGID:
                 type = LIST_BREAK_REQ;
                 break;
+
             case DBG_GETCALL_MSGID:
                 type = GET_CALL_STACK_REQ;
                 break;
+
             case DBG_GETLOCALS_MSGID:
                 type = GET_LOCALS_REQ;
                 break;
+
             case DBG_DETACH_MSGID:
                 type = DETACH_REQ;
                 break;
@@ -980,7 +1003,7 @@ static AJ_Status HandlePointerType(AJS_DebuggerState* state, uint8_t* pos)
     return AJ_OK;
 }
 
-duk_size_t AJS_DebuggerWrite(void* udata, const char *buffer, duk_size_t length)
+duk_size_t AJS_DebuggerWrite(void* udata, const char*buffer, duk_size_t length)
 {
     AJS_DebuggerState* state = (AJS_DebuggerState*)udata;
     uint8_t* pos;
@@ -1120,10 +1143,10 @@ duk_size_t AJS_DebuggerWrite(void* udata, const char *buffer, duk_size_t length)
                 advance++;
                 continue;
             } else if ((*pos == DBG_TYPE_UNUSED) ||
-                    (*pos == DBG_TYPE_UNDEFINED) ||
-                    (*pos == DBG_TYPE_NULL) ||
-                    (*pos == DBG_TYPE_TRUE) ||
-                    (*pos == DBG_TYPE_FALSE)) {
+                       (*pos == DBG_TYPE_UNDEFINED) ||
+                       (*pos == DBG_TYPE_NULL) ||
+                       (*pos == DBG_TYPE_TRUE) ||
+                       (*pos == DBG_TYPE_FALSE)) {
                 /* All these types have no data to follow */
 #ifdef DBG_PRINT_CHUNKS
                 AJ_AlwaysPrintf(("<UNUSED, UNDEF, NULL, TRUE, FALSE>, "));
@@ -1228,42 +1251,43 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
     if (*pos == DBG_TYPE_NFY) {
         switch (*(pos + 1) - 0x80) {
         case STATUS_NOTIFICATION:
-        {
-            /*
-             * Status notification format:
-             * <NFY><state><file name len><file name data><func name length><func name data><line><PC><EOM>
-             */
-            AJ_BusAttachment* bus = AJS_GetBusAttachment();
-            AJ_Message msg;
-            AJ_Status status;
-            uint8_t type, st, lineNumber, pc;
-            char* fileName, *funcName;
+            {
+                /*
+                 * Status notification format:
+                 * <NFY><state><file name len><file name data><func name length><func name data><line><PC><EOM>
+                 */
+                AJ_BusAttachment* bus = AJS_GetBusAttachment();
+                AJ_Message msg;
+                AJ_Status status;
+                uint8_t type, st, lineNumber, pc;
+                char* fileName, *funcName;
 
-            unmarhsalBuffer(state->write->bufStart, AJ_IO_BUF_AVAIL(state->write), 1, "iissii", &type, &st, &fileName, &funcName, &lineNumber, &pc);
+                unmarhsalBuffer(state->write->bufStart, AJ_IO_BUF_AVAIL(state->write), 1, "iissii", &type, &st, &fileName, &funcName, &lineNumber, &pc);
 
-            AJ_InfoPrintf(("NOTIFICATION: state = %u lineNum = %u, pc = %u\n", state, lineNumber, pc));
-            AJ_InfoPrintf(("NOTIFICATION: File Name = %s, Function Name = %s\n", fileName, funcName));
+                AJ_InfoPrintf(("NOTIFICATION: state = %u lineNum = %u, pc = %u\n", state, lineNumber, pc));
+                AJ_InfoPrintf(("NOTIFICATION: File Name = %s, Function Name = %s\n", fileName, funcName));
 
-            status = AJ_MarshalSignal(bus, &msg, DBG_NOTIF_MSGID,  AJS_GetConsoleBusName(), AJS_GetConsoleSession(), 0, 0);
+                status = AJ_MarshalSignal(bus, &msg, DBG_NOTIF_MSGID,  AJS_GetConsoleBusName(), AJS_GetConsoleSession(), 0, 0);
 
-            if (status == AJ_OK) {
-                status = AJ_MarshalArgs(&msg, "yyssyy", STATUS_NOTIFICATION, st, fileName, funcName, lineNumber, pc);
+                if (status == AJ_OK) {
+                    status = AJ_MarshalArgs(&msg, "yyssyy", STATUS_NOTIFICATION, st, fileName, funcName, lineNumber, pc);
+                }
+                if (status == AJ_OK) {
+                    AJ_DeliverMsg(&msg);
+                }
+                AJ_Free(fileName);
+                AJ_Free(funcName);
+                break;
             }
-            if (status == AJ_OK) {
-                AJ_DeliverMsg(&msg);
-            }
-            AJ_Free(fileName);
-            AJ_Free(funcName);
-            break;
-        }
+
         //TODO: Handle print, alert and log notifications
         case PRINT_NOTIFICATION:
         case ALERT_NOTIFICATION:
         case LOG_NOTIFICATION:
-        {
-            AJ_InfoPrintf(("PRINT/ALERT/LOG NOTIFICATION\n"));
-            break;
-        }
+            {
+                AJ_InfoPrintf(("PRINT/ALERT/LOG NOTIFICATION\n"));
+                break;
+            }
         }
     } else if (*pos == DBG_TYPE_ERR) {
         /*
@@ -1278,235 +1302,237 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
 
         case EVAL_REQ:
         case GET_VAR_REQ:
-        {
-            /*
-             * Get variable/Eval request format:
-             * <REP><valid?><type><value><EOM>
-             */
-            uint8_t* i = pos;
-            uint8_t valid, valType;
+            {
+                /*
+                 * Get variable/Eval request format:
+                 * <REP><valid?><type><value><EOM>
+                 */
+                uint8_t* i = pos;
+                uint8_t valid, valType;
 
-            unmarhsalBuffer(state->write->bufStart, AJ_IO_BUF_AVAIL(state->write), 1, "i", &valid);
-            /*
-             * The rest must be unmarshalled manually since it is unknown
-             * what the tval type is.
-             */
-            valType = *(i + 2);
-            status = AJ_MarshalReplyMsg(&state->lastMsg, &reply);
-            if (status == AJ_OK) {
-                status = AJ_MarshalArgs(&reply, "yy", valid, valType);
-            }
-            /* GetVar valid is 1, eval valid is 0 */
-            if (((valid) && (state->lastMsgType == GET_VAR_REQ)) || ((state->lastMsgType == EVAL_REQ) && (valid == 0))) {
-                marshalTvalMsg(&reply, valType, (i + 3));
-            } else {
-                if (status == AJ_OK) {
-                    status = AJ_MarshalVariant(&reply, "y");
-                }
-                if (status == AJ_OK) {
-                    status = AJ_MarshalArgs(&reply, "y", 0);
-                }
-            }
-            if (status == AJ_OK) {
-                status = AJ_DeliverMsg(&reply);
-            }
-            AJ_CloseMsg(&reply);
-        }
-        break;
-        case BASIC_INFO_REQ:
-        {
-            /*
-             * Basic info request format:
-             * <REP><duk version><description len><description><targ len><targ info><endianness><EOM>
-             */
-            uint16_t dukVersion;
-            uint8_t endianness;
-            char* describe, *targInfo;
-
-            unmarhsalBuffer(state->write->bufStart, AJ_IO_BUF_AVAIL(state->write), 1, "tssi", &dukVersion, &describe, &targInfo, &endianness);
-
-            AJ_InfoPrintf(("BASIC INFO: Version: %u, Describe: %s, Info: %s, Endian: %u\n", dukVersion, describe, targInfo, endianness));
-
-            status = AJ_MarshalReplyMsg(&state->lastMsg, &reply);
-            if (status == AJ_OK) {
-                status = AJ_MarshalArgs(&reply, "yssy", dukVersion, describe, targInfo, endianness);
-            }
-            if (status == AJ_OK) {
-                status = AJ_DeliverMsg(&reply);
-            }
-            if (status != AJ_OK) {
-                AJ_ErrPrintf(("Error: %s\n", AJ_StatusText(status)));
-            }
-            AJ_CloseMsg(&reply);
-            AJ_Free(describe);
-            AJ_Free(targInfo);
-        }
-        break;
-
-        case GET_CALL_STACK_REQ:
-        {
-            /*
-             * Get call stack request format:
-             * <REP>[<file name len><file name><func name len><func name><line><PC>]*<EOM>
-             */
-            AJ_Arg array;
-            uint8_t* i = pos;
-            uint16_t numBytes = 0; //Skip past <REP>
-
-            AJ_MarshalReplyMsg(&state->lastMsg, &reply);
-            status = AJ_MarshalContainer(&reply, &array, AJ_ARG_ARRAY);
-            /*
-             * Loop over message, marshalling the call stack until EOM
-             */
-            i++;
-            while (*i != DBG_TYPE_EOM) {
-                uint8_t line, pc;
-                char* fname, *funcName;
-                AJ_Arg struct1;
-
-                status = AJ_MarshalContainer(&reply, &struct1, AJ_ARG_STRUCT);
-
-                numBytes = unmarhsalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "ssii", &fname, &funcName, &line, &pc);
-                i += numBytes;
-
-                AJ_InfoPrintf(("Callstack; File: %s, Function: %s, Line: %u, PC: %u\n", fname, funcName, line, pc));
-                status = AJ_MarshalArgs(&reply, "ssyy", fname, funcName, line, pc);
-                if (status == AJ_OK) {
-                    status = AJ_MarshalCloseContainer(&reply, &struct1);
-                }
-                AJ_Free(fname);
-                AJ_Free(funcName);
-            }
-            status = AJ_MarshalCloseContainer(&reply, &array);
-            if (status == AJ_OK) {
-                status = AJ_DeliverMsg(&reply);
-            }
-            AJ_CloseMsg(&reply);
-        }
-        break;
-
-        case LIST_BREAK_REQ:
-        {
-            /*
-             * List breakpoints request format:
-             * <REP>[<file name len><file name><line>]*<EOM>
-             */
-            AJ_Arg array;
-            uint8_t* i = pos;
-            uint16_t numBytes = 0; //Skip over REP
-
-            AJ_MarshalReplyMsg(&state->lastMsg, &reply);
-            status = AJ_MarshalContainer(&reply, &array, AJ_ARG_ARRAY);
-            /*
-             * Loop over message, marshalling the call stack until EOM
-             */
-            i++;
-            while (*i != DBG_TYPE_EOM) {
-                uint8_t line;
-                char* fname;
-                AJ_Arg struct1;
-
-                status = AJ_MarshalContainer(&reply, &struct1, AJ_ARG_STRUCT);
-                if ((*i == DBG_TYPE_REP) && (*(i + 1) == DBG_TYPE_EOM)) {
-                    /* No breakpoints */
-                    status = AJ_MarshalArgs(&reply, "sy", "N/A", 0);
-                    if (status == AJ_OK) {
-                        status = AJ_MarshalCloseContainer(&reply, &struct1);
-                    }
-                    break;
-                }
-                numBytes = unmarhsalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "si", &fname, &line);
-                i += numBytes;
-
-                AJ_InfoPrintf(("Breakpoints; File: %s, Line: %u\n", fname, line));
-                status = AJ_MarshalArgs(&reply, "sy", fname, line);
-                if (status == AJ_OK) {
-                    status = AJ_MarshalCloseContainer(&reply, &struct1);
-                }
-                AJ_Free(fname);
-            }
-            status = AJ_MarshalCloseContainer(&reply, &array);
-            if (status == AJ_OK) {
-                status = AJ_DeliverMsg(&reply);
-            }
-            AJ_CloseMsg(&reply);
-        }
-        break;
-        case GET_LOCALS_REQ:
-        {
-            /*
-             * Get locals request format:
-             * <REP>[<name length><name><value type><value data>]*<EOM>
-             */
-            AJ_Message reply;
-            AJ_Arg array;
-            uint8_t* i = pos;
-            /*
-             * Case of no local variables. No need to go on further, just marshal "N/A" and deliver the reply
-             */
-            if ((*(i) == DBG_TYPE_REP) && (*(i + 1) == DBG_TYPE_EOM)) {
-                AJ_Arg struct1;
+                unmarhsalBuffer(state->write->bufStart, AJ_IO_BUF_AVAIL(state->write), 1, "i", &valid);
+                /*
+                 * The rest must be unmarshalled manually since it is unknown
+                 * what the tval type is.
+                 */
+                valType = *(i + 2);
                 status = AJ_MarshalReplyMsg(&state->lastMsg, &reply);
-                status = AJ_MarshalContainer(&reply, &array, AJ_ARG_ARRAY);
-                status = AJ_MarshalContainer(&reply, &struct1, AJ_ARG_STRUCT);
                 if (status == AJ_OK) {
-                    status = AJ_MarshalArgs(&reply, "ys", 0, "N/A");
+                    status = AJ_MarshalArgs(&reply, "yy", valid, valType);
                 }
-                if (status == AJ_OK) {
-                    status = AJ_MarshalVariant(&reply, "s");
-                }
-                if (status == AJ_OK) {
-                    status = AJ_MarshalArgs(&reply, "s", "N/A");
-                }
-                if (status == AJ_OK) {
-                    status = AJ_MarshalCloseContainer(&reply, &struct1);
-                }
-                if (status == AJ_OK) {
-                    status = AJ_MarshalCloseContainer(&reply, &array);
+                /* GetVar valid is 1, eval valid is 0 */
+                if (((valid) && (state->lastMsgType == GET_VAR_REQ)) || ((state->lastMsgType == EVAL_REQ) && (valid == 0))) {
+                    marshalTvalMsg(&reply, valType, (i + 3));
+                } else {
+                    if (status == AJ_OK) {
+                        status = AJ_MarshalVariant(&reply, "y");
+                    }
+                    if (status == AJ_OK) {
+                        status = AJ_MarshalArgs(&reply, "y", 0);
+                    }
                 }
                 if (status == AJ_OK) {
                     status = AJ_DeliverMsg(&reply);
                 }
                 AJ_CloseMsg(&reply);
-                break;
             }
+            break;
 
-            AJ_MarshalReplyMsg(&state->lastMsg, &reply);
-            status = AJ_MarshalContainer(&reply, &array, AJ_ARG_ARRAY);
-            /*
-             * Loop over message, marshalling the call stack until EOM. This type
-             * of message cannot be used with the unmarshaller because it contains
-             * tval's with unknown types.
-             * TODO: Make unmarshaller able to handle this type of message
-             */
-            while (state->msgLength) {
-                uint8_t advance = 0;
-                uint8_t valType;
-                char *name;
-                AJ_Arg struct1;
+        case BASIC_INFO_REQ:
+            {
+                /*
+                 * Basic info request format:
+                 * <REP><duk version><description len><description><targ len><targ info><endianness><EOM>
+                 */
+                uint16_t dukVersion;
+                uint8_t endianness;
+                char* describe, *targInfo;
 
-                status = AJ_MarshalContainer(&reply, &struct1, AJ_ARG_STRUCT);
-                advance = unmarhsalBuffer(i + 1, AJ_IO_BUF_AVAIL(state->write), 0, "sy", &name, &valType);
-                status = AJ_MarshalArgs(&reply, "ys", valType, name);
-                advance += marshalTvalMsg(&reply, valType, (i + 1 + strlen(name) + 2));
-                i += advance;
-                state->msgLength -= advance;
+                unmarhsalBuffer(state->write->bufStart, AJ_IO_BUF_AVAIL(state->write), 1, "tssi", &dukVersion, &describe, &targInfo, &endianness);
+
+                AJ_InfoPrintf(("BASIC INFO: Version: %u, Describe: %s, Info: %s, Endian: %u\n", dukVersion, describe, targInfo, endianness));
+
+                status = AJ_MarshalReplyMsg(&state->lastMsg, &reply);
                 if (status == AJ_OK) {
-                    status = AJ_MarshalCloseContainer(&reply, &struct1);
+                    status = AJ_MarshalArgs(&reply, "yssy", dukVersion, describe, targInfo, endianness);
                 }
-                AJ_Free(name);
-                if (state->msgLength <= 1) {
+                if (status == AJ_OK) {
+                    status = AJ_DeliverMsg(&reply);
+                }
+                if (status != AJ_OK) {
+                    AJ_ErrPrintf(("Error: %s\n", AJ_StatusText(status)));
+                }
+                AJ_CloseMsg(&reply);
+                AJ_Free(describe);
+                AJ_Free(targInfo);
+            }
+            break;
+
+        case GET_CALL_STACK_REQ:
+            {
+                /*
+                 * Get call stack request format:
+                 * <REP>[<file name len><file name><func name len><func name><line><PC>]*<EOM>
+                 */
+                AJ_Arg array;
+                uint8_t* i = pos;
+                uint16_t numBytes = 0; //Skip past <REP>
+
+                AJ_MarshalReplyMsg(&state->lastMsg, &reply);
+                status = AJ_MarshalContainer(&reply, &array, AJ_ARG_ARRAY);
+                /*
+                 * Loop over message, marshalling the call stack until EOM
+                 */
+                i++;
+                while (*i != DBG_TYPE_EOM) {
+                    uint8_t line, pc;
+                    char* fname, *funcName;
+                    AJ_Arg struct1;
+
+                    status = AJ_MarshalContainer(&reply, &struct1, AJ_ARG_STRUCT);
+
+                    numBytes = unmarhsalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "ssii", &fname, &funcName, &line, &pc);
+                    i += numBytes;
+
+                    AJ_InfoPrintf(("Callstack; File: %s, Function: %s, Line: %u, PC: %u\n", fname, funcName, line, pc));
+                    status = AJ_MarshalArgs(&reply, "ssyy", fname, funcName, line, pc);
+                    if (status == AJ_OK) {
+                        status = AJ_MarshalCloseContainer(&reply, &struct1);
+                    }
+                    AJ_Free(fname);
+                    AJ_Free(funcName);
+                }
+                status = AJ_MarshalCloseContainer(&reply, &array);
+                if (status == AJ_OK) {
+                    status = AJ_DeliverMsg(&reply);
+                }
+                AJ_CloseMsg(&reply);
+            }
+            break;
+
+        case LIST_BREAK_REQ:
+            {
+                /*
+                 * List breakpoints request format:
+                 * <REP>[<file name len><file name><line>]*<EOM>
+                 */
+                AJ_Arg array;
+                uint8_t* i = pos;
+                uint16_t numBytes = 0; //Skip over REP
+
+                AJ_MarshalReplyMsg(&state->lastMsg, &reply);
+                status = AJ_MarshalContainer(&reply, &array, AJ_ARG_ARRAY);
+                /*
+                 * Loop over message, marshalling the call stack until EOM
+                 */
+                i++;
+                while (*i != DBG_TYPE_EOM) {
+                    uint8_t line;
+                    char* fname;
+                    AJ_Arg struct1;
+
+                    status = AJ_MarshalContainer(&reply, &struct1, AJ_ARG_STRUCT);
+                    if ((*i == DBG_TYPE_REP) && (*(i + 1) == DBG_TYPE_EOM)) {
+                        /* No breakpoints */
+                        status = AJ_MarshalArgs(&reply, "sy", "N/A", 0);
+                        if (status == AJ_OK) {
+                            status = AJ_MarshalCloseContainer(&reply, &struct1);
+                        }
+                        break;
+                    }
+                    numBytes = unmarhsalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "si", &fname, &line);
+                    i += numBytes;
+
+                    AJ_InfoPrintf(("Breakpoints; File: %s, Line: %u\n", fname, line));
+                    status = AJ_MarshalArgs(&reply, "sy", fname, line);
+                    if (status == AJ_OK) {
+                        status = AJ_MarshalCloseContainer(&reply, &struct1);
+                    }
+                    AJ_Free(fname);
+                }
+                status = AJ_MarshalCloseContainer(&reply, &array);
+                if (status == AJ_OK) {
+                    status = AJ_DeliverMsg(&reply);
+                }
+                AJ_CloseMsg(&reply);
+            }
+            break;
+
+        case GET_LOCALS_REQ:
+            {
+                /*
+                 * Get locals request format:
+                 * <REP>[<name length><name><value type><value data>]*<EOM>
+                 */
+                AJ_Message reply;
+                AJ_Arg array;
+                uint8_t* i = pos;
+                /*
+                 * Case of no local variables. No need to go on further, just marshal "N/A" and deliver the reply
+                 */
+                if ((*(i) == DBG_TYPE_REP) && (*(i + 1) == DBG_TYPE_EOM)) {
+                    AJ_Arg struct1;
+                    status = AJ_MarshalReplyMsg(&state->lastMsg, &reply);
+                    status = AJ_MarshalContainer(&reply, &array, AJ_ARG_ARRAY);
+                    status = AJ_MarshalContainer(&reply, &struct1, AJ_ARG_STRUCT);
+                    if (status == AJ_OK) {
+                        status = AJ_MarshalArgs(&reply, "ys", 0, "N/A");
+                    }
+                    if (status == AJ_OK) {
+                        status = AJ_MarshalVariant(&reply, "s");
+                    }
+                    if (status == AJ_OK) {
+                        status = AJ_MarshalArgs(&reply, "s", "N/A");
+                    }
+                    if (status == AJ_OK) {
+                        status = AJ_MarshalCloseContainer(&reply, &struct1);
+                    }
+                    if (status == AJ_OK) {
+                        status = AJ_MarshalCloseContainer(&reply, &array);
+                    }
+                    if (status == AJ_OK) {
+                        status = AJ_DeliverMsg(&reply);
+                    }
+                    AJ_CloseMsg(&reply);
                     break;
                 }
-            }
-            status = AJ_MarshalCloseContainer(&reply, &array);
 
-            if (status == AJ_OK) {
-                status = AJ_DeliverMsg(&reply);
+                AJ_MarshalReplyMsg(&state->lastMsg, &reply);
+                status = AJ_MarshalContainer(&reply, &array, AJ_ARG_ARRAY);
+                /*
+                 * Loop over message, marshalling the call stack until EOM. This type
+                 * of message cannot be used with the unmarshaller because it contains
+                 * tval's with unknown types.
+                 * TODO: Make unmarshaller able to handle this type of message
+                 */
+                while (state->msgLength) {
+                    uint8_t advance = 0;
+                    uint8_t valType;
+                    char*name;
+                    AJ_Arg struct1;
+
+                    status = AJ_MarshalContainer(&reply, &struct1, AJ_ARG_STRUCT);
+                    advance = unmarhsalBuffer(i + 1, AJ_IO_BUF_AVAIL(state->write), 0, "sy", &name, &valType);
+                    status = AJ_MarshalArgs(&reply, "ys", valType, name);
+                    advance += marshalTvalMsg(&reply, valType, (i + 1 + strlen(name) + 2));
+                    i += advance;
+                    state->msgLength -= advance;
+                    if (status == AJ_OK) {
+                        status = AJ_MarshalCloseContainer(&reply, &struct1);
+                    }
+                    AJ_Free(name);
+                    if (state->msgLength <= 1) {
+                        break;
+                    }
+                }
+                status = AJ_MarshalCloseContainer(&reply, &array);
+
+                if (status == AJ_OK) {
+                    status = AJ_DeliverMsg(&reply);
+                }
+                AJ_CloseMsg(&reply);
             }
-            AJ_CloseMsg(&reply);
-        }
-        break;
+            break;
 
         /*
          * Simple request formats:
@@ -1531,11 +1557,12 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
             }
             AJ_CloseMsg(&reply);
             break;
+
         default:
             AJ_ErrPrintf(("Unknown debug command, command = 0x%02x\n", state->lastMsgType));
             break;
         }
     }
-    memset(writeBuffer, 0 , sizeof(writeBuffer));
+    memset(writeBuffer, 0, sizeof(writeBuffer));
     AJ_IOBufInit(state->write, writeBuffer, sizeof(writeBuffer), 0, NULL);
 }

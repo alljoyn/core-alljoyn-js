@@ -2,7 +2,7 @@
  * @file
  */
 /******************************************************************************
- * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
+ * Copyright (c) 2014, 2015 AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -298,16 +298,14 @@ static void ParseDvalData(MsgArg* variant, uint8_t identifier, uint8_t** value, 
     qcc::String vsig;
     vsig = variant->Signature();
     switch (identifier) {
+    case DBG_TYPE_STRING4:
     case DBG_TYPE_STRING2:
         variant->Get("s", value);
         *size = strlen((char*)(*value)) + 1;
-        *type = DBG_TYPE_STRING2;
+        *type = identifier;
         break;
-    case DBG_TYPE_BUFFER4:
+
     case DBG_TYPE_INTEGER4:
-    case DBG_TYPE_STRING4:
-        printf("unimplemented\n");
-        break;
     case DBG_TYPE_UNUSED:
     case DBG_TYPE_UNDEFINED:
     case DBG_TYPE_NULL:
@@ -318,6 +316,7 @@ static void ParseDvalData(MsgArg* variant, uint8_t identifier, uint8_t** value, 
         variant->Get("y", (*value));
         *type = *(*value); /* Value is also the ID */
         break;
+
     case DBG_TYPE_NUMBER:
         /* Number type */
         (*value) = (uint8_t*)malloc(sizeof(uint8_t) * 8);
@@ -325,55 +324,58 @@ static void ParseDvalData(MsgArg* variant, uint8_t identifier, uint8_t** value, 
         variant->Get("t", (*value));
         *type = 0x1a;
         break;
+
     case DBG_TYPE_HEAPPTR:
     case DBG_TYPE_OBJECT:
     case DBG_TYPE_POINTER:
-    {
-        /* Object, pointer, or heap pointer type */
-        uint8_t id;
-        uint8_t tmp; /* Class for object type, not used for pointer/heap pointer */
-        size_t sz;
-        uint8_t* data;
-        variant->Get("(yyay)", &id, &tmp, &sz, &data);
-        *type = id;
-        /* Object */
-        if (id == DBG_TYPE_OBJECT) {
-            /* Object contains the class number as well as a pointer so it needs an extra byte */
-            (*value) = (uint8_t*)malloc(sizeof(uint8_t) * sz + 1);
-            memcpy((*value), &tmp, 1);
-            memcpy(((*value) + 1), data, sz);
-            *size = sz + 1;
-            /* Pointer or heap pointer */
-        } else if ((id == DBG_TYPE_POINTER) || (id == DBG_TYPE_HEAPPTR)) {
-            (*value) = (uint8_t*)malloc(sizeof(uint8_t) * sz);
-            memcpy((*value), data, sz);
-            *size = sz;
-        } else {
-            QCC_LogError(ER_FAIL, ("ParseDvalData(): Invalid identifier value: 0x%02x\n", id));
+        {
+            /* Object, pointer, or heap pointer type */
+            uint8_t id;
+            uint8_t tmp; /* Class for object type, not used for pointer/heap pointer */
+            size_t sz;
+            uint8_t* data;
+            variant->Get("(yyay)", &id, &tmp, &sz, &data);
+            *type = id;
+            /* Object */
+            if (id == DBG_TYPE_OBJECT) {
+                /* Object contains the class number as well as a pointer so it needs an extra byte */
+                (*value) = (uint8_t*)malloc(sizeof(uint8_t) * sz + 1);
+                memcpy((*value), &tmp, 1);
+                memcpy(((*value) + 1), data, sz);
+                *size = sz + 1;
+                /* Pointer or heap pointer */
+            } else if ((id == DBG_TYPE_POINTER) || (id == DBG_TYPE_HEAPPTR)) {
+                (*value) = (uint8_t*)malloc(sizeof(uint8_t) * sz);
+                memcpy((*value), data, sz);
+                *size = sz;
+            } else {
+                QCC_LogError(ER_FAIL, ("ParseDvalData(): Invalid identifier value: 0x%02x\n", id));
+            }
         }
-    }
-    break;
+        break;
+
     case DBG_TYPE_BUFFER2:
+    case DBG_TYPE_BUFFER4:
     case DBG_TYPE_LIGHTFUNC:
-    {
-        /* Light function or 2 byte buffer */
-        uint16_t flags;
-        size_t sz;
-        uint8_t* data;
-        variant->Get("(qay)", &flags, &sz, &data);
-        *type = identifier;
-        if (identifier == DBG_TYPE_BUFFER2) {
-            (*value) = (uint8_t*)malloc(sizeof(uint8_t) * sz);
-            *size = sz;
-            memcpy(((*value)), data, *size);
-        } else {
-            (*value) = (uint8_t*)malloc(sizeof(uint8_t) * sz + 2);
-            memcpy((*value), &flags, 2);
-            memcpy(((*value) + 2), data, sz);
-            *size = sz + 2;
+        {
+            /* Light function or 2 byte buffer */
+            uint16_t flags;
+            size_t sz;
+            uint8_t* data;
+            variant->Get("(qay)", &flags, &sz, &data);
+            *type = identifier;
+            if ((identifier == DBG_TYPE_BUFFER2) || (identifier == DBG_TYPE_BUFFER4)) {
+                (*value) = (uint8_t*)malloc(sizeof(uint8_t) * sz);
+                *size = sz;
+                memcpy(((*value)), data, *size);
+            } else {
+                (*value) = (uint8_t*)malloc(sizeof(uint8_t) * sz + 2);
+                memcpy((*value), &flags, 2);
+                memcpy(((*value) + 2), data, sz);
+                *size = sz + 2;
+            }
         }
-    }
-    break;
+        break;
 
     default:
         /* Ranged values, like strings, small ints and large ints must be handled with if/else */
@@ -1260,24 +1262,27 @@ void AJS_Console::DebugNotification(const InterfaceDescription::Member* member, 
     uint8_t id = msg->GetArg()->v_byte;
     switch (id) {
     case STATUS_NOTIFICATION:
-    {
-        uint8_t state;
-        const char* fileName;
-        const char* funcName;
-        uint8_t lineNumber, pc;
-        msg->GetArgs("yyssyy", &id, &state, &fileName, &funcName, &lineNumber, &pc);
-        QCC_SyncPrintf("Got status notification\nState=%u, File Name=%s, Function=%s, Line=%u, PC=%u\n", state, fileName, funcName, lineNumber, pc);
-        if (state == 1) {
-            debugState = DEBUG_ATTACHED_PAUSED;
+        {
+            uint8_t state;
+            const char* fileName;
+            const char* funcName;
+            uint8_t lineNumber, pc;
+            msg->GetArgs("yyssyy", &id, &state, &fileName, &funcName, &lineNumber, &pc);
+            QCC_SyncPrintf("Got status notification\nState=%u, File Name=%s, Function=%s, Line=%u, PC=%u\n", state, fileName, funcName, lineNumber, pc);
+            if (state == 1) {
+                debugState = DEBUG_ATTACHED_PAUSED;
+            }
         }
-    }
-    break;
+        break;
+
     case PRINT_NOTIFICATION:
         QCC_SyncPrintf("PRINT NOTIFICATION: %s\n", msg->GetArg()->v_string.str);
         break;
+
     case ALERT_NOTIFICATION:
         QCC_SyncPrintf("ALERT NOTIFICATION: %s\n", msg->GetArg()->v_string.str);
         break;
+
     case LOG_NOTIFICATION:
         QCC_SyncPrintf("LOG NOTIFICATION: %u %s\n", msg->GetArg()->v_byte, msg->GetArg()->v_string.str);
         break;

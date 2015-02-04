@@ -4,7 +4,7 @@
  * @file
  */
 /******************************************************************************
- * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
+ * Copyright (c) 2014, 2015 AllSeen Alliance. All rights reserved.
  *
  *    Permission to use, copy, modify, and/or distribute this software for any
  *    purpose with or without fee is hereby granted, provided that the above
@@ -22,7 +22,7 @@
 #include "duktape.h"
 #include "ajs.h"
 
-#define DEBUG_BUFFER_SIZE 256
+#define DEBUG_BUFFER_SIZE 512
 
 typedef struct _AJS_DebuggerState {
     duk_context* ctx;
@@ -167,7 +167,7 @@ void AJS_DeinitDebugger(AJS_DebuggerState* state);
  * @param length    Requested length of debugger data
  * @return          Number of bytes actually read
  */
-duk_size_t AJS_DebuggerRead(void* udata, char *buffer, duk_size_t length);
+duk_size_t AJS_DebuggerRead(void* udata, char*buffer, duk_size_t length);
 
 /**
  * Duktape debugger write callback.
@@ -177,7 +177,7 @@ duk_size_t AJS_DebuggerRead(void* udata, char *buffer, duk_size_t length);
  * @param length    Length of debug data
  * @return          Number of bytes written
  */
-duk_size_t AJS_DebuggerWrite(void* udata, const char *buffer, duk_size_t length);
+duk_size_t AJS_DebuggerWrite(void* udata, const char*buffer, duk_size_t length);
 
 /**
  * Duktape debugger peek callback

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2014 AllSeen Alliance. All rights reserved.
+# Copyright (c) 2014, 2015 AllSeen Alliance. All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -246,7 +246,7 @@ def localsEventHandler(event):
         locals = AJSConsole.GetLocals()
         if type(locals) != NoneType:
             for i in range(len(locals)):
-                index = dbg.RightFrame.SourceView.index("@%s,%s linestart" % (event.x, event.y))
+                index = dbg.LocalsFrame.LocalVars.index("@%s,%s linestart" % (event.x, event.y))
                 index = index.split('.')[0]
                 if selectedLocal == i + 1:
                     dbg.LocalsFrame.LocalVars.tag_delete("LocalSelection")
@@ -268,7 +268,7 @@ def breakpointEventHandler(event):
     breakpointUpdate()
     viewBreakpointUpdate()
     enableEditing('breakpoints', 'on')
-    line_start = dbg.RightFrame.SourceView.index("@%s,%s linestart" % (event.x, event.y))
+    line_start = dbg.BreakFrame.Breakpoints.index("@%s,%s linestart" % (event.x, event.y))
     line_start = line_start.split('.')[0]
     selection = dbg.BreakFrame.Breakpoints.get(line_start + '.0', line_start + '.end')
     selection = selection.split(':')[0]

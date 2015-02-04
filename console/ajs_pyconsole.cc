@@ -114,32 +114,35 @@ void AJS_PyConsole::DebugNotification(const InterfaceDescription::Member* member
     uint8_t id = msg->GetArg()->v_byte;
     switch (id) {
     case STATUS_NOTIFICATION:
-    {
-        char fullString[128];
-        uint8_t state;
-        const char* fileName;
-        const char* funcName;
-        uint8_t lineNumber, pc;
-        msg->GetArgs("yyssyy", &id, &state, &fileName, &funcName, &lineNumber, &pc);
-        dbgCurrentLine = lineNumber;
-        dbgPC = pc;
-        if (state == 1) {
-            debugState = DEBUG_ATTACHED_PAUSED;
-        } else if (state == 0) {
-            debugState = DEBUG_ATTACHED_RUNNING;
-        }
-        sprintf(fullString, "State: %i, File: %s, Function: %s, Line: %i, PC: %i", state, fileName, funcName, lineNumber, pc);
-        Msg("DebugNotification", fullString);
+        {
+            char fullString[128];
+            uint8_t state;
+            const char* fileName;
+            const char* funcName;
+            uint8_t lineNumber, pc;
+            msg->GetArgs("yyssyy", &id, &state, &fileName, &funcName, &lineNumber, &pc);
+            dbgCurrentLine = lineNumber;
+            dbgPC = pc;
+            if (state == 1) {
+                debugState = DEBUG_ATTACHED_PAUSED;
+            } else if (state == 0) {
+                debugState = DEBUG_ATTACHED_RUNNING;
+            }
+            sprintf(fullString, "State: %i, File: %s, Function: %s, Line: %i, PC: %i", state, fileName, funcName, lineNumber, pc);
+            Msg("DebugNotification", fullString);
 
-    }
-    break;
+        }
+        break;
+
     //TODO: Handle all notification types appropriately
     case PRINT_NOTIFICATION:
         QCC_SyncPrintf("PRINT NOTIFICATION: %s\n", msg->GetArg()->v_string.str);
         break;
+
     case ALERT_NOTIFICATION:
         QCC_SyncPrintf("ALERT NOTIFICATION: %s\n", msg->GetArg()->v_string.str);
         break;
+
     case LOG_NOTIFICATION:
         QCC_SyncPrintf("LOG NOTIFICATION: %u %s\n", msg->GetArg()->v_byte, msg->GetArg()->v_string.str);
         break;
@@ -338,7 +341,7 @@ static PyObject* py_gettargetstate(PyObject* self, PyObject* args)
 {
     DEBUG_STATE state;
     Py_BEGIN_ALLOW_THREADS
-    state = console->GetDebugState();
+        state = console->GetDebugState();
     Py_END_ALLOW_THREADS
 
     return Py_BuildValue("i", (uint8_t)state);
@@ -355,7 +358,7 @@ static PyObject* py_getscript(PyObject* self, PyObject* args)
     char* script;
     uint32_t size;
     Py_BEGIN_ALLOW_THREADS
-    ret = console->GetScript((uint8_t**)&script, &size);
+        ret = console->GetScript((uint8_t**)&script, &size);
     Py_END_ALLOW_THREADS
     if (ret == false) {
         return Py_BuildValue("s", "");
@@ -378,7 +381,7 @@ static PyObject* py_setstate(PyObject* self, PyObject* args)
 static PyObject* py_startdebugger(PyObject* self, PyObject* args)
 {
     Py_BEGIN_ALLOW_THREADS
-        console->StartDebugger();
+    console->StartDebugger();
     Py_END_ALLOW_THREADS
     return statusobject(ER_OK);
 }
@@ -386,7 +389,7 @@ static PyObject* py_startdebugger(PyObject* self, PyObject* args)
 static PyObject* py_stopdebugger(PyObject* self, PyObject* args)
 {
     Py_BEGIN_ALLOW_THREADS
-        console->StopDebugger();
+    console->StopDebugger();
     Py_END_ALLOW_THREADS
     return statusobject(ER_OK);
 }
@@ -394,7 +397,7 @@ static PyObject* py_stopdebugger(PyObject* self, PyObject* args)
 static PyObject* py_stepinto(PyObject* self, PyObject* args)
 {
     Py_BEGIN_ALLOW_THREADS
-        console->StepIn();
+    console->StepIn();
     Py_END_ALLOW_THREADS
     return statusobject(ER_OK);
 }
@@ -402,7 +405,7 @@ static PyObject* py_stepinto(PyObject* self, PyObject* args)
 static PyObject* py_stepout(PyObject* self, PyObject* args)
 {
     Py_BEGIN_ALLOW_THREADS
-        console->StepOut();
+    console->StepOut();
     Py_END_ALLOW_THREADS
     return statusobject(ER_OK);
 }
@@ -410,7 +413,7 @@ static PyObject* py_stepout(PyObject* self, PyObject* args)
 static PyObject* py_stepover(PyObject* self, PyObject* args)
 {
     Py_BEGIN_ALLOW_THREADS
-        console->StepOver();
+    console->StepOver();
     Py_END_ALLOW_THREADS
     return statusobject(ER_OK);
 }
@@ -418,7 +421,7 @@ static PyObject* py_stepover(PyObject* self, PyObject* args)
 static PyObject* py_resume(PyObject* self, PyObject* args)
 {
     Py_BEGIN_ALLOW_THREADS
-        console->Resume();
+    console->Resume();
     Py_END_ALLOW_THREADS
     return statusobject(ER_OK);
 }
@@ -426,7 +429,7 @@ static PyObject* py_resume(PyObject* self, PyObject* args)
 static PyObject* py_pause(PyObject* self, PyObject* args)
 {
     Py_BEGIN_ALLOW_THREADS
-        console->Pause();
+    console->Pause();
     Py_END_ALLOW_THREADS
     return statusobject(ER_OK);
 }
@@ -571,7 +574,7 @@ static PyObject* py_delbreakpoint(PyObject* self, PyObject* args)
     index = atoi(text);
 
     Py_BEGIN_ALLOW_THREADS
-        console->DelBreak(index);
+    console->DelBreak(index);
     Py_END_ALLOW_THREADS
 
     return statusobject(ER_OK);
@@ -580,7 +583,7 @@ static PyObject* py_delbreakpoint(PyObject* self, PyObject* args)
 static PyObject* py_attach(PyObject* self, PyObject* args)
 {
     Py_BEGIN_ALLOW_THREADS
-        console->StartDebugger();
+    console->StartDebugger();
     Py_END_ALLOW_THREADS
     return statusobject(ER_OK);
 }
@@ -588,7 +591,7 @@ static PyObject* py_attach(PyObject* self, PyObject* args)
 static PyObject* py_detach(PyObject* self, PyObject* args)
 {
     Py_BEGIN_ALLOW_THREADS
-        console->Detach();
+    console->Detach();
     Py_END_ALLOW_THREADS
     return statusobject(ER_OK);
 }
@@ -664,57 +667,66 @@ static PyObject* py_debugeval(PyObject* self, PyObject* args)
     if (value) {
         switch (type) {
         case DBG_TYPE_NUMBER:
-        {
-            /* Number (double) */
-            uint64_t tmp;
-            double number;
-            memcpy(&tmp, value, sizeof(uint64_t));
-            tmp = bswap_64(tmp);
-            memcpy(&number, &tmp, sizeof(uint64_t));
-            tuple = Py_BuildValue("d", number);
-        }
+            {
+                /* Number (double) */
+                uint64_t tmp;
+                double number;
+                memcpy(&tmp, value, sizeof(uint64_t));
+                tmp = bswap_64(tmp);
+                memcpy(&number, &tmp, sizeof(uint64_t));
+                tuple = Py_BuildValue("d", number);
+            }
             break;
+
         case DBG_TYPE_NULL:
             tuple = Py_BuildValue("s", "Null");
             break;
+
         case DBG_TYPE_TRUE:
             tuple = Py_BuildValue("s", "True");
             break;
+
         case DBG_TYPE_FALSE:
             tuple = Py_BuildValue("s", "False");
             break;
+
         case DBG_TYPE_UNUSED:
             tuple = Py_BuildValue("s", "Unused");
             break;
+
         case DBG_TYPE_UNDEFINED:
             tuple = Py_BuildValue("s", "Undefined");
             break;
+
         case DBG_TYPE_STRLOW:
-        {
-            /* String type */
-            char* str = (char*)malloc(sizeof(char) * size + 1);
-            memcpy(str, value, size);
-            str[size] = '\0';
-            tuple = Py_BuildValue("s", str);
-            free(str);
-        }
-            break;
-        case DBG_TYPE_BUFFER2:
-        {
-            uint8_t i;
-            tuple = PyTuple_New(size);
-            for (i = 0; i < size; ++i) {
-                PyTuple_SetItem(tuple, i, Py_BuildValue("i", value[i]));
+            {
+                /* String type */
+                char* str = (char*)malloc(sizeof(char) * size + 1);
+                memcpy(str, value, size);
+                str[size] = '\0';
+                tuple = Py_BuildValue("s", str);
+                free(str);
             }
-        }
             break;
+
+        case DBG_TYPE_BUFFER2:
+            {
+                uint8_t i;
+                tuple = PyTuple_New(size);
+                for (i = 0; i < size; ++i) {
+                    PyTuple_SetItem(tuple, i, Py_BuildValue("i", value[i]));
+                }
+            }
+            break;
+
         case DBG_TYPE_STRING2:
             tuple = Py_BuildValue("s", (char*)value);
             break;
+
         default:
             printf("Currently unhandled type 0x%02x, size = %u\n", type, size);
             tuple = Py_BuildValue("");
-        break;
+            break;
         }
         return tuple;
     }

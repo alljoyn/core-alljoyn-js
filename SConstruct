@@ -1,5 +1,5 @@
 # *****************************************************************************
-#  Copyright (c) 2014, AllSeen Alliance. All rights reserved.
+#  Copyright (c) 2014, 2015, AllSeen Alliance. All rights reserved.
 #
 #     Permission to use, copy, modify, and/or distribute this software for any
 #     purpose with or without fee is hereby granted, provided that the above
@@ -46,7 +46,7 @@ vars.Add(EnumVariable('DUKTAPE_SEPARATE', 'Use seperate rather than combined duk
 vars.Add(PathVariable('ARM_TOOLCHAIN_DIR', 'Path to the GNU ARM toolchain bin folder', os.environ.get('ARM_TOOLCHAIN_DIR'), PathVariable.PathIsDir))
 vars.Add(PathVariable('STM_SRC_DIR', 'Path to the source code for the STM32 microcontroller', os.environ.get('STM_SRC_DIR'), PathVariable.PathIsDir))
 vars.Add(PathVariable('FREE_RTOS_DIR','Directory to FreeRTOS source code', os.environ.get('FREE_RTOS_DIR'), PathVariable.PathIsDir))
-vars.Add(EnumVariable('DUK_DEBUG', 'Turn on standard output for the duktape engine', 'off', allowed_values=('on', 'off')))
+vars.Add(EnumVariable('DUK_DEBUG', 'Turn on duktape logging and print debug messages', 'off', allowed_values=('on', 'off')))
 
 
 if default_msvc_version:
@@ -239,6 +239,7 @@ env.Append(CPPDEFINES=['DUK_OPT_NO_FILE_IO'])
 env.Append(CPPDEFINES=['DUK_OPT_FORCE_ALIGN=4'])
 env.Append(CPPDEFINES=['DDUK_OPT_LIGHTFUNC_BUILTINS'])
 if env['DUK_DEBUG'] == 'on':
+    env.Append(CPPDEFINES=['DBG_PRINT_CHUNKS'])
     env.Append(CPPDEFINES=['DUK_OPT_DEBUG'])
     env.Append(CPPDEFINES=['DUK_OPT_DPRINT'])
 

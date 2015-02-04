@@ -158,7 +158,7 @@ int main(int argc, char** argv)
                     if (input == "$attach") {
                         ajsConsole.StartDebugger();
                         ajsConsole.SetDebugState(DEBUG_ATTACHED_PAUSED);
-                    /* Add breakpoint is before the 'debugConnected' check because they can be added to a running target */
+                        /* Add breakpoint is before the 'debugConnected' check because they can be added to a running target */
                     } else if (input == "$pause") {
 
                         ajsConsole.Pause();

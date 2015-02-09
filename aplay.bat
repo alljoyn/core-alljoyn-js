@@ -1,5 +1,5 @@
 @rem ******************************************************************************
-@rem * Copyright (c) 2014, AllSeen Alliance. All rights reserved.
+@rem * Copyright AllSeen Alliance. All rights reserved.
 @rem *
 @rem *    Permission to use, copy, modify, and/or distribute this software for any
 @rem *    purpose with or without fee is hereby granted, provided that the above

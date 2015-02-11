@@ -617,6 +617,7 @@ static int NativePropertyWidget(duk_context* ctx)
     AJS_SetPropertyAccessors(ctx, -1, "range", NativeRangeSetter, NULL);
 
     switch (layout) {
+    case PROPERTY_WIDGET_HINT_CHECKBOX:
     case PROPERTY_WIDGET_HINT_SWITCH:
         widget->property.wdt.signature = "b";
         break;
@@ -627,7 +628,6 @@ static int NativePropertyWidget(duk_context* ctx)
         widget->property.val.s = "";
         break;
 
-    case PROPERTY_WIDGET_HINT_CHECKBOX:
     case PROPERTY_WIDGET_HINT_SPINNER:
     case PROPERTY_WIDGET_HINT_RADIOBUTTON:
     case PROPERTY_WIDGET_HINT_KEYPAD:

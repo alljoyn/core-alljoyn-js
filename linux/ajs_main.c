@@ -112,6 +112,7 @@ static AJ_Status InstallScript(const char* fn)
     return status;
 }
 
+#ifndef NDEBUG
 extern uint8_t dbgMSG;
 extern uint8_t dbgHELPER;
 extern uint8_t dbgBUS;
@@ -124,6 +125,7 @@ extern uint8_t dbgNET;
 extern uint8_t dbgHEAPDUMP;
 extern uint8_t dbgCONSOLE;
 extern uint8_t dbgGPIO;
+#endif
 
 int main(int argc, char* argv[])
 {
@@ -151,6 +153,17 @@ int main(int argc, char* argv[])
     AJ_Initialize();
 
     while (argn < argc) {
+        if (strcmp(argv[argn], "--debug") == 0) {
+#ifndef NDEBUG
+            AJ_DbgLevel = 4;
+            dbgAJS = 1;
+            ++argn;
+            continue;
+#else
+            AJ_Printf("Not built with debugging\n");
+            goto Usage;
+#endif
+        }
         if (strcmp(argv[argn], "--daemon") == 0) {
             daemonize = TRUE;
             ++argn;
@@ -196,13 +209,17 @@ int main(int argc, char* argv[])
      */
     do {
         status = AJS_Main(deviceName);
-    } while (daemonize);
+    } while (daemonize || (status == AJ_ERR_RESTART));
 
     return -((int)status);
 
 Usage:
 
+#ifndef NDEBUG
+    AJ_Printf("Usage: %s [--daemon] [--debug] [--name <device-name>] [script_file]\n", argv[0]);
+#else
     AJ_Printf("Usage: %s [--daemon] [--name <device-name>] [script_file]\n", argv[0]);
+#endif
     exit(-1);
 }
 

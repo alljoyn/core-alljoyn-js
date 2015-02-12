@@ -56,9 +56,9 @@ ajs_sources = [
      'ajs_unmarshal.c',
      'ajs_util.c',
      'ajs_debugger.c',
+     'ajs_obs_stubs.c',
      env['os'] + '/ajs_main.c',
-     env['os'] + '/ajs_malloc.c',
-     env['os'] + '/ajs_obs_stubs.c'
+     env['os'] + '/ajs_malloc.c'
 ]
 
 if os.environ.get('YUN_BUILD', '0') == '1':

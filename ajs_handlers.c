@@ -19,9 +19,8 @@
 
 #include "ajs.h"
 #include "ajs_util.h"
+#include "ajs_services.h"
 #include "ajs_propstore.h"
-#include <alljoyn/services_common/PropertyStore.h>
-
 
 
 static AJ_BusAttachment* ajBus;
@@ -365,6 +364,20 @@ static int NativeStoreProperty(duk_context* ctx)
     return 0;
 }
 
+static int NativeFactoryReset(duk_context* ctx)
+{
+    AJS_DeferredOperation(ctx, AJS_OP_FACTORY_RESET);
+    duk_error(ctx, DUK_ERR_ERROR, "Factory Reset");
+    return 0;
+}
+
+static int NativeOffboard(duk_context* ctx)
+{
+    AJS_DeferredOperation(ctx, AJS_OP_OFFBOARD);
+    duk_error(ctx, DUK_ERR_ERROR, "Off-Board");
+    return 0;
+}
+
 static const duk_function_list_entry aj_native_functions[] = {
     { "addMatch",          NativeAddMatch,          2 },
     { "findService",       NativeFindService,       2 },
@@ -372,6 +385,8 @@ static const duk_function_list_entry aj_native_functions[] = {
     { "advertiseName",     NativeAdvertiseName,     1 },
     { "load",              NativeLoadProperty,      1 },
     { "store",             NativeStoreProperty,     2 },
+    { "factoryReset",      NativeFactoryReset,      0 },
+    { "offboard",          NativeOffboard,          0 },
     { NULL }
 };
 

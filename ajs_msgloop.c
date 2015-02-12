@@ -229,6 +229,35 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
     return status;
 }
 
+static AJS_DEFERRED_OP deferredOp = AJS_OP_NONE;
+
+void AJS_DeferredOperation(duk_context* ctx, AJS_DEFERRED_OP op)
+{
+    deferredOp = op;
+}
+
+static AJ_Status DoDeferredOperation(duk_context* ctx)
+{
+    AJ_Status status = AJ_ERR_RESTART;
+
+    switch (deferredOp) {
+    case AJS_OP_OFFBOARD:
+        AJOBS_ClearInfo();
+        AJS_DetachAllJoyn(AJS_GetBusAttachment(), AJ_ERR_RESTART);
+        break;
+
+    case AJS_OP_FACTORY_RESET:
+        AJS_FactoryReset();
+        break;
+
+    default:
+        status = AJ_OK;
+        break;
+    }
+    deferredOp = AJS_OP_NONE;
+    return status;
+}
+
 AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajIdx)
 {
     AJ_Status status = AJ_OK;
@@ -239,6 +268,8 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
     duk_idx_t top = duk_get_top_index(ctx);
 
     AJ_InfoPrintf(("AJS_MessageLoop top=%d\n", (int)top));
+
+    deferredOp = AJS_OP_NONE;
 
     if (ajIdx >= 0) {
         /*
@@ -405,6 +436,11 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
          * Let link monitor know we are getting messages
          */
         AJ_NotifyLinkActive();
+        /*
+         * Perform any deferred operations. These are operations such as factory reset that cannot
+         * be cleanly performed from inside duktape.
+         */
+        status = DoDeferredOperation(ctx);
     }
     AJS_ClearWatchdogTimer();
     return status;

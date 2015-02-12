@@ -518,6 +518,22 @@ AJ_Status AJS_HeapCreate();
  */
 void AJS_HeapDestroy();
 
+/**
+ * Reset the property store to defaults and offboard the device
+ */
+AJ_Status AJS_FactoryReset();
+
+typedef enum {
+    AJS_OP_NONE          = 0,
+    AJS_OP_OFFBOARD      = 1,
+    AJS_OP_FACTORY_RESET = 2
+} AJS_DEFERRED_OP;
+
+/**
+ * Set up for an operation that can only be performed at the msg loop level.
+ */
+void AJS_DeferredOperation(duk_context* ctx, AJS_DEFERRED_OP op);
+
 /*
  * Dump the heap pool allocations
  *

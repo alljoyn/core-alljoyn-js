@@ -106,6 +106,7 @@ static AJ_Status InstallScript(const char* fn)
     return status;
 }
 
+#ifndef NDEBUG
 extern uint8_t dbgMSG;
 extern uint8_t dbgHELPER;
 extern uint8_t dbgBUS;
@@ -117,10 +118,12 @@ extern uint8_t dbgHEAP;
 extern uint8_t dbgNET;
 extern uint8_t dbgHEAPDUMP;
 extern uint8_t dbgCONSOLE;
+#endif
 
 int main(int argc, char* argv[])
 {
     const char* deviceName = NULL;
+    const char* scriptName = NULL;
     int argn = 1;
     AJ_Status status = AJ_OK;
 #ifndef NDEBUG
@@ -136,11 +139,23 @@ int main(int argc, char* argv[])
     dbgNET = 0;
     dbgHEAPDUMP = 0;
     dbgCONSOLE = 0;
+    dbgGPIO = 0;
 #endif
 
     AJ_Initialize();
 
-    if (argc > argn) {
+    while (argn < argc) {
+        if (strcmp(argv[argn], "--debug") == 0) {
+#ifndef NDEBUG
+            AJ_DbgLevel = 4;
+            dbgAJS = 1;
+            ++argn;
+            continue;
+#else
+            AJ_Printf("Not built with debugging\n");
+            goto Usage;
+#endif
+        }
         if (strcmp(argv[argn], "--name") == 0) {
             ++argn;
             if (argn >= argc) {
@@ -148,26 +163,41 @@ int main(int argc, char* argv[])
             }
             deviceName = argv[argn];
             ++argn;
+            continue;
         }
-        if (argc > argn) {
-            if (argc > (argn + 1)) {
-                goto Usage;
-            }
-            status = InstallScript(argv[argn]);
-            if (status != AJ_OK) {
-                AJ_Printf("Failed to install script %s\n", argv[argn]);
-                exit(-1);
-            }
+        if (argv[argn][0] == '-') {
+            goto Usage;
         }
+        if (argc > (argn + 1)) {
+            goto Usage;
+        }
+        scriptName = argv[argn];
+        ++argn;
     }
 
-    status = AJS_Main(deviceName);
+    if (scriptName) {
+        status = InstallScript(scriptName);
+        if (status != AJ_OK) {
+            AJ_Printf("Failed to install script %s\n", argv[argn]);
+            exit(-1);
+        }
+    }
+    /*
+     * If running as a daemon keep restarting
+     */
+    do {
+        status = AJS_Main(deviceName);
+    } while (status == AJ_ERR_RESTART);
 
     return -((int)status);
 
 Usage:
 
+#ifndef NDEBUG
+    AJ_Printf("Usage: %s [--debug] [--name <device-name>] [script_file]\n", argv[0]);
+#else
     AJ_Printf("Usage: %s [--name <device-name>] [script_file]\n", argv[0]);
+#endif
     exit(-1);
 }
 

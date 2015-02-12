@@ -17,7 +17,6 @@
 
 #include "ajs.h"
 #include <aj_debug.h>
-#include <aj_debug.h>
 #include <aj_config.h>
 #include <aj_creds.h>
 #include <aj_link_timeout.h>
@@ -55,12 +54,16 @@ static AJ_Status SetPasscode(const char* routerRealm, const uint8_t* newPasscode
     return status;
 }
 
-static AJ_Status FactoryReset(void)
+AJ_Status AJS_FactoryReset()
 {
     AJ_Status status = AJ_OK;
 
-    AJ_WarnPrintf(("GOT FACTORY RESET\n"));
+    AJ_WarnPrintf(("FactoryReset\n"));
     status = AJSVC_PropertyStore_ResetAll();
+    if (status != AJ_OK) {
+        return status;
+    }
+    status = AJOBS_ClearInfo();
     if (status != AJ_OK) {
         return status;
     }
@@ -75,7 +78,7 @@ static uint8_t IsValueValid(const char* key, const char* value)
 
 static AJ_Status Restart(void)
 {
-    AJ_WarnPrintf(("GOT RESTART REQUEST\n"));
+    AJ_WarnPrintf(("Restart\n"));
     AJ_AboutSetShouldAnnounce();
     return AJ_ERR_RESTART;
 }
@@ -85,7 +88,7 @@ AJ_Status AJS_ServicesInit(AJ_BusAttachment* aj)
     AJ_Status status = AJ_OK;
 
     AJ_BusSetPasswordCallback(aj, AJS_PasswordCallback);
-    status = AJCFG_Start(FactoryReset, Restart, SetPasscode, IsValueValid);
+    status = AJCFG_Start(AJS_FactoryReset, Restart, SetPasscode, IsValueValid);
     if (status != AJ_OK) {
         goto Exit;
     }

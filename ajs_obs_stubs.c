@@ -60,3 +60,8 @@ AJSVC_ServiceStatus AJOBS_MessageProcessor(AJ_BusAttachment* busAttachment, AJ_M
 {
     return AJSVC_SERVICE_STATUS_NOT_HANDLED;
 }
+
+AJ_Status AJOBS_ClearInfo()
+{
+    return AJ_OK;
+}

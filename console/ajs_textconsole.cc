@@ -18,11 +18,13 @@
  ******************************************************************************/
 
 #include "ajs_console.h"
-#include <stdlib.h>
+#include <stdio.h>
 
 static volatile sig_atomic_t g_interrupt = false;
 
 using namespace qcc;
+
+static char inbuf[1024] = { 0 };
 
 class AJS_TextConsole : public AJS_Console {
   public:
@@ -55,16 +57,15 @@ static void SigIntHandler(int sig)
 
 static String ReadLine()
 {
-    char inbuf[1024];
     char* inp = NULL;
     while (!g_interrupt && !inp) {
         inp = fgets(inbuf, sizeof(inbuf), stdin);
     }
     if (inp) {
-        size_t len = strlen(inp);
+        size_t len = strlen(inbuf);
         inp[len - 1] = 0;
     }
-    return inp;
+    return inbuf;
 }
 
 static QStatus ReadScriptFile(const char* fname, uint8_t** data, size_t* len)
@@ -217,7 +218,7 @@ int main(int argc, char** argv)
                         } else if (input == "$dump") {
                             ajsConsole.DumpHeap();
                         } else if (input == "$lb") {
-                            BreakPoint* breakpoint = NULL;
+                            AJS_BreakPoint* breakpoint = NULL;
                             uint8_t num;
                             int i;
                             ajsConsole.ListBreak(&breakpoint, &num);
@@ -228,7 +229,7 @@ int main(int argc, char** argv)
                                 }
                             }
                         } else if (input == "$bt") {
-                            CallStack* stack = NULL;
+                            AJS_CallStack* stack = NULL;
                             uint8_t size;
                             int i;
                             ajsConsole.GetCallStack(&stack, &size);
@@ -239,7 +240,7 @@ int main(int argc, char** argv)
                                 ajsConsole.FreeCallStack(stack, size);
                             }
                         } else if (input == "$locals") {
-                            Locals* vars = NULL;
+                            AJS_Locals* vars = NULL;
                             uint16_t size;
                             int i;
                             QCC_SyncPrintf("Local Variables:\n");
@@ -315,7 +316,7 @@ int main(int argc, char** argv)
                                 char* name;
                                 char* value;
                                 int j = 0;
-                                int k = 0;
+                                uint32_t k = 0;
                                 while (*i != ' ') {
                                     i++;
                                     j++;

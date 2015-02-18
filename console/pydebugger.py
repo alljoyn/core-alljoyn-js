@@ -12,14 +12,23 @@
 # WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+import sys
+
+major_version = sys.version_info[0]
+
+if major_version < 3:
+    from Tkinter import *
+    from tkMessageBox import *
+    from tkFileDialog import *
+    import Queue
+else:
+    from tkinter import *
+    from tkinter import messagebox as tm
+    import queue as Queue
+    from tkinter import filedialog
+import os
 
 import AJSConsole
-from Tkinter import *
-from tkMessageBox import *
-from tkFileDialog import *
-import os
-import sys
-import Queue
 
 printMsgFilter = 'off'
 notifMsgFilter = 'off'
@@ -89,20 +98,20 @@ def updateVersion():
 def lineUpdate():
     enableEditing('source', 'on')
     dbg.RightFrame.SourceView.tag_delete("Line")
-    dbg.RightFrame.SourceView.tag_add("Line", `getLine()`+'.2', `getLine()`+'.end')
+    dbg.RightFrame.SourceView.tag_add("Line", str(getLine())+'.2', str(getLine())+'.end')
     dbg.RightFrame.SourceView.tag_config("Line", background="yellow")
     enableEditing('source', 'off')
 
 # Shows breakpoints in the source code viewer by highlighting the line number red
 def viewBreakpointUpdate():
     breakpoints = AJSConsole.GetBreakpoints()
-    if type(breakpoints) != NoneType:
+    if type(breakpoints) != type(None):
         enableEditing('source', 'on')
         for i in range(len(breakpoints)):
             line = breakpoints[i][1]
-            dbg.RightFrame.SourceView.tag_delete("BPView."+`i`)
-            dbg.RightFrame.SourceView.tag_add("BPView."+`i`, `line`+'.0', `line`+'.2')
-            dbg.RightFrame.SourceView.tag_config("BPView."+`i`, background="red")
+            dbg.RightFrame.SourceView.tag_delete("BPView."+str(i))
+            dbg.RightFrame.SourceView.tag_add("BPView."+str(i), str(line)+'.0', str(line)+'.2')
+            dbg.RightFrame.SourceView.tag_config("BPView."+str(i), background="red")
         enableEditing('source', 'off')
 
 # Updates local variables and values
@@ -112,15 +121,15 @@ def localUpdate():
     # Cut down on error printing and ensure we can get local variables
     if state == 2:
         locals = AJSConsole.GetLocals()
-        if type(locals) != NoneType:
+        if type(locals) != type(None):
             enableEditing('locals', 'on')
             dbg.LocalsFrame.LocalVars.delete('0.0', END)
             for i in range(len(locals)):
-                dbg.LocalsFrame.LocalVars.insert(`i+1`+'.0', locals[i][0] + "\t" + `locals[i][1]`+ "\n")
+                dbg.LocalsFrame.LocalVars.insert(str(i+1)+'.0', locals[i][0] + "\t" + str(locals[i][1])+ "\n")
                 if selectedLocal != -1:
                     if i + 1 == selectedLocal:
                         dbg.LocalsFrame.LocalVars.tag_delete("LocalSelection")
-                        dbg.LocalsFrame.LocalVars.tag_add("LocalSelection", `selectedLocal`+'.0', `selectedLocal`+'.end')
+                        dbg.LocalsFrame.LocalVars.tag_add("LocalSelection", str(selectedLocal)+'.0', str(selectedLocal)+'.end')
                         dbg.LocalsFrame.LocalVars.tag_config("LocalSelection", background="yellow")
             enableEditing('locals', 'off')
         else:
@@ -133,11 +142,11 @@ def stackUpdate():
     state = AJSConsole.GetTargetState()
     if state == 2:
         stacktrace = AJSConsole.GetStacktrace()
-        if type(stacktrace) != NoneType:
+        if type(stacktrace) != type(None):
             enableEditing('stack', 'on')
             dbg.BreakFrame.StackTrace.delete('0.0', END)
             for i in range(len(stacktrace)):
-                dbg.BreakFrame.StackTrace.insert(`i+1`+'.0', `i+1` + ": " + stacktrace[i][1] + "\tLine: " + `stacktrace[i][2]` + "\tPC: " + `stacktrace[i][3]` + "\n")
+                dbg.BreakFrame.StackTrace.insert(str(i+1)+'.0', str(i+1) + ": " + stacktrace[i][1] + "\tLine: " + str(stacktrace[i][2]) + "\tPC: " + str(stacktrace[i][3]) + "\n")
             enableEditing('stack', 'off')
 
 # Updates the current breakpoint list
@@ -147,16 +156,16 @@ def breakpointUpdate():
     state = AJSConsole.GetTargetState()
     if state == 2:
         breakpoints = AJSConsole.GetBreakpoints()
-        if type(breakpoints) != NoneType:
+        if type(breakpoints) != type(None):
             enableEditing('breakpoints', 'on')
             dbg.BreakFrame.Breakpoints.delete('0.0', END)
             numBreakpoints = len(breakpoints)
             for i in range(len(breakpoints)):
-                if type(breakpoints[i][0]) != NoneType and type(breakpoints[i][1]) != NoneType:
-                    dbg.BreakFrame.Breakpoints.insert(`i+1`+'.0', `i` + ": " + breakpoints[i][0] + "\t" + `breakpoints[i][1]` + "\n")
+                if type(breakpoints[i][0]) != type(None) and type(breakpoints[i][1]) != type(None):
+                    dbg.BreakFrame.Breakpoints.insert(str(i+1)+'.0', str(i) + ": " + breakpoints[i][0] + "\t" + str(breakpoints[i][1]) + "\n")
                     if i == selectedBreakpoint:
                         dbg.BreakFrame.Breakpoints.tag_delete("Selection")
-                        dbg.BreakFrame.Breakpoints.tag_add("Selection", `selectedBreakpoint`+'.0', `selectedBreakpoint`+'.end')
+                        dbg.BreakFrame.Breakpoints.tag_add("Selection", str(selectedBreakpoint)+'.0', str(selectedBreakpoint)+'.end')
                         dbg.BreakFrame.Breakpoints.tag_config("Selection", background="yellow")
             enableEditing('breakpoints', 'off')
 
@@ -225,7 +234,7 @@ def sourceViewEventHandler(event):
     else:
         canAdd = True
         for i in range(numBreakpoints):
-            line = dbg.BreakFrame.Breakpoints.get(`i+1` + '.0', `i+1` + '.end')
+            line = dbg.BreakFrame.Breakpoints.get(str(i+1) + '.0', str(i+1) + '.end')
             if does_index_exist(line.split('\t'), 1):
                 line = line.split('\t')[1]
                 # Check that the breakpoint doesn't already exist
@@ -244,7 +253,7 @@ def localsEventHandler(event):
     if state == 2:
         enableEditing('locals', 'on')
         locals = AJSConsole.GetLocals()
-        if type(locals) != NoneType:
+        if type(locals) != type(None):
             for i in range(len(locals)):
                 index = dbg.LocalsFrame.LocalVars.index("@%s,%s linestart" % (event.x, event.y))
                 index = index.split('.')[0]
@@ -254,7 +263,7 @@ def localsEventHandler(event):
                     dbg.LocalsFrame.LocalVars.tag_config("LocalSelection", background="white")
                     selectedLocal = -1
                     break
-                if index == `i + 1`:
+                if index == str(i + 1):
                     dbg.LocalsFrame.LocalVars.tag_delete("LocalSelection")
                     dbg.LocalsFrame.LocalVars.tag_add("LocalSelection", index+'.0', index+'.end')
                     dbg.LocalsFrame.LocalVars.tag_config("LocalSelection", background="yellow")
@@ -275,7 +284,7 @@ def breakpointEventHandler(event):
     selection = str(selection)
     for i in range(numBreakpoints):
         if text_is_number(selection):
-            if selection == `selectedBreakpoint`:
+            if selection == str(selectedBreakpoint):
                 dbg.BreakFrame.Breakpoints.tag_delete("Selection")
                 dbg.BreakFrame.Breakpoints.tag_add("Selection", line_start+'.0', line_start+'.end')
                 dbg.BreakFrame.Breakpoints.tag_config("Selection", background="white")
@@ -299,33 +308,33 @@ def delBreakpoint():
         if int(text) >= 0 and int(text) <= 255:
             enableEditing('breakpoints', 'on')
             # First remove the breakpoint from the source viewer
-            if type(breakpoints) != NoneType:
+            if type(breakpoints) != type(None):
                 enableEditing('source', 'on')
                 for i in range(len(breakpoints)):
                     # Found the breakpoint
-                    if `i`+"\n" == text:
+                    if str(i)+"\n" == text:
                         line = breakpoints[i][1]
-                        dbg.RightFrame.SourceView.tag_delete("BPView."+`line`)
-                        dbg.RightFrame.SourceView.tag_add("BPView."+text, `line`+'.0', `line`+'.2')
+                        dbg.RightFrame.SourceView.tag_delete("BPView."+str(line))
+                        dbg.RightFrame.SourceView.tag_add("BPView."+text, str(line)+'.0', str(line)+'.2')
                         dbg.RightFrame.SourceView.tag_config("BPView."+text, background="white")
                         #dbg.RightFrame.SourceView.config(state=DISABLED)
-                        dbg.DebugNotification("Breakpoint removed at line " + `line`)
+                        dbg.DebugNotification("Breakpoint removed at line " + str(line))
                 enableEditing('source', 'off')
             dbg.BreakFrame.DelBreakpoints.delete('0.0', END)
             enableEditing('breakpoints', 'off')
             AJSConsole.DelBreakpoint(text)
     # If a BP is selected in the viewer then delete it
-    elif selectedBreakpoint != -1 and type(breakpoints) != NoneType:
+    elif selectedBreakpoint != -1 and type(breakpoints) != type(None):
         enableEditing('source', 'on')
         enableEditing('breakpoints', 'on')
         for i in range(len(breakpoints)):
-            if `i` == `selectedBreakpoint`:
+            if str(i) == str(selectedBreakpoint):
                 line = breakpoints[i][1]
-                dbg.RightFrame.SourceView.tag_delete("BPView."+`line`)
-                dbg.RightFrame.SourceView.tag_add("BPView."+`line`, `line`+'.0', `line`+'.2')
-                dbg.RightFrame.SourceView.tag_config("BPView."+`line`, background="white")
-                dbg.DebugNotification("Breakpoint removed at line " + `line`)
-        AJSConsole.DelBreakpoint(`selectedBreakpoint`)
+                dbg.RightFrame.SourceView.tag_delete("BPView."+str(line))
+                dbg.RightFrame.SourceView.tag_add("BPView."+str(line), str(line)+'.0', str(line)+'.2')
+                dbg.RightFrame.SourceView.tag_config("BPView."+str(line), background="white")
+                dbg.DebugNotification("Breakpoint removed at line " + str(line))
+        AJSConsole.DelBreakpoint(str(selectedBreakpoint))
         selectedBreakpoint = -1
         enableEditing('source', 'off')
         enableEditing('breakpoints', 'off')
@@ -349,7 +358,7 @@ def getScript():
         dbg.RightFrame.SourceView.insert('0.0', AJSConsole.GetScript())
         # Insert line numbers into the script
         for i in range(1, int(dbg.RightFrame.SourceView.index('end').split('.')[0])):
-            dbg.RightFrame.SourceView.insert(`i`+'.0', `i`+':\t')
+            dbg.RightFrame.SourceView.insert(str(i)+'.0', str(i)+':\t')
         lineUpdate()
         enableEditing('source', 'off')
     else:
@@ -387,14 +396,14 @@ def install():
 def eval():
     text = dbg.BottomFrame.EvalTextBox.get('0.0', END)
     result = AJSConsole.DebugEval(text)
-    if type(result) != NoneType:
-        dbg.EvalNotification(`result`)
+    if type(result) != type(None):
+        dbg.EvalNotification(str(result))
 
 def putVar():
     global selectedLocal
     text = dbg.LocalsFrame.PutVar.get('0.0', END).strip('\n')
     if selectedLocal != -1 and text != '\n':
-        var = dbg.LocalsFrame.LocalVars.get(`selectedLocal` + '.0', `selectedLocal` + '.end')
+        var = dbg.LocalsFrame.LocalVars.get(str(selectedLocal) + '.0', str(selectedLocal) + '.end')
         var = var.split('\t')[0]
         AJSConsole.PutVar(var, text)
         dbg.LocalsFrame.PutVar.delete('0.0', END)
@@ -449,7 +458,7 @@ class DebugGUI(Frame):
         self.RightFrame.SourceView = Text(self.RightFrame, width=80, height=35)
         self.RightFrame.SourceView.grid(row=0, column=1, rowspan=11, columnspan=3, sticky=W+E+N+S)
         self.RightFrame.SourceView.insert('1.0', "No source loaded yet")
-        self.RightFrame.SourceView.tag_add("Line", `getLine()`+'.0', `getLine()`+'.end')
+        self.RightFrame.SourceView.tag_add("Line", str(getLine())+'.0', str(getLine())+'.end')
         self.RightFrame.SourceView.config(wrap=NONE, state=DISABLED)
         self.RightFrame.SourceView.bind('<Double-1>', sourceViewEventHandler)
 

@@ -371,6 +371,10 @@ AJ_Status AJSVC_PropertyStore_ReadAll(AJ_Message* msg, AJSVC_PropertyStoreCatego
                     goto ExitReadAll;
                 }
                 value = AJSVC_PropertyStore_GetValueForLang(field, lang);
+                if (!value) {
+                    status = AJ_ERR_INVALID;
+                    goto ExitReadAll;
+                }
                 status = AJSVC_MarshalAppIdAsVariant(msg, value);
                 if (status != AJ_OK) {
                     goto ExitReadAll;

@@ -184,6 +184,7 @@ static uint32_t GetPinId(duk_context* ctx, int idx, uint32_t function)
         const AJS_IO_Info* info = AJS_TargetIO_GetInfo(id);
         if (!info) {
             duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Undefined I/O pin%d", id);
+            return 0;
         }
         if (!(info->functions & function)) {
             duk_error(ctx, DUK_ERR_TYPE_ERROR, "I/O function %s not supported on pin%d", AJS_IO_FunctionName(function), id);
@@ -559,7 +560,7 @@ static int NativeIoUart(duk_context* ctx)
     AJ_Status status;
     uint8_t tx, rx;
     uint32_t baud;
-    void* uartCtx;
+    void* uartCtx = NULL;
     int idx;
 
     tx = GetPinId(ctx, 0, AJS_IO_FUNCTION_UART_TX);
@@ -676,6 +677,10 @@ static int NativeFunctionsGetter(duk_context* ctx)
     duk_pop(ctx);
 
     info = AJS_TargetIO_GetInfo(pin);
+    if (!info) {
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Undefined I/O pin%d", pin);
+        return 0;
+    }
     duk_push_string(ctx, ", ");
     /*
      * Test each function bit
@@ -705,6 +710,11 @@ static int NativeInfoGetter(duk_context* ctx)
     duk_pop(ctx);
 
     info = AJS_TargetIO_GetInfo(pin);
+    if (!info) {
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Undefined I/O pin%d", pin);
+        return 0;
+    }
+    duk_push_string(ctx, ", ");
 
     idx = duk_push_object(ctx);
     duk_push_int(ctx, info->physicalPin);
@@ -793,7 +803,7 @@ AJ_Status AJS_RegisterIO(duk_context* ctx, duk_idx_t ioIdx)
 AJ_Status AJS_ServiceIO(duk_context* ctx)
 {
     int32_t trigId;
-    uint32_t level;
+    uint32_t level = 0;
 
     trigId = AJS_TargetIO_PinTrigId(&level);
     if (trigId != AJS_IO_PIN_NO_TRIGGER) {

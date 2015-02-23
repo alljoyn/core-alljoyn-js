@@ -115,7 +115,6 @@ static AJ_Status WaitForData(uint32_t ms)
 
 static void OpenSimIO()
 {
-    pthread_attr_t attr;
     struct sockaddr_un sa;
 
     memset(&sa, 0, sizeof(sa));
@@ -134,7 +133,6 @@ static void OpenSimIO()
         /*
          * Create thread to handle reads
          */
-        pthread_attr_init(&attr);
         ret = pthread_create(&threadId, NULL, SockRead, NULL);
         if (ret) {
             AJ_ErrPrintf(("Failed to create read thread\n"));

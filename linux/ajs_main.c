@@ -93,20 +93,19 @@ static AJ_Status InstallScript(const char* fn)
             ds = AJ_NVRAM_Open(AJS_SCRIPT_SIZE_ID, "w", sizeof(uint32_t));
             if (AJ_NVRAM_Write(&len, sizeof(len), ds) != sizeof(len)) {
                 status = AJ_ERR_RESOURCES;
-                return status;
             }
             AJ_NVRAM_Close(ds);
-            /*
-             * Now store the script name
-             */
-            len = strlen(fn) + 1;
-            ds = AJ_NVRAM_Open(AJS_SCRIPT_NAME_NVRAM_ID, "w", len);
-            if (ds) {
-                AJ_NVRAM_Write(fn, len, ds);
-                AJ_NVRAM_Close(ds);
+            if (status == AJ_OK) {
+                /*
+                 * Now store the script name
+                 */
+                len = strlen(fn) + 1;
+                ds = AJ_NVRAM_Open(AJS_SCRIPT_NAME_NVRAM_ID, "w", len);
+                if (ds) {
+                    AJ_NVRAM_Write(fn, len, ds);
+                    AJ_NVRAM_Close(ds);
+                }
             }
-
-
         }
         CloseScript(&sf);
     }
@@ -126,6 +125,7 @@ extern uint8_t dbgNET;
 extern uint8_t dbgHEAPDUMP;
 extern uint8_t dbgCONSOLE;
 extern uint8_t dbgGPIO;
+extern uint8_t dbgDEBUGGER;
 #endif
 
 /*
@@ -157,6 +157,7 @@ int main(int argc, char* argv[])
     dbgHEAPDUMP = 0;
     dbgCONSOLE = 0;
     dbgGPIO = 0;
+    dbgDEBUGGER = 0;
 #endif
 
     while (argn < argc) {
@@ -164,6 +165,8 @@ int main(int argc, char* argv[])
 #ifndef NDEBUG
             AJ_DbgLevel = 4;
             dbgAJS = 1;
+            dbgCONSOLE = 4;
+            dbgDEBUGGER = 4;
             ++argn;
             continue;
 #else

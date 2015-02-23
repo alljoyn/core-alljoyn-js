@@ -128,12 +128,20 @@ static int NativeTranslationsSetter(duk_context* ctx)
     duk_enum(ctx, 0, DUK_ENUM_OWN_PROPERTIES_ONLY);
     while (duk_next(ctx, -1, 0)) {
         languagesList = duk_realloc(ctx, languagesList, sizeof(const char*) * (numLangs + 2));
-        languagesList[numLangs] = (char*)duk_get_string(ctx, -1);
-        duk_put_prop_index(ctx, -3, numLangs);
-        ++numLangs;
+        if (languagesList) {
+            languagesList[numLangs] = (char*)duk_get_string(ctx, -1);
+            duk_put_prop_index(ctx, -3, numLangs);
+            ++numLangs;
+        } else {
+            duk_pop(ctx);
+            break;
+        }
     }
-    languagesList[numLangs] = NULL;
     duk_pop(ctx); // enum
+    if (languagesList) {
+        languagesList[numLangs] = NULL;
+        numLangs = 0;
+    }
     /*
      * Add the languages array to the AllJoyn object
      */

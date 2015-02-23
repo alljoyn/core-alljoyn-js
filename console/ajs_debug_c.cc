@@ -16,11 +16,12 @@
 
 #include "ajs_console.h"
 #include "ajs_console_c.h"
+#include "ajs_console_common.h"
 #include <stdlib.h>
 
 extern "C" {
 
-AJS_DebugStatus AJS_Debug_StartDebugger(AJS_ConsoleCtx* ctx)
+AJS_DebugStatusCode AJS_Debug_StartDebugger(AJS_ConsoleCtx* ctx)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -32,7 +33,7 @@ AJS_DebugStatus AJS_Debug_StartDebugger(AJS_ConsoleCtx* ctx)
     return DBG_OK;
 }
 
-AJS_DebugStatus AJS_Debug_StopDebugger(AJS_ConsoleCtx* ctx)
+AJS_DebugStatusCode AJS_Debug_StopDebugger(AJS_ConsoleCtx* ctx)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -76,18 +77,18 @@ uint8_t AJS_Debug_GetActiveDebug(AJS_ConsoleCtx* ctx)
     return console->activeDebug;
 }
 
-AJS_DEBUG_STATE AJS_Debug_GetDebugState(AJS_ConsoleCtx* ctx)
+AJS_DebugStatus AJS_Debug_GetDebugState(AJS_ConsoleCtx* ctx)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
         console = static_cast<AJS_Console*>(ctx->console);
     } else {
-        return DEBUG_DISCONNECTED;
+        return AJS_DEBUG_DETACHED;
     }
     return console->GetDebugState();
 }
 
-AJS_DebugStatus AJS_Debug_SetDebugState(AJS_ConsoleCtx* ctx, AJS_DEBUG_STATE state)
+AJS_DebugStatusCode AJS_Debug_SetDebugState(AJS_ConsoleCtx* ctx, AJS_DebugStatus state)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -99,7 +100,7 @@ AJS_DebugStatus AJS_Debug_SetDebugState(AJS_ConsoleCtx* ctx, AJS_DEBUG_STATE sta
     return DBG_OK;
 }
 
-AJS_DebugStatus AJS_Debug_BasicInfo(AJS_ConsoleCtx* ctx, uint16_t* version, char** description, char** targInfo, uint8_t* endianness)
+AJS_DebugStatusCode AJS_Debug_BasicInfo(AJS_ConsoleCtx* ctx, uint16_t* version, char** description, char** targInfo, uint8_t* endianness)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -112,7 +113,7 @@ AJS_DebugStatus AJS_Debug_BasicInfo(AJS_ConsoleCtx* ctx, uint16_t* version, char
 }
 
 
-AJS_DebugStatus AJS_Debug_Trigger(AJS_ConsoleCtx* ctx)
+AJS_DebugStatusCode AJS_Debug_Trigger(AJS_ConsoleCtx* ctx)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -125,7 +126,7 @@ AJS_DebugStatus AJS_Debug_Trigger(AJS_ConsoleCtx* ctx)
 }
 
 
-AJS_DebugStatus AJS_Debug_StepIn(AJS_ConsoleCtx* ctx)
+AJS_DebugStatusCode AJS_Debug_StepIn(AJS_ConsoleCtx* ctx)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -137,7 +138,7 @@ AJS_DebugStatus AJS_Debug_StepIn(AJS_ConsoleCtx* ctx)
     return DBG_OK;
 }
 
-AJS_DebugStatus AJS_Debug_StepOut(AJS_ConsoleCtx* ctx)
+AJS_DebugStatusCode AJS_Debug_StepOut(AJS_ConsoleCtx* ctx)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -150,7 +151,7 @@ AJS_DebugStatus AJS_Debug_StepOut(AJS_ConsoleCtx* ctx)
 }
 
 
-AJS_DebugStatus AJS_Debug_StepOver(AJS_ConsoleCtx* ctx)
+AJS_DebugStatusCode AJS_Debug_StepOver(AJS_ConsoleCtx* ctx)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -163,7 +164,7 @@ AJS_DebugStatus AJS_Debug_StepOver(AJS_ConsoleCtx* ctx)
 }
 
 
-AJS_DebugStatus AJS_Debug_Resume(AJS_ConsoleCtx* ctx)
+AJS_DebugStatusCode AJS_Debug_Resume(AJS_ConsoleCtx* ctx)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -176,7 +177,7 @@ AJS_DebugStatus AJS_Debug_Resume(AJS_ConsoleCtx* ctx)
 }
 
 
-AJS_DebugStatus AJS_Debug_Pause(AJS_ConsoleCtx* ctx)
+AJS_DebugStatusCode AJS_Debug_Pause(AJS_ConsoleCtx* ctx)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -188,7 +189,7 @@ AJS_DebugStatus AJS_Debug_Pause(AJS_ConsoleCtx* ctx)
     return DBG_OK;
 }
 
-AJS_DebugStatus AJS_Debug_Attach(AJS_ConsoleCtx* ctx)
+AJS_DebugStatusCode AJS_Debug_Attach(AJS_ConsoleCtx* ctx)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -201,7 +202,7 @@ AJS_DebugStatus AJS_Debug_Attach(AJS_ConsoleCtx* ctx)
 }
 
 
-AJS_DebugStatus AJS_Debug_Detach(AJS_ConsoleCtx* ctx)
+AJS_DebugStatusCode AJS_Debug_Detach(AJS_ConsoleCtx* ctx)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -214,7 +215,7 @@ AJS_DebugStatus AJS_Debug_Detach(AJS_ConsoleCtx* ctx)
 }
 
 
-AJS_DebugStatus AJS_Debug_AddBreakpoint(AJS_ConsoleCtx* ctx, char* file, uint16_t line)
+AJS_DebugStatusCode AJS_Debug_AddBreakpoint(AJS_ConsoleCtx* ctx, char* file, uint16_t line)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -226,7 +227,7 @@ AJS_DebugStatus AJS_Debug_AddBreakpoint(AJS_ConsoleCtx* ctx, char* file, uint16_
     return DBG_OK;
 }
 
-AJS_DebugStatus AJS_Debug_DelBreakpoint(AJS_ConsoleCtx* ctx, uint8_t index)
+AJS_DebugStatusCode AJS_Debug_DelBreakpoint(AJS_ConsoleCtx* ctx, uint8_t index)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -239,7 +240,7 @@ AJS_DebugStatus AJS_Debug_DelBreakpoint(AJS_ConsoleCtx* ctx, uint8_t index)
 }
 
 
-AJS_DebugStatus AJS_Debug_GetVar(AJS_ConsoleCtx* ctx, char* var, uint8_t** value, uint32_t* size, uint8_t* type)
+AJS_DebugStatusCode AJS_Debug_GetVar(AJS_ConsoleCtx* ctx, char* var, uint8_t** value, uint32_t* size, uint8_t* type)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -252,7 +253,7 @@ AJS_DebugStatus AJS_Debug_GetVar(AJS_ConsoleCtx* ctx, char* var, uint8_t** value
 }
 
 
-AJS_DebugStatus AJS_Debug_PutVar(AJS_ConsoleCtx* ctx, char* name, uint8_t* value, uint32_t size)
+AJS_DebugStatusCode AJS_Debug_PutVar(AJS_ConsoleCtx* ctx, char* name, uint8_t* value, uint32_t size, uint8_t type)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -260,12 +261,12 @@ AJS_DebugStatus AJS_Debug_PutVar(AJS_ConsoleCtx* ctx, char* name, uint8_t* value
     } else {
         return DBG_ERR;
     }
-    console->PutVar(name, value, size);
+    console->PutVar(name, value, size, type);
     return DBG_OK;
 }
 
 
-AJS_DebugStatus AJS_Debug_GetCallStack(AJS_ConsoleCtx* ctx, AJS_CallStack** stack, uint8_t* size)
+AJS_DebugStatusCode AJS_Debug_GetCallStack(AJS_ConsoleCtx* ctx, AJS_CallStack** stack, uint8_t* size)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -278,7 +279,7 @@ AJS_DebugStatus AJS_Debug_GetCallStack(AJS_ConsoleCtx* ctx, AJS_CallStack** stac
 }
 
 
-AJS_DebugStatus AJS_Debug_FreeCallStack(AJS_ConsoleCtx* ctx, AJS_CallStack* stack, uint8_t size)
+AJS_DebugStatusCode AJS_Debug_FreeCallStack(AJS_ConsoleCtx* ctx, AJS_CallStack* stack, uint8_t size)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -290,7 +291,7 @@ AJS_DebugStatus AJS_Debug_FreeCallStack(AJS_ConsoleCtx* ctx, AJS_CallStack* stac
     return DBG_OK;
 }
 
-AJS_DebugStatus AJS_Debug_GetLocals(AJS_ConsoleCtx* ctx, AJS_Locals** locals, uint16_t* num)
+AJS_DebugStatusCode AJS_Debug_GetLocals(AJS_ConsoleCtx* ctx, AJS_Locals** locals, uint16_t* num)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -302,7 +303,7 @@ AJS_DebugStatus AJS_Debug_GetLocals(AJS_ConsoleCtx* ctx, AJS_Locals** locals, ui
     return DBG_OK;
 }
 
-AJS_DebugStatus AJS_Debug_FreeLocals(AJS_ConsoleCtx* ctx, AJS_Locals* locals, uint8_t num)
+AJS_DebugStatusCode AJS_Debug_FreeLocals(AJS_ConsoleCtx* ctx, AJS_Locals* locals, uint8_t num)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -314,7 +315,7 @@ AJS_DebugStatus AJS_Debug_FreeLocals(AJS_ConsoleCtx* ctx, AJS_Locals* locals, ui
     return DBG_OK;
 }
 
-AJS_DebugStatus AJS_Debug_ListBreakpoints(AJS_ConsoleCtx* ctx, AJS_BreakPoint** breakpoints, uint8_t* num)
+AJS_DebugStatusCode AJS_Debug_ListBreakpoints(AJS_ConsoleCtx* ctx, AJS_BreakPoint** breakpoints, uint8_t* num)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -326,7 +327,7 @@ AJS_DebugStatus AJS_Debug_ListBreakpoints(AJS_ConsoleCtx* ctx, AJS_BreakPoint** 
     return DBG_OK;
 }
 
-AJS_DebugStatus AJS_Debug_FreeBreakpoints(AJS_ConsoleCtx* ctx, AJS_BreakPoint* breakpoints, uint8_t num)
+AJS_DebugStatusCode AJS_Debug_FreeBreakpoints(AJS_ConsoleCtx* ctx, AJS_BreakPoint* breakpoints, uint8_t num)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -338,7 +339,7 @@ AJS_DebugStatus AJS_Debug_FreeBreakpoints(AJS_ConsoleCtx* ctx, AJS_BreakPoint* b
     return DBG_OK;
 }
 
-AJS_DebugStatus AJS_Debug_Eval(AJS_ConsoleCtx* ctx, char* str, uint8_t** ret, uint32_t* size, uint8_t* type)
+AJS_DebugStatusCode AJS_Debug_Eval(AJS_ConsoleCtx* ctx, char* str, uint8_t** ret, uint32_t* size, uint8_t* type)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -350,7 +351,7 @@ AJS_DebugStatus AJS_Debug_Eval(AJS_ConsoleCtx* ctx, char* str, uint8_t** ret, ui
     return DBG_OK;
 }
 
-AJS_DebugStatus AJS_Debug_GetScript(AJS_ConsoleCtx* ctx, uint8_t** script, uint32_t* size)
+AJS_DebugStatusCode AJS_Debug_GetScript(AJS_ConsoleCtx* ctx, uint8_t** script, uint32_t* size)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {

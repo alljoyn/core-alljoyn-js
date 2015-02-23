@@ -122,10 +122,13 @@ void AJS_PyConsole::DebugNotification(const InterfaceDescription::Member* member
             msg->GetArgs("yyssyy", &id, &state, &fileName, &funcName, &lineNumber, &pc);
             dbgCurrentLine = lineNumber;
             dbgPC = pc;
+            printf("DEBUG NOTIFICATION\n");
             if (state == 1) {
-                debugState = DEBUG_ATTACHED_PAUSED;
+                printf("CHANGING STATE TO PAUSED\n");
+                debugState = AJS_DEBUG_ATTACHED_PAUSED;
             } else if (state == 0) {
-                debugState = DEBUG_ATTACHED_RUNNING;
+                printf("CHANGING STATE TO RESUMED\n");
+                debugState = AJS_DEBUG_ATTACHED_RUNNING;
             }
             sprintf(fullString, "State: %i, File: %s, Function: %s, Line: %i, PC: %i", state, fileName, funcName, lineNumber, pc);
             Msg("DebugNotification", fullString);
@@ -273,18 +276,18 @@ static PyObject* py_connect(PyObject* self, PyObject* args)
 
 static PyObject* py_eval(PyObject* self, PyObject* args)
 {
-    QStatus status;
     const char* text;
+    char* output;
 
     if (!PyArg_ParseTuple(args, "s", &text)) {
         return NULL;
     }
 
     Py_BEGIN_ALLOW_THREADS
-        status = console->Eval(String(text));
+    console->Eval(String(text), &output);
     Py_END_ALLOW_THREADS
 
-    return statusobject(status);
+    return Py_BuildValue("s", output);
 }
 
 static PyObject* py_install(PyObject* self, PyObject* args)
@@ -336,14 +339,14 @@ static PyObject* py_setcallback(PyObject* self, PyObject* args)
     return Py_BuildValue("");
 }
 
-static PyObject* py_gettargetstate(PyObject* self, PyObject* args)
+static PyObject* py_gettargstatus(PyObject* self, PyObject* args)
 {
-    AJS_DEBUG_STATE state;
+    int8_t status;
     Py_BEGIN_ALLOW_THREADS
-        state = console->GetDebugState();
+        status = console->GetDebugStatus();
     Py_END_ALLOW_THREADS
 
-    return Py_BuildValue("i", (uint8_t)state);
+    return Py_BuildValue("i", (int8_t)status);
 }
 
 static PyObject* py_getversion(PyObject* self, PyObject* args)
@@ -363,18 +366,6 @@ static PyObject* py_getscript(PyObject* self, PyObject* args)
         return Py_BuildValue("s", "");
     }
     return Py_BuildValue("s", script);
-}
-
-static PyObject* py_setstate(PyObject* self, PyObject* args)
-{
-    int state;
-    if (!PyArg_ParseTuple(args, "i", &state)) {
-        return NULL;
-    }
-    Py_BEGIN_ALLOW_THREADS
-    console->SetDebugState((AJS_DEBUG_STATE)state);
-    Py_END_ALLOW_THREADS
-    return statusobject(ER_OK);
 }
 
 static PyObject* py_startdebugger(PyObject* self, PyObject* args)
@@ -536,7 +527,7 @@ static PyObject* py_getbreakpoints(PyObject* self, PyObject* args)
 static PyObject* py_addbreakpoint(PyObject* self, PyObject* args)
 {
     const char* text;
-    char file[16];
+    char file[128];
     uint8_t line;
     uint16_t i = 0;
 
@@ -555,7 +546,7 @@ static PyObject* py_addbreakpoint(PyObject* self, PyObject* args)
     line = atoi(text + i);
 
     Py_BEGIN_ALLOW_THREADS
-    console->AddBreak(file, line);
+    console->AddBreak(console->GetScriptName(), line);
     Py_END_ALLOW_THREADS
 
     return statusobject(ER_OK);
@@ -610,7 +601,7 @@ static PyObject* py_putvar(PyObject* self, PyObject* args)
     if ((type >= 0x60) && (type <= 0x7f)) {
         /* Any characters can be treated as a string */
         Py_BEGIN_ALLOW_THREADS
-        console->PutVar(varName, (uint8_t*)newValue, strlen(newValue));
+        console->PutVar(varName, (uint8_t*)newValue, strlen(newValue), type);
         Py_END_ALLOW_THREADS
     } else if (type == 0x1a) {
         uint8_t k = 0;
@@ -625,14 +616,14 @@ static PyObject* py_putvar(PyObject* self, PyObject* args)
         }
         number = atof(newValue);
         Py_BEGIN_ALLOW_THREADS
-        console->PutVar(varName, (uint8_t*)&number, sizeof(double));
+        console->PutVar(varName, (uint8_t*)&number, sizeof(double), type);
         Py_END_ALLOW_THREADS
     } else if (type == 0x18) {
         /* True, can change to false */
         if ((strcmp(newValue, "False") == 0) || (strcmp(newValue, "false") == 0)) {
             uint8_t tmp = 0x19;
             Py_BEGIN_ALLOW_THREADS
-            console->PutVar(varName, (uint8_t*)&tmp, 1);
+            console->PutVar(varName, (uint8_t*)&tmp, 1, type);
             Py_END_ALLOW_THREADS
         }
     } else if (type == 0x19) {
@@ -640,7 +631,7 @@ static PyObject* py_putvar(PyObject* self, PyObject* args)
         if ((strcmp(newValue, "True") == 0) || (strcmp(newValue, "true") == 0)) {
             uint8_t tmp = 0x18;
             Py_BEGIN_ALLOW_THREADS
-            console->PutVar(varName, (uint8_t*)&tmp, 1);
+            console->PutVar(varName, (uint8_t*)&tmp, 1, type);
             Py_END_ALLOW_THREADS
         }
     } else {
@@ -741,7 +732,6 @@ static PyMethodDef AJSConsoleMethods[] = {
     { "GetScript", py_getscript, METH_VARARGS, "Get the installed script" },
     { "GetLine", py_getcurrentline, METH_VARARGS, "Get the current line of execution" },
     { "GetDebugVersion", py_getversion, METH_VARARGS, "Get the debugger version" },
-    { "SetDebugState", py_setstate, METH_VARARGS, "Set the debuggers state" },
     { "StartDebugger", py_startdebugger, METH_VARARGS, "Start the debugger" },
     { "StopDebugger", py_stopdebugger, METH_VARARGS, "Stop the debugger" },
     { "StepInto", py_stepinto, METH_VARARGS, "Debugger step into function" },
@@ -756,9 +746,9 @@ static PyMethodDef AJSConsoleMethods[] = {
     { "GetStacktrace", py_getstacktrace, METH_VARARGS, "Get the current stack trace" },
     { "Attach", py_attach, METH_VARARGS, "Attach the debugger to the target" },
     { "Detach", py_detach, METH_VARARGS, "Detach the debugger from the target" },
-    { "GetTargetState", py_gettargetstate, METH_VARARGS, "Get the debug targets state" },
     { "DebugEval", py_debugeval, METH_VARARGS, "Do an eval while debugging" },
     { "PutVar", py_putvar, METH_VARARGS, "Change a variables value" },
+    { "GetTargetStatus", py_gettargstatus, METH_VARARGS, "Get the targets current status" },
     { NULL, NULL, 0, NULL }
 };
 

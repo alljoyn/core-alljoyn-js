@@ -16,6 +16,7 @@
 
 #include "ajs_debug_c.h"
 #include "ajs_console_c.h"
+#include "ajs_console_common.h"
 #include <stdlib.h>
 #include <signal.h>
 #include <stdio.h>
@@ -44,11 +45,11 @@ static char* ReadLine()
 
 static int ReadScriptFile(const char* fname, uint8_t** data, size_t* len)
 {
-    FILE*scriptf;
+    FILE* scriptf;
 #ifdef WIN32
     errno_t ret = fopen_s(&scriptf, fname, "rb");
     if (ret != 0) {
-        return ER_OPEN_FAILED;
+        return 0;
     }
 #else
     scriptf = fopen(fname, "rb");
@@ -56,13 +57,15 @@ static int ReadScriptFile(const char* fname, uint8_t** data, size_t* len)
         return 0;
     }
 #endif
-    if (fseek((FILE*)scriptf, 0, SEEK_END) == 0) {
-        *len = ftell((FILE*)scriptf);
+    if (fseek(scriptf, 0, SEEK_END) == 0) {
+        *len = ftell(scriptf);
         *data = (uint8_t*)malloc(*len);
-        fseek((FILE*)scriptf, 0, SEEK_SET);
-        fread(*data, *len, 1, (FILE*)scriptf);
+        fseek(scriptf, 0, SEEK_SET);
+        fread(*data, *len, 1, scriptf);
+        fclose(scriptf);
         return 1;
     } else {
+        fclose(scriptf);
         return 0;
     }
 }
@@ -143,17 +146,17 @@ int main(int argc, char** argv)
     }
     status = AJS_ConsoleConnect(ctx, deviceName, &g_interrupt);
     if (status == 1) {
-        if (scriptLen) {
+        if (script) {
             status = AJS_ConsoleInstall(ctx, scriptName, script, scriptLen);
             free(script);
         }
         if (AJS_Debug_GetActiveDebug(ctx)) {
             AJS_Debug_StartDebugger(ctx);
-            AJS_Debug_SetDebugState(ctx, DEBUG_ATTACHED_PAUSED);
+            AJS_Debug_SetDebugState(ctx, AJS_DEBUG_ATTACHED_PAUSED);
         }
         while (!g_interrupt && (status == 1)) {
             char* input = ReadLine();
-            if (strlen(input) > 0) {
+            if (input && (strlen(input) > 0)) {
                 if (strcmp(input, "quit") == 0) {
                     break;
                 }
@@ -168,18 +171,19 @@ int main(int argc, char** argv)
                 if (AJS_Debug_GetActiveDebug(ctx)) {
                     if (strcmp(input, "$attach") == 0) {
                         AJS_Debug_StartDebugger(ctx);
-                        AJS_Debug_SetDebugState(ctx, DEBUG_ATTACHED_PAUSED);
+                        AJS_Debug_SetDebugState(ctx, AJS_DEBUG_ATTACHED_PAUSED);
                         /* Add breakpoint is before the 'debugConnected' check because they can be added to a running target */
                     } else if (strcmp(input, "$pause") == 0) {
                         AJS_Debug_Pause(ctx);
-                        AJS_Debug_SetDebugState(ctx, DEBUG_ATTACHED_PAUSED);
+                        AJS_Debug_SetDebugState(ctx, AJS_DEBUG_ATTACHED_PAUSED);
                     } else if (strcmp(input, "$getscript") == 0) {
                         uint8_t valid;
-                        char* script;
+                        char* script = NULL;
                         uint32_t length;
                         valid = AJS_Debug_GetScript(ctx, (uint8_t**)&script, &length);
                         if (valid) {
                             printf("Script:\n%s", script);
+                            free(script);
                         } else {
                             printf("No script on target\n");
                         }
@@ -201,8 +205,8 @@ int main(int argc, char** argv)
                         AJS_Debug_AddBreakpoint(ctx, file, line);
                         free(file);
                         /* Adding a breakpoint will cause the debugger to pause */
-                        AJS_Debug_SetDebugState(ctx, DEBUG_ATTACHED_PAUSED);
-                    } else if (AJS_Debug_GetDebugState(ctx) == DEBUG_ATTACHED_PAUSED) {
+                        AJS_Debug_SetDebugState(ctx, AJS_DEBUG_ATTACHED_PAUSED);
+                    } else if (AJS_Debug_GetDebugState(ctx) == AJS_DEBUG_ATTACHED_PAUSED) {
                         if (strcmp(input, "$info") == 0) {
                             uint16_t duk_version;
                             uint8_t endianness;
@@ -214,7 +218,7 @@ int main(int argc, char** argv)
                             AJS_Debug_Trigger(ctx);
                         } else if (strcmp(input, "$resume") == 0) {
                             AJS_Debug_Resume(ctx);
-                            AJS_Debug_SetDebugState(ctx, DEBUG_ATTACHED_RUNNING);
+                            AJS_Debug_SetDebugState(ctx, AJS_DEBUG_ATTACHED_RUNNING);
                         } else if (strcmp(input, "$in") == 0) {
                             AJS_Debug_StepIn(ctx);
                         } else if (strcmp(input, "$over") == 0) {
@@ -223,17 +227,18 @@ int main(int argc, char** argv)
                             AJS_Debug_StepOut(ctx);
                         } else if (strcmp(input, "$detach") == 0) {
                             AJS_Debug_Detach(ctx);
-                            AJS_Debug_SetDebugState(ctx, DEBUG_DETACHED);
+                            AJS_Debug_SetDebugState(ctx, AJS_DEBUG_DETACHED);
                         } else if (strcmp(input, "$lb") == 0) {
                             AJS_BreakPoint* breakpoint = NULL;
                             uint8_t num;
                             int i;
                             AJS_Debug_ListBreakpoints(ctx, &breakpoint, &num);
                             if (breakpoint) {
-                                printf("Breakpoints: \n");
+                                printf("Breakpoints[%d]: \n", num);
                                 for (i = 0; i < num; i++) {
                                     printf("File: %s, Line: %u\n", breakpoint[i].fname, breakpoint[i].line);
                                 }
+                                AJS_Debug_FreeBreakpoints(ctx, breakpoint, num);
                             }
                         } else if (strcmp(input, "$bt") == 0) {
                             AJS_CallStack* stack = NULL;
@@ -342,7 +347,7 @@ int main(int argc, char** argv)
                                 /* Currently basic types are supported (numbers, strings, true/false/null/undef/unused) */
                                 if ((type >= 0x60) && (type <= 0x7f)) {
                                     /* Any characters can be treated as a string */
-                                    AJS_Debug_PutVar(ctx, name, (uint8_t*)value, strlen(value));
+                                    AJS_Debug_PutVar(ctx, name, (uint8_t*)value, strlen(value), type);
                                 } else if (type == 0x1a) {
                                     double number;
                                     /* Check the input to ensure its a number */
@@ -354,13 +359,13 @@ int main(int argc, char** argv)
                                         }
                                     }
                                     number = atof(value);
-                                    AJS_Debug_PutVar(ctx, name, (uint8_t*)&number, sizeof(double));
+                                    AJS_Debug_PutVar(ctx, name, (uint8_t*)&number, sizeof(double), type);
                                 }
                                 free(name);
                                 free(value);
                             } else if (strncmp(input, "$eval", 5) == 0) {
                                 char* evalString;
-                                uint8_t* value;
+                                uint8_t* value = NULL;
                                 uint32_t size;
                                 uint8_t type;
                                 uint32_t k = 0;
@@ -394,6 +399,9 @@ int main(int argc, char** argv)
             printf("Connection was rejected\n");
         } else {
             printf("Failed to connect to script console\n");
+        }
+        if (script) {
+            free(script);
         }
     }
     if (g_interrupt) {

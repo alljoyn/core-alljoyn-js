@@ -34,14 +34,6 @@
 
 #define QCC_MODULE "ALLJOYN"
 
-typedef enum {
-    DEBUG_DETACHED = 0,             /* Debugger is not attached, state of the target is not known */
-    DEBUG_ATTACHED_RUNNING = 1,     /* Debugger is attached and the target is in a running state */
-    DEBUG_ATTACHED_PAUSED = 2,      /* Debugger is attached and paused (debug commands can be used) */
-    DEBUG_CONNECTED_DETACHED = 3,   /* Debugger is connected but detached from the target */
-    DEBUG_DISCONNECTED = 4,         /* Debugger is disconnected from the target */
-}AJS_DEBUG_STATE;
-
 /*
  * Type of debug messages
  */
@@ -110,7 +102,7 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
 
     QStatus Connect(const char* deviceName, volatile sig_atomic_t* interrupt);
 
-    QStatus Eval(const qcc::String script);
+    QStatus Eval(const qcc::String script, char** output);
 
     QStatus Reboot();
 
@@ -250,7 +242,7 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
      * @return          True if the variable was successfully set
      *                  False if the variable did not exist or the type/size was invalid.
      */
-    bool PutVar(char* var, uint8_t* value, uint32_t size);
+    bool PutVar(char* var, uint8_t* value, uint32_t size, uint8_t type);
 
     /**
      * Get call stack.
@@ -309,6 +301,21 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
      */
     bool GetScript(uint8_t** script, uint32_t* length);
 
+    /**
+     * Get the debug targets current status
+     *
+     * @return              status: running, paused, busy, or disconnected
+     *                      -1 on error
+     */
+    AJS_DebugStatus GetDebugStatus(void);
+
+    /**
+     * Get the installed scripts name
+     *
+     * @return              Name of the script that is installed
+     */
+    char* GetScriptName(void);
+
     void SetVerbose(bool newValue) {
         verbose = newValue;
     }
@@ -317,23 +324,29 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
         return verbose;
     }
 
-    AJS_DEBUG_STATE GetDebugState(void)
+    AJS_DebugStatus GetDebugState(void)
     {
         return debugState;
     }
 
-    void SetDebugState(AJS_DEBUG_STATE state)
+    void SetDebugState(AJS_DebugStatus state)
     {
         debugState = state;
     }
 
     class Event;
-    AJS_DEBUG_STATE debugState;
+    AJS_DebugStatus debugState;
     bool activeDebug;
     bool quiet;
     SignalRegistration* handlers;
     bool verbose;
   private:
+
+    /*
+     * Copying and assignment not supported
+     */
+    AJS_Console(const AJS_Console&);
+    const AJS_Console& operator=(const AJS_Console&);
 
     virtual void RegisterHandlers(ajn::BusAttachment* ajb);
     virtual void JoinSessionCB(QStatus status, ajn::SessionId sessionId, const ajn::SessionOpts& opts, void* context);

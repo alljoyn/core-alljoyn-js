@@ -18,6 +18,13 @@
 #define AJS_CONSOLE_COMMON_H_
 #include <stdint.h>
 
+typedef enum {
+    AJS_DEBUG_ATTACHED_PAUSED = 0,      /* Debugger is attached and execution is paused */
+    AJS_DEBUG_ATTACHED_RUNNING = 1,     /* Debugger is attached and execution is running */
+    AJS_DEBUG_ATTACHED_BUSY = 2,        /* Debugger is attached but no bytecode is executing */
+    AJS_DEBUG_DETACHED = 3              /* Debugger is detached */
+}AJS_DebugStatus;
+
 typedef struct {
     char* lang;
     char* txt;
@@ -46,7 +53,7 @@ typedef struct {
  */
 typedef struct {
     char* name;         /* Name of the variable */
-    uint16_t size;      /* Size of the variables data */
+    uint32_t size;      /* Size of the variables data */
     uint8_t* data;      /* Pointer to the variables data */
     uint8_t type;       /* The variables type */
 }AJS_Locals;
@@ -96,7 +103,7 @@ typedef struct {
 typedef enum {
     DBG_OK = 0,
     DBG_ERR = 1
-} AJS_DebugStatus;
+} AJS_DebugStatusCode;
 
 typedef struct {
     void* console;  /* Pointer to the console class */

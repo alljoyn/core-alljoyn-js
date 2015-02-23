@@ -49,10 +49,6 @@ uint8_t dbgCONSOLE;
 #define SCRIPT_RESOURCE_ERROR       3  /* insufficient resources */
 #define SCRIPT_NEED_RESET_ERROR     4  /* reset required before script can be installed */
 #define SCRIPT_INTERNAL_ERROR       5  /* an undiagnosed internal error */
-#define SCRIPT_DEBUG_STARTED        6  /* the debugger was started successfully */
-#define SCRIPT_DEBUG_STOPPED        7  /* the debugger was not started successfully, or stopped */
-#define SCRIPT_DEBUG_START          8  /* start the debugger */
-#define SCRIPT_DEBUG_STOP           9  /* stop the debugger */
 
 typedef enum {
     ENGINE_RUNNING, /* A script is installed and the engine is running */
@@ -102,6 +98,8 @@ static const char* const scriptDebugIface[] = {
     "?eval string<s reply>yyv",                     /* Special eval method for use while debugging (regular eval will not work) */
     "?begin quiet<y output>y",                      /* Begin a debug session */
     "?end output>y",                                /* End a debug session */
+    "?getStatus status>y",                          /* Get the debug targets state */
+    "?getScriptName name>s",                        /* Get the name of the installed script */
     NULL
 };
 
@@ -150,12 +148,17 @@ static uint32_t MaxScriptLen()
 static uint32_t consoleSession = 0;
 static char consoleBusName[16];
 static uint32_t scriptSize = 0;
-static uint8_t debuggerStarted = FALSE;
+
 /*
  * If debugQuiet is enabled will not send prints to the console
  * and instead print them out locally
  */
 static uint8_t debugQuiet = FALSE;
+
+void AJS_ConsoleSetQuiet(uint8_t quiet)
+{
+    debugQuiet = quiet;
+}
 
 uint32_t AJS_GetScriptSize(void)
 {
@@ -492,51 +495,6 @@ static AJ_Status Reset(AJ_Message* msg)
     return status;
 }
 
-AJS_DebuggerState* dbgState = NULL;
-
-static AJ_Status StartDebugger(duk_context* ctx, AJ_Message* msg)
-{
-    AJ_Status status = AJ_OK;
-    AJ_Message reply;
-    uint8_t quiet;
-    status = AJ_UnmarshalArgs(msg, "y", &quiet);
-    if (quiet) {
-        debugQuiet = TRUE;
-    }
-    AJ_InfoPrintf(("StartStopDebugger(): Got method to start debugging\n"));
-    if (!debuggerStarted) {
-        AJ_MarshalReplyMsg(msg, &reply);
-        AJ_MarshalArgs(&reply, "y", SCRIPT_DEBUG_STARTED);
-        AJ_DeliverMsg(&reply);
-    }
-    AJS_DisableWatchdogTimer();
-    dbgState = AJS_InitDebugger(ctx);
-    /* Start the debugger */
-    duk_debugger_attach(ctx,
-                        AJS_DebuggerRead,
-                        AJS_DebuggerWrite,
-                        AJS_DebuggerPeek,
-                        AJS_DebuggerReadFlush,
-                        AJS_DebuggerWriteFlush,
-                        AJS_DebuggerDetached,
-                        (void*)dbgState);
-    return status;
-}
-
-static AJ_Status StopDebugger(duk_context* ctx, AJ_Message* msg)
-{
-    AJ_Message reply;
-    AJ_InfoPrintf(("StartStopDebugger(): Got method to stop debugging\n"));
-    if (debuggerStarted) {
-        /* Stop the debugger */
-        duk_debugger_detach(ctx);
-    }
-    AJS_EnableWatchdogTimer();
-    AJ_MarshalReplyMsg(msg, &reply);
-    AJ_MarshalArgs(&reply, "y", SCRIPT_DEBUG_STOPPED);
-    return AJ_DeliverMsg(&reply);
-}
-
 static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* context)
 {
     switch (propId) {
@@ -618,7 +576,7 @@ AJ_Status AJS_ConsoleMsgHandler(duk_context* ctx, AJ_Message* msg)
             }
             if (sessionId == consoleSession) {
                 consoleSession = 0;
-                status = AJ_OK;
+                status = AJS_StopDebugger(ctx, NULL);
             } else {
                 /*
                  * Not our session, reset the args so they can be unmarshaled again.
@@ -656,146 +614,44 @@ AJ_Status AJS_ConsoleMsgHandler(duk_context* ctx, AJ_Message* msg)
         break;
 
     case DBG_BEGIN_MSGID:
-        status = StartDebugger(ctx, msg);
+        status = AJS_StartDebugger(ctx, msg);
         break;
 
     case DBG_END_MSGID:
-        status = StopDebugger(ctx, msg);
+        status = AJS_StopDebugger(ctx, msg);
+        break;
+
+    case DBG_GETSTATUS_MSGID:
+        status = AJS_DebuggerGetStatus(ctx, msg);
+        break;
+
+    case DBG_GETSCRIPTNAME_MSGID:
+        status = AJS_DebuggerGetScriptName(ctx, msg);
         break;
 
     case DBG_GETSCRIPT_MSGID:
-        {
-            AJ_Message reply;
-            const uint8_t* script;
-            AJ_NV_DATASET* ds = NULL;
-            AJ_NV_DATASET* dsize = NULL;
-            uint32_t sz = AJS_GetScriptSize();
-
-            /* If the script was previously installed on another boot the size will be zero */
-            if (!sz) {
-                dsize = AJ_NVRAM_Open(AJS_SCRIPT_SIZE_ID, "r", 0);
-                if (dsize) {
-                    AJ_NVRAM_Read(&sz, sizeof(sz), dsize);
-                    AJ_NVRAM_Close(dsize);
-                }
-            }
-            ds = AJ_NVRAM_Open(AJS_SCRIPT_NVRAM_ID, "r", 0);
-            if (ds) {
-                script = AJ_NVRAM_Peek(ds);
-                status = AJ_MarshalReplyMsg(msg, &reply);
-                if (status == AJ_OK) {
-                    status = AJ_DeliverMsgPartial(&reply, sz + sizeof(uint32_t));
-                }
-                if (status == AJ_OK) {
-                    status = AJ_MarshalRaw(&reply, &sz, sizeof(uint32_t));
-                }
-                if (status == AJ_OK) {
-                    status = AJ_MarshalRaw(&reply, script, sz);
-                }
-                if (status == AJ_OK) {
-                    status = AJ_DeliverMsg(&reply);
-                }
-                status = AJ_OK;
-
-                AJ_NVRAM_Close(ds);
-            } else {
-                AJ_ErrPrintf(("Error opening script NVRAM entry\n"));
-                AJ_MarshalStatusMsg(msg, &reply, AJ_ERR_BUSY);
-                AJ_DeliverMsg(&reply);
-                status = AJ_OK;
-            }
-        }
+        status = AJS_DebuggerGetScript(ctx, msg);
         break;
 
-    /*
-     * Pause can be handled when the debugger is running (as well as in AJS_DebuggerRead())
-     */
     case DBG_PAUSE_MSGID:
-        {
-            uint16_t len = 3;
-            uint32_t dbgMsg = BUILD_DBG_MSG(DBG_TYPE_REQ, (PAUSE_REQ + 0x80), DBG_TYPE_EOM, 0);
-
-            /* Copy the message to the static buffer */
-            if (AJ_IO_BUF_SPACE(dbgState->read) >= len) {
-                memcpy(dbgState->read->writePtr, &dbgMsg, len);
-                dbgState->read->writePtr += len;
-            } else {
-                AJ_ErrPrintf(("No space to write debug message\n"));
-            }
-
-            /* Save away the last message for the method reply */
-            memcpy(&dbgState->lastMsg, msg, sizeof(AJ_Message));
-            dbgState->lastMsgType = PAUSE_REQ;
-            status = AJ_OK;
-
-        }
-        break;
-
-    /*
-     * Breakpoints can be created while the target is running (as well as in AJS_DebuggerRead()).
-     */
     case DBG_ADDBREAK_MSGID:
-        {
-            char* file;
-            uint8_t line;
-            uint8_t* tmp;
-            uint8_t msgLen;
-            status = AJ_UnmarshalArgs(msg, "sy", &file, &line);
-
-            if (status == AJ_OK) {
-                msgLen = strlen(file) + 5;
-                tmp = AJ_Malloc(msgLen);
-                memset(tmp, DBG_TYPE_REQ, 1);
-                memset(tmp + 1, (ADD_BREAK_REQ + 0x80), 1);
-                memset(tmp + 2, (strlen(file) + 0x60), 1);
-                memcpy(tmp + 3, file, strlen(file));
-                memset(tmp + 3 + strlen(file), (line + 0x80), 1);
-                memset(tmp + 3 + strlen(file) + 1, DBG_TYPE_EOM, 1);
-
-                /* Copy the message into the read buffer */
-                if (AJ_IO_BUF_SPACE(dbgState->read) >= msgLen) {
-                    memcpy(dbgState->read->writePtr, tmp, msgLen);
-                    dbgState->read->writePtr += msgLen;
-                } else {
-                    AJ_ErrPrintf(("No space to write debug message\n"));
-                }
-
-                /* Save away this message for the method reply later */
-                memcpy(&dbgState->lastMsg, msg, sizeof(AJ_Message));
-                dbgState->lastMsgType = ADD_BREAK_REQ;
-
-                AJ_Free(tmp);
-                status = AJ_OK;
-            }
-        }
-        break;
-
-    /*
-     * If a debug command is issued and picked up here (other than pause) it means the
-     * debugger has been resumed (running). Commands in this state have no effect but a reply
-     * must be sent back to the console because it is expecting one.
-     */
+    case DBG_DELBREAK_MSGID:
+    case DBG_LISTBREAK_MSGID:
+    case DBG_GETVAR_MSGID:
+    case DBG_PUTVAR_MSGID:
+    case DBG_EVAL_MSGID:
+    case DBG_DETACH_MSGID:
     case DBG_BASIC_MSGID:
     case DBG_TRIGGER_MSGID:
     case DBG_RESUME_MSGID:
     case DBG_STEPIN_MSGID:
     case DBG_STEPOVER_MSGID:
     case DBG_STEPOUT_MSGID:
-    case DBG_LISTBREAK_MSGID:
-    case DBG_DELBREAK_MSGID:
-    case DBG_GETVAR_MSGID:
-    case DBG_PUTVAR_MSGID:
     case DBG_GETCALL_MSGID:
     case DBG_GETLOCALS_MSGID:
     case DBG_DUMPHEAP_MSGID:
     case DBG_VERSION_MSGID:
-    case DBG_DETACH_MSGID:
-        {
-            AJ_Message reply;
-            AJ_MarshalStatusMsg(msg, &reply, AJ_ERR_BUSY);
-            AJ_DeliverMsg(&reply);
-            status = AJ_OK;
-        }
+        status = AJS_DebuggerCommand(ctx, msg);
         break;
 
     default:

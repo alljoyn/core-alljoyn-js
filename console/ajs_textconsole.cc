@@ -70,7 +70,8 @@ static String ReadLine()
 
 static QStatus ReadScriptFile(const char* fname, uint8_t** data, size_t* len)
 {
-    FILE*scriptf;
+    QStatus status = ER_OK;
+    FILE* scriptf;
 #ifdef WIN32
     errno_t ret = fopen_s(&scriptf, fname, "rb");
     if (ret != 0) {
@@ -82,15 +83,16 @@ static QStatus ReadScriptFile(const char* fname, uint8_t** data, size_t* len)
         return ER_OPEN_FAILED;
     }
 #endif
-    if (fseek((FILE*)scriptf, 0, SEEK_END) == 0) {
-        *len = ftell((FILE*)scriptf);
+    if (fseek(scriptf, 0, SEEK_END) == 0) {
+        *len = ftell(scriptf);
         *data = (uint8_t*)malloc(*len);
-        fseek((FILE*)scriptf, 0, SEEK_SET);
-        fread(*data, *len, 1, (FILE*)scriptf);
-        return ER_OK;
+        fseek(scriptf, 0, SEEK_SET);
+        fread(*data, *len, 1, scriptf);
     } else {
-        return ER_READ_ERROR;
+        status = ER_READ_ERROR;
     }
+    fclose(scriptf);
+    return status;
 }
 
 int main(int argc, char** argv)
@@ -139,10 +141,11 @@ int main(int argc, char** argv)
         }
         if (ajsConsole.activeDebug) {
             ajsConsole.StartDebugger();
-            ajsConsole.SetDebugState(DEBUG_ATTACHED_PAUSED);
+            ajsConsole.SetDebugState(AJS_DEBUG_ATTACHED_PAUSED);
         }
         while (!g_interrupt && (status == ER_OK)) {
             String input = ReadLine();
+            char* output;
             if (input.size() > 0) {
                 if (input == "quit") {
                     break;
@@ -158,12 +161,12 @@ int main(int argc, char** argv)
                 if (ajsConsole.activeDebug) {
                     if (input == "$attach") {
                         ajsConsole.StartDebugger();
-                        ajsConsole.SetDebugState(DEBUG_ATTACHED_PAUSED);
+                        ajsConsole.SetDebugState(AJS_DEBUG_ATTACHED_PAUSED);
                         /* Add breakpoint is before the 'debugConnected' check because they can be added to a running target */
                     } else if (input == "$pause") {
 
                         ajsConsole.Pause();
-                        ajsConsole.SetDebugState(DEBUG_ATTACHED_PAUSED);
+                        ajsConsole.SetDebugState(AJS_DEBUG_ATTACHED_PAUSED);
 
                     } else if (input == "$getscript") {
                         bool valid;
@@ -192,8 +195,8 @@ int main(int argc, char** argv)
                         ajsConsole.AddBreak(file, line);
                         free(file);
                         /* Adding a breakpoint will cause the debugger to pause */
-                        ajsConsole.SetDebugState(DEBUG_ATTACHED_PAUSED);
-                    } else if (ajsConsole.GetDebugState() == DEBUG_ATTACHED_PAUSED) {
+                        ajsConsole.SetDebugState(AJS_DEBUG_ATTACHED_PAUSED);
+                    } else if (ajsConsole.GetDebugState() == AJS_DEBUG_ATTACHED_PAUSED) {
                         if (input == "$info") {
                             uint16_t duk_version;
                             uint8_t endianness;
@@ -205,7 +208,7 @@ int main(int argc, char** argv)
                             ajsConsole.Trigger();
                         } else if (input == "$resume") {
                             ajsConsole.Resume();
-                            ajsConsole.SetDebugState(DEBUG_ATTACHED_RUNNING);
+                            ajsConsole.SetDebugState(AJS_DEBUG_ATTACHED_RUNNING);
                         } else if (input == "$in") {
                             ajsConsole.StepIn();
                         } else if (input == "$over") {
@@ -214,7 +217,7 @@ int main(int argc, char** argv)
                             ajsConsole.StepOut();
                         } else if (input == "$detach") {
                             ajsConsole.Detach();
-                            ajsConsole.SetDebugState(DEBUG_DETACHED);
+                            ajsConsole.SetDebugState(AJS_DEBUG_DETACHED);
                         } else if (input == "$dump") {
                             ajsConsole.DumpHeap();
                         } else if (input == "$lb") {
@@ -223,10 +226,11 @@ int main(int argc, char** argv)
                             int i;
                             ajsConsole.ListBreak(&breakpoint, &num);
                             if (breakpoint) {
-                                QCC_SyncPrintf("Breakpoints: \n");
+                                QCC_SyncPrintf("Breakpoints[%d]: \n", num);
                                 for (i = 0; i < num; i++) {
                                     QCC_SyncPrintf("File: %s, Line: %u\n", breakpoint[i].fname, breakpoint[i].line);
                                 }
+                                ajsConsole.FreeBreakpoints(breakpoint, num);
                             }
                         } else if (input == "$bt") {
                             AJS_CallStack* stack = NULL;
@@ -248,7 +252,7 @@ int main(int argc, char** argv)
                             if (vars) {
                                 if (strcmp(vars[0].name, "N/A") != 0) {
                                     for (i = 0; i < size; i++) {
-                                        int j;
+                                        uint32_t j;
                                         QCC_SyncPrintf("Name: %s, Data: ", vars[i].name);
                                         for (j = 0; j < vars[i].size; j++) {
                                             QCC_SyncPrintf("0x%02x, ", vars[i].data[j]);
@@ -268,6 +272,7 @@ int main(int argc, char** argv)
                             valid = ajsConsole.GetScript((uint8_t**)&script, &length);
                             if (valid) {
                                 QCC_SyncPrintf("Script:\n%s", script);
+                                free(script);
                             } else {
                                 QCC_SyncPrintf("No script on target\n");
                             }
@@ -335,7 +340,7 @@ int main(int argc, char** argv)
                                 /* Currently basic types are supported (numbers, strings, true/false/null/undef/unused) */
                                 if ((type >= 0x60) && (type <= 0x7f)) {
                                     /* Any characters can be treated as a string */
-                                    ajsConsole.PutVar(name, (uint8_t*)value, strlen(value));
+                                    ajsConsole.PutVar(name, (uint8_t*)value, strlen(value), type);
                                 } else if (type == 0x1a) {
                                     double number;
                                     /* Check the input to ensure its a number */
@@ -347,13 +352,13 @@ int main(int argc, char** argv)
                                         }
                                     }
                                     number = atof(value);
-                                    ajsConsole.PutVar(name, (uint8_t*)&number, sizeof(double));
+                                    ajsConsole.PutVar(name, (uint8_t*)&number, sizeof(double), type);
                                 }
                                 free(name);
                                 free(value);
                             } else if (strncmp(input.c_str(), "$eval", 5) == 0) {
                                 char* evalString;
-                                uint8_t* value;
+                                uint8_t* value = NULL;
                                 uint32_t size;
                                 uint8_t type;
                                 uint32_t k = 0;
@@ -379,7 +384,7 @@ int main(int argc, char** argv)
                 if (input[input.size() - 1] != ';') {
                     input += ';';
                 }
-                status = ajsConsole.Eval(input);
+                status = ajsConsole.Eval(input, &output);
             }
         }
     } else {

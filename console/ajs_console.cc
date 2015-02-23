@@ -182,6 +182,12 @@ static const char consoleXML[] =
     "   <signal name=\"version\"> "
     "     <arg name=\"versionString\" type=\"s\"/> "
     "   </signal> "
+    "   <method name=\"getStatus\"> "
+    "     <arg name=\"status\" type=\"y\" direction=\"out\"/> "
+    "   </method> "
+    "   <method name=\"getScriptName\"> "
+    "     <arg name=\"name\" type=\"s\" direction=\"out\"/> "
+    "   </method> "
     " </interface> "
     " </node> ";
 
@@ -409,7 +415,7 @@ static void ParseDvalData(MsgArg* variant, uint8_t identifier, uint8_t** value, 
     }
 }
 
-AJS_Console::AJS_Console() : BusListener(), debugState(DEBUG_DETACHED), activeDebug(false), quiet(false), handlers(NULL), verbose(false), sessionId(0), proxy(NULL), connectedBusName(NULL), aj(NULL), ev(new Event()),  deviceName() {
+AJS_Console::AJS_Console() : BusListener(), debugState(AJS_DEBUG_DETACHED), activeDebug(false), quiet(false), handlers(NULL), verbose(false), sessionId(0), proxy(NULL), connectedBusName(NULL), aj(NULL), ev(new Event()),  deviceName() {
 }
 
 AJS_Console::~AJS_Console() {
@@ -419,11 +425,40 @@ AJS_Console::~AJS_Console() {
     free(connectedBusName);
 }
 
+AJS_DebugStatus AJS_Console::GetDebugStatus(void)
+{
+    QStatus status;
+    uint8_t tstatus;
+    Message reply(*aj);
+    status = proxy->MethodCall("org.allseen.scriptDebugger", "getStatus", NULL, 0, reply);
+    if (status != ER_OK) {
+        QCC_SyncPrintf("MethodCall(\"getStatus\") failed, status = %u\n", status);
+        return (AJS_DebugStatus) - 1;
+    }
+    reply->GetArgs("y", &tstatus);
+    return (AJS_DebugStatus)tstatus;
+}
+
+char* AJS_Console::GetScriptName(void)
+{
+    QStatus status;
+    char* name;
+    Message reply(*aj);
+    status = proxy->MethodCall("org.allseen.scriptDebugger", "getScriptName", NULL, 0, reply);
+    if (status != ER_OK) {
+        QCC_SyncPrintf("MethodCall(\"getScriptName\") failed, status = %u\n", status);
+        return NULL;
+    }
+    reply->GetArgs("s", &name);
+    return name;
+}
+
 void AJS_Console::BasicInfo(uint16_t* version, char** describe, char** targInfo, uint8_t* endianness)
 {
     QStatus status;
     Message reply(*aj);
-    if (debugState == DEBUG_ATTACHED_PAUSED) {
+    AJS_DebugStatus st = this->GetDebugStatus();
+    if (st == AJS_DEBUG_ATTACHED_PAUSED) {
         status = proxy->MethodCall("org.allseen.scriptDebugger", "basicInfo", NULL, 0, reply);
         if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
             QCC_SyncPrintf("BasicInfo failed because debugger is in running state\n");
@@ -441,7 +476,8 @@ void AJS_Console::Trigger(void)
     QStatus status;
     Message reply(*aj);
     uint8_t ret;
-    if (debugState == DEBUG_ATTACHED_PAUSED) {
+    AJS_DebugStatus st = this->GetDebugStatus();
+    if (st == AJS_DEBUG_ATTACHED_PAUSED) {
         status = proxy->MethodCall("org.allseen.scriptDebugger", "triggerStatus", NULL, 0, reply);
         if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
             QCC_SyncPrintf("triggerStatus failed because debugger is in running state\n");
@@ -467,7 +503,7 @@ void AJS_Console::Attach(void)
         QCC_SyncPrintf("MethodCall(\"attach\") failed, status = %u\n", status);
         return;
     }
-    debugState = DEBUG_ATTACHED_PAUSED;
+    debugState = AJS_DEBUG_ATTACHED_PAUSED;
     reply->GetArgs("y", &ret);
 }
 
@@ -484,7 +520,7 @@ void AJS_Console::Detach(void)
         QCC_SyncPrintf("MethodCall(\"detach\") failed, status = %u\n", status);
         return;
     }
-    debugState = DEBUG_DETACHED;
+    debugState = AJS_DEBUG_DETACHED;
     reply->GetArgs("y", &ret);
 }
 
@@ -493,7 +529,8 @@ void AJS_Console::StepIn(void)
     QStatus status;
     Message reply(*aj);
     uint8_t ret;
-    if (debugState == DEBUG_ATTACHED_PAUSED) {
+    AJS_DebugStatus st = this->GetDebugStatus();
+    if (st == AJS_DEBUG_ATTACHED_PAUSED) {
         status = proxy->MethodCall("org.allseen.scriptDebugger", "stepInto", NULL, 0, reply);
         if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
             QCC_SyncPrintf("stepInfo failed because debugger is in running state\n");
@@ -511,7 +548,8 @@ void AJS_Console::StepOut(void)
     QStatus status;
     Message reply(*aj);
     uint8_t ret;
-    if (debugState == DEBUG_ATTACHED_PAUSED) {
+    AJS_DebugStatus st = this->GetDebugStatus();
+    if (st == AJS_DEBUG_ATTACHED_PAUSED) {
         status = proxy->MethodCall("org.allseen.scriptDebugger", "stepOut", NULL, 0, reply);
         if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
             QCC_SyncPrintf("stepOut failed because debugger is in running state\n");
@@ -529,7 +567,8 @@ void AJS_Console::StepOver(void)
     QStatus status;
     Message reply(*aj);
     uint8_t ret;
-    if (debugState == DEBUG_ATTACHED_PAUSED) {
+    AJS_DebugStatus st = this->GetDebugStatus();
+    if (st == AJS_DEBUG_ATTACHED_PAUSED) {
         status = proxy->MethodCall("org.allseen.scriptDebugger", "stepOver", NULL, 0, reply);
         if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
             QCC_SyncPrintf("stepOver failed because debugger is in running state\n");
@@ -547,7 +586,8 @@ void AJS_Console::Resume(void)
     QStatus status;
     Message reply(*aj);
     uint8_t ret;
-    if (debugState == DEBUG_ATTACHED_PAUSED) {
+    AJS_DebugStatus st = this->GetDebugStatus();
+    if (st == AJS_DEBUG_ATTACHED_PAUSED) {
         status = proxy->MethodCall("org.allseen.scriptDebugger", "resume", NULL, 0, reply);
         if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
             QCC_SyncPrintf("resume failed because debugger is in running state\n");
@@ -557,7 +597,8 @@ void AJS_Console::Resume(void)
             return;
         }
         reply->GetArgs("y", &ret);
-        debugState = DEBUG_ATTACHED_RUNNING;
+        printf("CHANGING STATE TO RUNNING\n");
+        debugState = AJS_DEBUG_ATTACHED_RUNNING;
     }
 }
 
@@ -566,14 +607,15 @@ void AJS_Console::Pause(void)
     QStatus status;
     Message reply(*aj);
     uint8_t ret;
-    if ((debugState == DEBUG_ATTACHED_PAUSED) || (debugState == DEBUG_ATTACHED_RUNNING)) {
+    AJS_DebugStatus st = this->GetDebugStatus();
+    if ((st == AJS_DEBUG_ATTACHED_PAUSED) || (st == AJS_DEBUG_ATTACHED_RUNNING)) {
         status = proxy->MethodCall("org.allseen.scriptDebugger", "pause", NULL, 0, reply);
         if (status != ER_OK) {
             QCC_SyncPrintf("MethodCall(\"pause\") failed, status = %u\n", status);
             return;
         }
         reply->GetArgs("y", &ret);
-        debugState = DEBUG_ATTACHED_PAUSED;
+        debugState = AJS_DEBUG_ATTACHED_PAUSED;
     }
 }
 
@@ -583,18 +625,16 @@ void AJS_Console::AddBreak(char* file, uint8_t line)
     Message reply(*aj);
     MsgArg args[2];
     uint8_t ret;
-    if ((debugState == DEBUG_ATTACHED_PAUSED) || (debugState == DEBUG_ATTACHED_RUNNING)) {
-        args[0].Set("s", file);
-        args[1].Set("y", line);
-        status = proxy->MethodCall("org.allseen.scriptDebugger", "addBreak", args, 2, reply);
-        if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
-            QCC_SyncPrintf("addBreak failed because debugger is in running state\n");
-            return;
-        } else if (status == ER_OK) {
-            reply->GetArgs("y", &ret);
-        } else {
-            QCC_LogError(status, ("MethodCall(\"addBreak\") failed\n"));
-        }
+    args[0].Set("s", file);
+    args[1].Set("y", line);
+    status = proxy->MethodCall("org.allseen.scriptDebugger", "addBreak", args, 2, reply);
+    if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
+        QCC_SyncPrintf("addBreak failed because debugger is in running state\n");
+        return;
+    } else if (status == ER_OK) {
+        reply->GetArgs("y", &ret);
+    } else {
+        QCC_LogError(status, ("MethodCall(\"addBreak\") failed\n"));
     }
 }
 
@@ -604,17 +644,15 @@ void AJS_Console::DelBreak(uint8_t index)
     Message reply(*aj);
     MsgArg args;
     uint8_t ret;
-    if (debugState == DEBUG_ATTACHED_PAUSED) {
-        args.Set("y", index);
-        status = proxy->MethodCall("org.allseen.scriptDebugger", "delBreak", &args, 1, reply);
-        if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
-            QCC_SyncPrintf("delBreak failed because debugger is in running state\n");
-            return;
-        } else if (status == ER_OK) {
-            reply->GetArgs("y", &ret);
-        } else {
-            QCC_LogError(status, ("MethodCall(\"delBreak\") failed\n"));
-        }
+    args.Set("y", index);
+    status = proxy->MethodCall("org.allseen.scriptDebugger", "delBreak", &args, 1, reply);
+    if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
+        QCC_SyncPrintf("delBreak failed because debugger is in running state\n");
+        return;
+    } else if (status == ER_OK) {
+        reply->GetArgs("y", &ret);
+    } else {
+        QCC_LogError(status, ("MethodCall(\"delBreak\") failed\n"));
     }
 }
 
@@ -625,31 +663,29 @@ void AJS_Console::ListBreak(AJS_BreakPoint** breakpoints, uint8_t* count)
     const MsgArg* entries;
     MsgArg* newEntries;
     size_t num;
-    if (debugState == DEBUG_ATTACHED_PAUSED) {
-        status = proxy->MethodCall("org.allseen.scriptDebugger", "listBreak", NULL, 0, reply);
-        if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
-            QCC_SyncPrintf("listBreak failed because debugger is in running state\n");
-            return;
-        } else if (status != ER_OK) {
-            QCC_SyncPrintf("MethodCall(\"listBreak\") failed, status = %u\n", status);
-            return;
-        }
-        entries = reply->GetArg(0);
-        entries->Get("a(sy)", &num, &newEntries);
-        *(breakpoints) = (AJS_BreakPoint*)malloc(sizeof(AJS_BreakPoint) * num);
-        *count = num;
-        for (size_t i = 0; i < num; ++i) {
-            char* file;
-            uint8_t line;
-            uint8_t len;
-            newEntries[i].Get("(sy)", &file, &line);
-            if (strcmp(file, "") != 0) {
-                len = strlen(file);
-                (*breakpoints)[i].fname = (char*)malloc(sizeof(char) * len + 1);
-                memcpy((void*)(*breakpoints)[i].fname, file, len);
-                (*breakpoints)[i].fname[len] = '\0';
-                (*breakpoints)[i].line = line;
-            }
+    status = proxy->MethodCall("org.allseen.scriptDebugger", "listBreak", NULL, 0, reply);
+    if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
+        QCC_SyncPrintf("listBreak failed because debugger is in running state\n");
+        return;
+    } else if (status != ER_OK) {
+        QCC_SyncPrintf("MethodCall(\"listBreak\") failed, status = %u\n", status);
+        return;
+    }
+    entries = reply->GetArg(0);
+    entries->Get("a(sy)", &num, &newEntries);
+    *(breakpoints) = (AJS_BreakPoint*)malloc(sizeof(AJS_BreakPoint) * num);
+    *count = num;
+    for (size_t i = 0; i < num; ++i) {
+        char* file;
+        uint8_t line;
+        uint8_t len;
+        newEntries[i].Get("(sy)", &file, &line);
+        if (strcmp(file, "") != 0) {
+            len = strlen(file);
+            (*breakpoints)[i].fname = (char*)malloc(sizeof(char) * len + 1);
+            memcpy((void*)(*breakpoints)[i].fname, file, len);
+            (*breakpoints)[i].fname[len] = '\0';
+            (*breakpoints)[i].line = line;
         }
     }
 }
@@ -674,7 +710,8 @@ void AJS_Console::GetCallStack(AJS_CallStack** stack, uint8_t* size)
     const MsgArg* entries;
     MsgArg* newEntries;
     size_t num;
-    if (debugState == DEBUG_ATTACHED_PAUSED) {
+    AJS_DebugStatus st = this->GetDebugStatus();
+    if (st == AJS_DEBUG_ATTACHED_PAUSED) {
         status = proxy->MethodCall("org.allseen.scriptDebugger", "getCallStack", NULL, 0, reply);
         if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
             QCC_SyncPrintf("getCallStack failed because debugger is in running state\n");
@@ -730,8 +767,14 @@ void AJS_Console::GetLocals(AJS_Locals** list, uint16_t* size)
     const MsgArg* entries;
     MsgArg* newEntries;
     size_t num;
-    (*list) = NULL;
-    if (debugState == DEBUG_ATTACHED_PAUSED) {
+    AJS_DebugStatus st = this->GetDebugStatus();
+
+    *list = NULL;
+    *size = 0;
+
+    if (st == AJS_DEBUG_ATTACHED_PAUSED) {
+        AJS_Locals* locals = NULL;
+
         status = proxy->MethodCall("org.allseen.scriptDebugger", "getLocals", NULL, 0, reply);
         if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
             QCC_SyncPrintf("getLocals failed because debugger is in running state\n");
@@ -742,36 +785,39 @@ void AJS_Console::GetLocals(AJS_Locals** list, uint16_t* size)
         }
         entries = reply->GetArg(0);
         entries->Get("a(ysv)", &num, &newEntries);
-        *size = num;
         if (num) {
-            (*list) = (AJS_Locals*)malloc(sizeof(AJS_Locals) * num);
+            locals = (AJS_Locals*)malloc(sizeof(AJS_Locals) * num);
+            if (locals) {
+                QCC_LogError(ER_OUT_OF_MEMORY, ("getLocals malloc failed\n"));
+                return;
+            }
+            *list = locals;
         }
         for (size_t i = 0; i < num; ++i) {
             char* name;
-            uint32_t sz;
-            uint8_t type;
-            uint8_t* val;
+            //uint32_t sz;
+            //uint8_t type;
+            //uint8_t* val;
             qcc::String vsig;
             MsgArg* variant;
             uint8_t identifier;
             newEntries[i].Get("(ysv)", &identifier, &name, &variant);
             vsig = variant->Signature();
-            (*list)[i].name = NULL;
-            (*list)[i].data = NULL;
             if (identifier) {
-                (*list)[i].name = (char*)malloc(sizeof(char) * strlen(name) + 1);
-                memcpy((*list)[i].name, name, strlen(name));
-                (*list)[i].name[strlen(name)] = '\0';
+                size_t len = strlen(name);
+                locals->name = (char*)malloc(sizeof(char) * (len + 1));
+                strncpy(locals->name, name, len + 1);
                 /*
                  * Unmarshal the variants signature
                  */
-                ParseDvalData(variant, identifier, &val, &sz, &type);
-                (*list)[i].data = (uint8_t*)malloc(sizeof(uint8_t) * sz);
-                memcpy((*list)[i].data, val, sz);
-                (*list)[i].size = sz;
-                (*list)[i].type = type;
-            } else {
-                (*list) = NULL;
+                ParseDvalData(variant, identifier, &locals->data, &locals->size, &locals->type);
+                //ParseDvalData(variant, identifier, &val, &sz, &type);
+                //locals->data = (uint8_t*)malloc(sizeof(uint8_t) * sz);
+                //memcpy(locals->data, val, sz);
+                //locals->size = sz;
+                //locals->type = type;
+                ++locals;
+                *size += 1;
             }
         }
     }
@@ -800,7 +846,8 @@ bool AJS_Console::GetVar(char* var, uint8_t** value, uint32_t* size, uint8_t* ty
     MsgArg args, *variant;
     uint8_t valid, ret, identifier;
     qcc::String vsig;
-    if (debugState == DEBUG_ATTACHED_PAUSED) {
+    AJS_DebugStatus st = this->GetDebugStatus();
+    if (st == AJS_DEBUG_ATTACHED_PAUSED) {
         args.Set("s", var);
         status = proxy->MethodCall("org.allseen.scriptDebugger", "getVar", &args, 1, reply);
         if (status == ER_OK) {
@@ -820,17 +867,12 @@ bool AJS_Console::GetVar(char* var, uint8_t** value, uint32_t* size, uint8_t* ty
     return false;
 }
 
-bool AJS_Console::PutVar(char* var, uint8_t* value, uint32_t size)
+bool AJS_Console::PutVar(char* var, uint8_t* value, uint32_t size, uint8_t type)
 {
     QStatus status;
     Message reply(*aj);
     MsgArg args[3];
-    uint8_t type;
     uint8_t ret;
-    /*
-     * Need to get the variable to establish its type
-     */
-    this->GetVar(var, NULL, NULL, &type);
 
     args[0].Set("s", var);
     if ((type >= 0x60) && (type <= 0x7f)) {
@@ -864,23 +906,22 @@ void AJS_Console::DebugEval(char* str, uint8_t** value, uint32_t* size, uint8_t*
     MsgArg args, *variant;
     uint8_t valid, ret, identifier;
     qcc::String vsig;
-    if (debugState == DEBUG_ATTACHED_PAUSED) {
-        args.Set("s", str);
-        status = proxy->MethodCall("org.allseen.scriptDebugger", "eval", &args, 1, reply);
-        if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
-            QCC_SyncPrintf("eval failed because debugger is in running state\n");
-            return;
-        } else if (status == ER_OK) {
-            reply->GetArgs("y", &ret);
-        } else {
-            QCC_LogError(status, ("MethodCall(\"eval\") failed\n"));
-            return;
-        }
-        reply->GetArgs("yyv", &valid, &identifier, &variant);
-        if (valid == 0) {
-            ParseDvalData(variant, identifier, value, size, type);
-        }
+    args.Set("s", str);
+    status = proxy->MethodCall("org.allseen.scriptDebugger", "eval", &args, 1, reply);
+    if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
+        QCC_SyncPrintf("eval failed because debugger is in running state\n");
+        return;
+    } else if (status == ER_OK) {
+        reply->GetArgs("y", &ret);
+    } else {
+        QCC_LogError(status, ("MethodCall(\"eval\") failed\n"));
+        return;
     }
+    reply->GetArgs("yyv", &valid, &identifier, &variant);
+    if (valid == 0) {
+        ParseDvalData(variant, identifier, value, size, type);
+    }
+
 }
 
 void AJS_Console::DumpHeap(void)
@@ -888,7 +929,8 @@ void AJS_Console::DumpHeap(void)
     QStatus status;
     Message reply(*aj);
     uint8_t ret;
-    if (debugState == DEBUG_ATTACHED_PAUSED) {
+    AJS_DebugStatus st = this->GetDebugStatus();
+    if (st == AJS_DEBUG_ATTACHED_PAUSED) {
         status = proxy->MethodCall("org.allseen.scriptDebugger", "stepOver", NULL, 0, reply);
         if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
             QCC_SyncPrintf("stepOver failed because debugger is in running state\n");
@@ -907,6 +949,10 @@ bool AJS_Console::GetScript(uint8_t** script, uint32_t* length)
     Message reply(*aj);
     const MsgArg* entries;
     uint8_t* s;
+
+    if (!script || !length) {
+        return false;
+    }
     status = proxy->MethodCall("org.allseen.scriptDebugger", "getScript", NULL, 0, reply);
     if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
         return false;
@@ -933,7 +979,7 @@ void AJS_Console::StopDebugger()
         QCC_SyncPrintf("MethodCall(\"begin\") failed\n");
         return;
     }
-    debugState = DEBUG_DETACHED;
+    debugState = AJS_DEBUG_DETACHED;
     /* Get the reply data */
     reply->GetArgs("y", &ret);
 }
@@ -957,7 +1003,7 @@ void AJS_Console::StartDebugger()
         QCC_SyncPrintf("MethodCall(\"begin\") failed\n");
         return;
     }
-    debugState = DEBUG_ATTACHED_PAUSED;
+    debugState = AJS_DEBUG_ATTACHED_PAUSED;
     /* Get the reply data */
     reply->GetArgs("y", &ret);
 }
@@ -1120,7 +1166,7 @@ void AJS_Console::RegisterHandlers(BusAttachment* ajb)
                                NULL);
 }
 
-QStatus AJS_Console::Eval(const String script)
+QStatus AJS_Console::Eval(const String script, char** output)
 {
     QStatus status;
     Message reply(*aj);
@@ -1130,10 +1176,9 @@ QStatus AJS_Console::Eval(const String script)
     status = proxy->MethodCall("org.allseen.scriptConsole", "eval", &arg, 1, reply);
     if (status == ER_OK) {
         uint8_t result;
-        const char* output;
 
-        reply->GetArgs("ys", &result, &output);
-        Print("Eval result=%d: %s\n", result, output);
+        reply->GetArgs("ys", &result, output);
+        Print("Eval result=%d: %s\n", result, *output);
     } else {
         QCC_LogError(status, ("MethodCall(\"eval\") failed\n"));
     }
@@ -1221,7 +1266,7 @@ void AJS_Console::Notification(const InterfaceDescription::Member* member, const
         notifType = 3;
     }
     /* If no C handler is registered print the notification now */
-    if (!handlers && !handlers->notification) {
+    if (!handlers || !handlers->notification) {
         Print("%s Notification from app:%s on device %s\n", TYPES[notifType], appName, deviceName);
     }
     /*
@@ -1231,22 +1276,28 @@ void AJS_Console::Notification(const InterfaceDescription::Member* member, const
     size_t num;
     strings->Get("a(ss)", &num, &entries);
     notifList = (AJS_NotifText*)malloc(num * sizeof(AJS_NotifText));
-    for (size_t i = 0; i < num; ++i) {
-        char* lang;
-        char* txt;
-        entries[i].Get("(ss)", &lang, &txt);
-        notifList[i].lang = (char*)malloc(strlen(lang) * sizeof(char) + 1);
-        memcpy(notifList[i].lang, lang, strlen(lang));
-        notifList[i].lang[strlen(lang)] = '\0';
-        notifList[i].txt = (char*)malloc(strlen(txt) * sizeof(char) + 1);
-        memcpy(notifList[i].txt, txt, strlen(txt));
-        notifList[i].txt[strlen(txt)] = '\0';
+    if (notifList) {
+        for (size_t i = 0; i < num; ++i) {
+            char* lang;
+            char* txt;
+            entries[i].Get("(ss)", &lang, &txt);
+            notifList[i].lang = (char*)malloc(strlen(lang) * sizeof(char) + 1);
+            memcpy(notifList[i].lang, lang, strlen(lang));
+            notifList[i].lang[strlen(lang)] = '\0';
+            notifList[i].txt = (char*)malloc(strlen(txt) * sizeof(char) + 1);
+            memcpy(notifList[i].txt, txt, strlen(txt));
+            notifList[i].txt[strlen(txt)] = '\0';
+        }
+        /* Pass relevant info to the registered handler */
+        if (handlers && handlers->notification) {
+            handlers->notification(appName, deviceName, notifList, num);
+        }
+        for (size_t i = 0; i < num; ++i) {
+            free(notifList[i].lang);
+            free(notifList[i].txt);
+        }
+        free(notifList);
     }
-    /* Pass relevant info to the registered handler */
-    if (handlers && handlers->notification) {
-        handlers->notification(appName, deviceName, notifList, num);
-    }
-
 }
 
 void AJS_Console::PrintMsg(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
@@ -1288,7 +1339,9 @@ void AJS_Console::DebugNotification(const InterfaceDescription::Member* member, 
             uint8_t lineNumber, pc;
             msg->GetArgs("yyssyy", &id, &state, &fileName, &funcName, &lineNumber, &pc);
             if (state == 1) {
-                debugState = DEBUG_ATTACHED_PAUSED;
+                debugState = AJS_DEBUG_ATTACHED_PAUSED;
+            } else {
+                debugState = AJS_DEBUG_ATTACHED_RUNNING;
             }
             if (handlers && handlers->dbgNotification) {
                 handlers->dbgNotification(id, state, fileName, funcName, lineNumber, pc);

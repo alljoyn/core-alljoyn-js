@@ -73,7 +73,7 @@ int AJS_ConsoleEval(AJS_ConsoleCtx* ctx, const char* script)
     } else {
         return 0;
     }
-    if (console->Eval(script) == ER_OK) {
+    if (console->Eval(qcc::String(script, 0, strlen(script)), NULL) == ER_OK) {
         return 1;
     }
     return 0;

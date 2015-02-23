@@ -24,14 +24,6 @@
 #include "ajs_console_c.h"
 #include "ajs_console_common.h"
 
-typedef enum {
-    DEBUG_DETACHED = 0,             /* Debugger is not attached, state of the target is not known */
-    DEBUG_ATTACHED_RUNNING = 1,     /* Debugger is attached and the target is in a running state */
-    DEBUG_ATTACHED_PAUSED = 2,      /* Debugger is attached and paused (debug commands can be used) */
-    DEBUG_CONNECTED_DETACHED = 3,   /* Debugger is connected but detached from the target */
-    DEBUG_DISCONNECTED = 4,         /* Debugger is disconnected from the target */
-}DEBUG_STATE;
-
 /**
  * Set the active debug flag meaning the console has started in
  * debug mode.
@@ -64,7 +56,7 @@ void AJS_Debug_SetQuiet(AJS_ConsoleCtx* ctx, uint8_t quiet);
  * @param state     State
  * @return          DBG_OK if the state was set successfully
  */
-AJS_DebugStatus AJS_Debug_SetDebugState(AJS_ConsoleCtx* ctx, DEBUG_STATE state);
+AJS_DebugStatusCode AJS_Debug_SetDebugState(AJS_ConsoleCtx* ctx, AJS_DebugStatus state);
 
 /**
  * Get the debuggers current state
@@ -72,7 +64,7 @@ AJS_DebugStatus AJS_Debug_SetDebugState(AJS_ConsoleCtx* ctx, DEBUG_STATE state);
  * @param ctx       Console context
  * @return          Debuggers state
  */
-DEBUG_STATE AJS_Debug_GetDebugState(AJS_ConsoleCtx* ctx);
+AJS_DebugStatus AJS_Debug_GetDebugState(AJS_ConsoleCtx* ctx);
 
 /**
  * Start the debugger
@@ -80,7 +72,7 @@ DEBUG_STATE AJS_Debug_GetDebugState(AJS_ConsoleCtx* ctx);
  * @param ctx       Console context
  * @return          DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_StartDebugger(AJS_ConsoleCtx* ctx);
+AJS_DebugStatusCode AJS_Debug_StartDebugger(AJS_ConsoleCtx* ctx);
 
 /**
  * Stop the debugger
@@ -88,7 +80,7 @@ AJS_DebugStatus AJS_Debug_StartDebugger(AJS_ConsoleCtx* ctx);
  * @param ctx       Console context
  * @return          DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_StopDebugger(AJS_ConsoleCtx* ctx);
+AJS_DebugStatusCode AJS_Debug_StopDebugger(AJS_ConsoleCtx* ctx);
 
 /**
  * Get the debugger version
@@ -97,14 +89,6 @@ AJS_DebugStatus AJS_Debug_StopDebugger(AJS_ConsoleCtx* ctx);
  * @return          Debug version string
  */
 char* AJS_Debug_GetVersion(AJS_ConsoleCtx* ctx);
-
-/**
- * Get the debuggers current state
- *
- * @param ctx       Console context
- * @return          Current state of the debugger
- */
-DEBUG_STATE AJS_Debug_GetDebugState(AJS_ConsoleCtx* ctx);
 
 /**
  * Get the basic information about the debug target
@@ -116,7 +100,7 @@ DEBUG_STATE AJS_Debug_GetDebugState(AJS_ConsoleCtx* ctx);
  * @param endianness[out]   Little or big endian
  * @return                  DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_BasicInfo(AJS_ConsoleCtx* ctx, uint16_t* version, char** description, char** targInfo, uint8_t* endianness);
+AJS_DebugStatusCode AJS_Debug_BasicInfo(AJS_ConsoleCtx* ctx, uint16_t* version, char** description, char** targInfo, uint8_t* endianness);
 
 /**
  * Sends a trigger request which results in a debug notification.
@@ -124,7 +108,7 @@ AJS_DebugStatus AJS_Debug_BasicInfo(AJS_ConsoleCtx* ctx, uint16_t* version, char
  * @param ctx               Console context
  * @return                  DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_Trigger(AJS_ConsoleCtx* ctx);
+AJS_DebugStatusCode AJS_Debug_Trigger(AJS_ConsoleCtx* ctx);
 
 /**
  * Step into request.
@@ -132,14 +116,14 @@ AJS_DebugStatus AJS_Debug_Trigger(AJS_ConsoleCtx* ctx);
  * @param ctx               Console context
  * @return                  DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_StepIn(AJS_ConsoleCtx* ctx);
+AJS_DebugStatusCode AJS_Debug_StepIn(AJS_ConsoleCtx* ctx);
 
 /**
  * Step out request.
  *
  * @return                  DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_StepOut(AJS_ConsoleCtx* ctx);
+AJS_DebugStatusCode AJS_Debug_StepOut(AJS_ConsoleCtx* ctx);
 
 /**
  * Step over request.
@@ -147,7 +131,7 @@ AJS_DebugStatus AJS_Debug_StepOut(AJS_ConsoleCtx* ctx);
  * @param ctx               Console context
  * @return                  DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_StepOver(AJS_ConsoleCtx* ctx);
+AJS_DebugStatusCode AJS_Debug_StepOver(AJS_ConsoleCtx* ctx);
 
 /**
  * Resume request. Only has an effect when the debugger is in a paused state.
@@ -155,7 +139,7 @@ AJS_DebugStatus AJS_Debug_StepOver(AJS_ConsoleCtx* ctx);
  * @param ctx               Console context
  * @return                  DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_Resume(AJS_ConsoleCtx* ctx);
+AJS_DebugStatusCode AJS_Debug_Resume(AJS_ConsoleCtx* ctx);
 
 /**
  * Pause request. Only has an effect when the debugger is in a running state.
@@ -163,7 +147,7 @@ AJS_DebugStatus AJS_Debug_Resume(AJS_ConsoleCtx* ctx);
  * @param ctx               Console context
  * @return                  DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_Pause(AJS_ConsoleCtx* ctx);
+AJS_DebugStatusCode AJS_Debug_Pause(AJS_ConsoleCtx* ctx);
 
 /**
  * Attach to an already running debug target
@@ -172,7 +156,7 @@ AJS_DebugStatus AJS_Debug_Pause(AJS_ConsoleCtx* ctx);
  * @param ctx               Console context
  * @return                  DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_Attach(AJS_ConsoleCtx* ctx);
+AJS_DebugStatusCode AJS_Debug_Attach(AJS_ConsoleCtx* ctx);
 
 /**
  * Detach the console from the debugger
@@ -181,7 +165,7 @@ AJS_DebugStatus AJS_Debug_Attach(AJS_ConsoleCtx* ctx);
  * @param ctx               Console context
  * @return                  DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_Detach(AJS_ConsoleCtx* ctx);
+AJS_DebugStatusCode AJS_Debug_Detach(AJS_ConsoleCtx* ctx);
 
 /**
  * Add a new breakpoint
@@ -191,7 +175,7 @@ AJS_DebugStatus AJS_Debug_Detach(AJS_ConsoleCtx* ctx);
  * @param line      Line to add the breakpoint at
  * @return          DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_AddBreakpoint(AJS_ConsoleCtx* ctx, char* file, uint16_t line);
+AJS_DebugStatusCode AJS_Debug_AddBreakpoint(AJS_ConsoleCtx* ctx, char* file, uint16_t line);
 
 /**
  * Delete a breakpoint
@@ -200,7 +184,7 @@ AJS_DebugStatus AJS_Debug_AddBreakpoint(AJS_ConsoleCtx* ctx, char* file, uint16_
  * @param index     Breakpoint index, 0 = first added, 1 = second etc.
  * @return          DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_DelBreakpoint(AJS_ConsoleCtx* ctx, uint8_t index);
+AJS_DebugStatusCode AJS_Debug_DelBreakpoint(AJS_ConsoleCtx* ctx, uint8_t index);
 
 /**
  * Get a variable
@@ -212,7 +196,7 @@ AJS_DebugStatus AJS_Debug_DelBreakpoint(AJS_ConsoleCtx* ctx, uint8_t index);
  * @param type[out]  Contains the type of variable
  * @return           DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_GetVar(AJS_ConsoleCtx* ctx, char* name, uint8_t** value, uint32_t* size, uint8_t* type);
+AJS_DebugStatusCode AJS_Debug_GetVar(AJS_ConsoleCtx* ctx, char* name, uint8_t** value, uint32_t* size, uint8_t* type);
 
 /**
  * Put a value into a variable
@@ -221,9 +205,10 @@ AJS_DebugStatus AJS_Debug_GetVar(AJS_ConsoleCtx* ctx, char* name, uint8_t** valu
  * @param name      Variable name
  * @param value     Pointer to the desired value
  * @param size      Size of the value
+ * @param type      Tval type
  * @return          DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_PutVar(AJS_ConsoleCtx* ctx, char* name, uint8_t* value, uint32_t size);
+AJS_DebugStatusCode AJS_Debug_PutVar(AJS_ConsoleCtx* ctx, char* name, uint8_t* value, uint32_t size, uint8_t type);
 
 /**
  * Get call stack.
@@ -233,7 +218,7 @@ AJS_DebugStatus AJS_Debug_PutVar(AJS_ConsoleCtx* ctx, char* name, uint8_t* value
  * @param size[out]     Number of call stack entires
  * @return              DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_GetCallStack(AJS_ConsoleCtx* ctx, AJS_CallStack** stack, uint8_t* size);
+AJS_DebugStatusCode AJS_Debug_GetCallStack(AJS_ConsoleCtx* ctx, AJS_CallStack** stack, uint8_t* size);
 
 /**
  * Free the call stack populated by GetCallStack. This function must be called
@@ -244,7 +229,7 @@ AJS_DebugStatus AJS_Debug_GetCallStack(AJS_ConsoleCtx* ctx, AJS_CallStack** stac
  * @param size          Depth of the call stack
  * @return              DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_FreeCallStack(AJS_ConsoleCtx* ctx, AJS_CallStack* stack, uint8_t size);
+AJS_DebugStatusCode AJS_Debug_FreeCallStack(AJS_ConsoleCtx* ctx, AJS_CallStack* stack, uint8_t size);
 
 /**
  * Get all local variables.
@@ -254,7 +239,7 @@ AJS_DebugStatus AJS_Debug_FreeCallStack(AJS_ConsoleCtx* ctx, AJS_CallStack* stac
  * @param size[out]     Number of local variables found
  * @return              DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_GetLocals(AJS_ConsoleCtx* ctx, AJS_Locals** locals, uint16_t* num);
+AJS_DebugStatusCode AJS_Debug_GetLocals(AJS_ConsoleCtx* ctx, AJS_Locals** locals, uint16_t* num);
 
 /**
  * Free local variable array populated by GetLocals
@@ -264,7 +249,7 @@ AJS_DebugStatus AJS_Debug_GetLocals(AJS_ConsoleCtx* ctx, AJS_Locals** locals, ui
  * @param size          Number of local variables
  * @return              DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_FreeLocals(AJS_ConsoleCtx* ctx, AJS_Locals* locals, uint8_t num);
+AJS_DebugStatusCode AJS_Debug_FreeLocals(AJS_ConsoleCtx* ctx, AJS_Locals* locals, uint8_t num);
 
 /**
  * Get all breakpoints
@@ -274,7 +259,7 @@ AJS_DebugStatus AJS_Debug_FreeLocals(AJS_ConsoleCtx* ctx, AJS_Locals* locals, ui
  * @param count[out]        Number of breakpoints in first 'breakpoints' array
  * @return                  DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_ListBreakpoints(AJS_ConsoleCtx* ctx, AJS_BreakPoint** breakpoints, uint8_t* num);
+AJS_DebugStatusCode AJS_Debug_ListBreakpoints(AJS_ConsoleCtx* ctx, AJS_BreakPoint** breakpoints, uint8_t* num);
 
 /**
  * Frees a list of breakpoints generated from ListBreak
@@ -284,7 +269,7 @@ AJS_DebugStatus AJS_Debug_ListBreakpoints(AJS_ConsoleCtx* ctx, AJS_BreakPoint** 
  * @param num           Number of breakpoint structures
  * @return              DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_FreeBreakpoints(AJS_ConsoleCtx* ctx, AJS_BreakPoint* breakpoints, uint8_t num);
+AJS_DebugStatusCode AJS_Debug_FreeBreakpoints(AJS_ConsoleCtx* ctx, AJS_BreakPoint* breakpoints, uint8_t num);
 
 /**
  * Do an eval while debugging
@@ -296,7 +281,7 @@ AJS_DebugStatus AJS_Debug_FreeBreakpoints(AJS_ConsoleCtx* ctx, AJS_BreakPoint* b
  * @param type[out]     Type of the data (tval/dval)
  * @return              DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_Eval(AJS_ConsoleCtx* ctx, char* str, uint8_t** ret, uint32_t* size, uint8_t* type);
+AJS_DebugStatusCode AJS_Debug_Eval(AJS_ConsoleCtx* ctx, char* str, uint8_t** ret, uint32_t* size, uint8_t* type);
 
 /**
  * Get a script from the debug target. Opposite direction as Install.
@@ -306,6 +291,6 @@ AJS_DebugStatus AJS_Debug_Eval(AJS_ConsoleCtx* ctx, char* str, uint8_t** ret, ui
  * @param length[out]   Size of the script
  * @return              DBG_OK on success
  */
-AJS_DebugStatus AJS_Debug_GetScript(AJS_ConsoleCtx* ctx, uint8_t** script, uint32_t* size);
+AJS_DebugStatusCode AJS_Debug_GetScript(AJS_ConsoleCtx* ctx, uint8_t** script, uint32_t* size);
 
 #endif /* AJS_DEBUG_H_ */

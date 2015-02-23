@@ -440,7 +440,9 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
          * Perform any deferred operations. These are operations such as factory reset that cannot
          * be cleanly performed from inside duktape.
          */
-        status = DoDeferredOperation(ctx);
+        if (status == AJ_OK) {
+            status = DoDeferredOperation(ctx);
+        }
     }
     AJS_ClearWatchdogTimer();
     return status;

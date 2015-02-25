@@ -41,6 +41,33 @@ static uint8_t InvolvesRootWidget(uint32_t identifier)
     return OBJ_INDEX(identifier) == 0;
 }
 
+/*
+ * Makes a copy of enough of a method call message to construct a reply message.
+ */
+static AJ_Message* CloneAndCloseMessage(AJ_Message* msg)
+{
+    size_t len = strlen(msg->sender);
+    struct {
+        AJ_Message msg;
+        AJ_MsgHeader hdr;
+        char sender[1];
+    }* buffer;
+
+    buffer = AJ_Malloc(sizeof(*buffer) + len);
+    if (buffer) {
+        memcpy(buffer->sender, msg->sender, len + 1);
+        memcpy(&buffer->hdr, msg->hdr, sizeof(AJ_MsgHeader));
+        memset(&buffer->msg, 0, sizeof(AJ_Message));
+        buffer->msg.hdr = &buffer->hdr;
+        buffer->msg.sender = buffer->sender;
+        buffer->msg.msgId = msg->msgId;
+        buffer->msg.sessionId = msg->sessionId;
+        buffer->msg.bus = msg->bus;
+    }
+    AJ_CloseMsg(msg);
+    return (AJ_Message*)buffer;
+}
+
 static AJ_Status SetWidgetProp(AJ_Message* msg)
 {
     AJS_Widget* widget = NULL;
@@ -121,16 +148,13 @@ static AJ_Status SetWidgetProp(AJ_Message* msg)
             break;
         }
     }
-    if (status == AJ_OK) {
-        AJ_MarshalReplyMsg(msg, &reply);
-    } else {
-        AJ_MarshalStatusMsg(msg, &reply, status);
-    }
     /*
-     * Need to deliver the reply before calling onValueChanged because this is likely to cause
-     * signals to be sent which would overwrite the I/O buffer being used for the reply.
+     * Need to make a clone of the message and close the original
      */
-    AJ_DeliverMsg(&reply);
+    msg = CloneAndCloseMessage(msg);
+    if (!msg) {
+        return AJ_ERR_RESOURCES;
+    }
     if (status == AJ_OK) {
         /*
          * Call JavaScript to report the value change
@@ -139,6 +163,14 @@ static AJ_Status SetWidgetProp(AJ_Message* msg)
     } else {
         AJ_ErrPrintf(("SetWidgetProp %s\n", AJ_StatusText(status)));
     }
+    if (status == AJ_OK) {
+        AJ_MarshalReplyMsg(msg, &reply);
+    } else {
+        AJ_MarshalStatusMsg(msg, &reply, status);
+    }
+    AJ_DeliverMsg(&reply);
+    AJ_Free(msg);
+
     return status;
 }
 
@@ -149,6 +181,13 @@ static AJ_Status ExecuteAction(AJ_Message* msg, uint8_t action, void* context)
     AJ_Message reply;
 
     /*
+     * Need to make a clone of the message and close the original
+     */
+    msg = CloneAndCloseMessage(msg);
+    if (!msg) {
+        return AJ_ERR_RESOURCES;
+    }
+    /*
      * Call into JavaScript object to perform action
      */
     status = AJS_CP_ExecuteAction(widget, action);
@@ -157,6 +196,7 @@ static AJ_Status ExecuteAction(AJ_Message* msg, uint8_t action, void* context)
     } else {
         AJ_MarshalStatusMsg(msg, &reply, status);
     }
+    AJ_Free(msg);
     return AJ_DeliverMsg(&reply);
 }
 

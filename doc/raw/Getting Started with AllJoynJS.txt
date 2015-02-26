@@ -15,11 +15,11 @@ Over time the plan is to add additional features to the ScriptConsole to support
 As AllJoyn.js matures we expect the community will produce binary images for specific microcontroller boards and installable packages for high level operating systems. Currently AllJoyn.js must be built from source code. The instructions for building AllJoyn.js are below.
 
 ###Downloading Duktape
-AllJoyn.js requires duktape-0.11.0 which can be downloaded from here:  
-http://duktape.org/download.html
+AllJoyn.js uses some very new features of duktape (debugging) and thus requres a very recent snapshot of the codebase. There is currently no formal release out that contains the functionality needed so a brebuilt snapshot of the master branch (git) is needed. This can be found here: (duktape-1.1.x):  
+http://duktape.org/snapshots/duktape-master.tar.xz
 
 Alternatively, the sources can be obtained by cloning from github at  
-https://github.com/svaarala/duktape.git (tag "v0.11.0")
+https://github.com/svaarala/duktape.git (master)
 
 If you are feeling more adventurous you can build the duktape distribution from the master branch on github which may include bug fixes or less mature code. Building the duktape distribution is best done on Linux because of the external tool dependencies.
 

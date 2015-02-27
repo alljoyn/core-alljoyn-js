@@ -19,6 +19,7 @@
 
 #include "ajs.h"
 #include "ajs_target.h"
+#include "aj_target_nvram.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -131,6 +132,7 @@ int main(int argc, char* argv[])
 {
     const char* deviceName = NULL;
     const char* scriptName = NULL;
+    const char* nvramFile = NULL;
     int argn = 1;
     int daemonize = FALSE;
     AJ_Status status = AJ_OK;
@@ -150,8 +152,6 @@ int main(int argc, char* argv[])
     dbgGPIO = 0;
 #endif
 
-    AJ_Initialize();
-
     while (argn < argc) {
         if (strcmp(argv[argn], "--debug") == 0) {
 #ifndef NDEBUG
@@ -164,18 +164,23 @@ int main(int argc, char* argv[])
             goto Usage;
 #endif
         }
+        if (strcmp(argv[argn], "--nvram-file") == 0) {
+            if (++argn >= argc) {
+                goto Usage;
+            }
+            nvramFile = argv[argn++];
+            continue;
+        }
         if (strcmp(argv[argn], "--daemon") == 0) {
             daemonize = TRUE;
             ++argn;
             continue;
         }
         if (strcmp(argv[argn], "--name") == 0) {
-            ++argn;
-            if (argn >= argc) {
+            if (++argn >= argc) {
                 goto Usage;
             }
-            deviceName = argv[argn];
-            ++argn;
+            deviceName = argv[argn++];
             continue;
         }
         if (argv[argn][0] == '-') {
@@ -187,6 +192,9 @@ int main(int argc, char* argv[])
         scriptName = argv[argn];
         ++argn;
     }
+
+    AJ_SetNVRAM_FilePath(nvramFile);
+    AJ_Initialize();
 
     if (daemonize) {
         int ret = daemon(0, 0);
@@ -216,9 +224,9 @@ int main(int argc, char* argv[])
 Usage:
 
 #ifndef NDEBUG
-    AJ_Printf("Usage: %s [--daemon] [--debug] [--name <device-name>] [script_file]\n", argv[0]);
+    AJ_Printf("Usage: %s [--debug] [--daemon] [--nvram-file <nvram_file>] [--name <device-name>] [script_file]\n", argv[0]);
 #else
-    AJ_Printf("Usage: %s [--daemon] [--name <device-name>] [script_file]\n", argv[0]);
+    AJ_Printf("Usage: %s [--daemon] [--nvram-file <nvram_file>] [--name <device-name>] [script_file]\n", argv[0]);
 #endif
     exit(-1);
 }

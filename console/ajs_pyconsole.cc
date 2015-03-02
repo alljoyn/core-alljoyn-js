@@ -56,7 +56,6 @@ static AJS_PyConsole* console = NULL;
 static char debugVersion[128];
 static uint16_t dbgCurrentLine = 0;
 static uint16_t dbgPC = 0;
-static uint8_t dbgState;
 
 AJS_PyConsole::AJS_PyConsole() : AJS_Console(), pycallback(NULL), notifCallback(NULL) {
 }
@@ -339,7 +338,7 @@ static PyObject* py_setcallback(PyObject* self, PyObject* args)
 
 static PyObject* py_gettargetstate(PyObject* self, PyObject* args)
 {
-    DEBUG_STATE state;
+    AJS_DEBUG_STATE state;
     Py_BEGIN_ALLOW_THREADS
         state = console->GetDebugState();
     Py_END_ALLOW_THREADS
@@ -373,7 +372,7 @@ static PyObject* py_setstate(PyObject* self, PyObject* args)
         return NULL;
     }
     Py_BEGIN_ALLOW_THREADS
-    console->SetDebugState((DEBUG_STATE)state);
+    console->SetDebugState((AJS_DEBUG_STATE)state);
     Py_END_ALLOW_THREADS
     return statusobject(ER_OK);
 }
@@ -441,7 +440,7 @@ static PyObject* py_getcurrentline(PyObject* self, PyObject* args)
 
 static PyObject* py_getlocals(PyObject* self, PyObject* args)
 {
-    Locals* vars = NULL;
+    AJS_Locals* vars = NULL;
     uint16_t size;
     int i;
     PyObject* tuple;
@@ -496,7 +495,7 @@ static PyObject* py_getlocals(PyObject* self, PyObject* args)
 
 static PyObject* py_getstacktrace(PyObject* self, PyObject* args)
 {
-    CallStack* stack = NULL;
+    AJS_CallStack* stack = NULL;
     uint8_t size;
     int i;
     PyObject* tuple;
@@ -516,7 +515,7 @@ static PyObject* py_getstacktrace(PyObject* self, PyObject* args)
 
 static PyObject* py_getbreakpoints(PyObject* self, PyObject* args)
 {
-    BreakPoint* list = NULL;
+    AJS_BreakPoint* list = NULL;
     uint8_t num;
     int i;
     PyObject* tuple;
@@ -763,6 +762,66 @@ static PyMethodDef AJSConsoleMethods[] = {
     { NULL, NULL, 0, NULL }
 };
 
+struct module_state {
+    PyObject*error;
+};
+
+#if PY_MAJOR_VERSION >= 3
+#define GET_PY_STATE(s) ((struct module_state*)PyModule_GetState(s))
+#else
+#define GET_PY_STATE(s) (&_state)
+#endif
+
+#if PY_MAJOR_VERSION >= 3
+
+#define INITERROR return NULL
+
+static int myextension_traverse(PyObject*m, visitproc visit, void*arg) {
+    Py_VISIT(GET_PY_STATE(m)->error);
+    return 0;
+}
+
+static int myextension_clear(PyObject*m) {
+    Py_CLEAR(GET_PY_STATE(m)->error);
+    return 0;
+}
+
+static struct PyModuleDef consoleModule = {
+    PyModuleDef_HEAD_INIT,
+    "AJSConsole",
+    NULL,
+    sizeof(struct module_state),
+    AJSConsoleMethods,
+    NULL,
+    myextension_traverse,
+    myextension_clear,
+    NULL
+};
+
+
+#endif
+
+
+#if PY_MAJOR_VERSION >= 3
+extern "C" PyObject* PyInit_AJSConsole(void)
+{
+    PyObject*module = PyModule_Create(&consoleModule);
+    PyEval_InitThreads();
+    if (module == NULL) {
+        INITERROR;
+    }
+    struct module_state*st = GET_PY_STATE(module);
+
+    st->error = PyErr_NewException("AJSConsole.Error", NULL, NULL);
+    if (st->error == NULL) {
+        Py_DECREF(module);
+        INITERROR;
+    }
+
+    console = new AJS_PyConsole();
+    return module;
+}
+#else
 PyMODINIT_FUNC initAJSConsole(void)
 {
     (void) Py_InitModule("AJSConsole", AJSConsoleMethods);
@@ -770,3 +829,4 @@ PyMODINIT_FUNC initAJSConsole(void)
     PyEval_InitThreads();
     console = new AJS_PyConsole();
 }
+#endif

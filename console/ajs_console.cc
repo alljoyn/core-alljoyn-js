@@ -18,7 +18,7 @@
  ******************************************************************************/
 
 #include "ajs_console.h"
-
+#include "ajs_console_common.h"
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -409,7 +409,7 @@ static void ParseDvalData(MsgArg* variant, uint8_t identifier, uint8_t** value, 
     }
 }
 
-AJS_Console::AJS_Console() : BusListener(), debugState(DEBUG_DETACHED), activeDebug(false), quiet(false), sessionId(0), proxy(NULL), connectedBusName(NULL), aj(NULL), ev(new Event()), verbose(false), deviceName() {
+AJS_Console::AJS_Console() : BusListener(), debugState(DEBUG_DETACHED), activeDebug(false), quiet(false), handlers(NULL), verbose(false), sessionId(0), proxy(NULL), connectedBusName(NULL), aj(NULL), ev(new Event()),  deviceName() {
 }
 
 AJS_Console::~AJS_Console() {
@@ -618,7 +618,7 @@ void AJS_Console::DelBreak(uint8_t index)
     }
 }
 
-void AJS_Console::ListBreak(BreakPoint** breakpoints, uint8_t* count)
+void AJS_Console::ListBreak(AJS_BreakPoint** breakpoints, uint8_t* count)
 {
     QStatus status;
     Message reply(*aj);
@@ -636,7 +636,7 @@ void AJS_Console::ListBreak(BreakPoint** breakpoints, uint8_t* count)
         }
         entries = reply->GetArg(0);
         entries->Get("a(sy)", &num, &newEntries);
-        *(breakpoints) = (BreakPoint*)malloc(sizeof(BreakPoint) * num);
+        *(breakpoints) = (AJS_BreakPoint*)malloc(sizeof(AJS_BreakPoint) * num);
         *count = num;
         for (size_t i = 0; i < num; ++i) {
             char* file;
@@ -654,7 +654,7 @@ void AJS_Console::ListBreak(BreakPoint** breakpoints, uint8_t* count)
     }
 }
 
-void AJS_Console::FreeBreakpoints(BreakPoint* breakpoints, uint8_t num)
+void AJS_Console::FreeBreakpoints(AJS_BreakPoint* breakpoints, uint8_t num)
 {
     int i;
     if (breakpoints) {
@@ -667,7 +667,7 @@ void AJS_Console::FreeBreakpoints(BreakPoint* breakpoints, uint8_t num)
     }
 }
 
-void AJS_Console::GetCallStack(CallStack** stack, uint8_t* size)
+void AJS_Console::GetCallStack(AJS_CallStack** stack, uint8_t* size)
 {
     QStatus status;
     Message reply(*aj);
@@ -686,7 +686,7 @@ void AJS_Console::GetCallStack(CallStack** stack, uint8_t* size)
 
         entries = reply->GetArg(0);
         entries->Get("a(ssyy)", &num, &newEntries);
-        (*stack) = (CallStack*)malloc(sizeof(CallStack) * num);
+        (*stack) = (AJS_CallStack*)malloc(sizeof(AJS_CallStack) * num);
         *size = num;
         for (size_t i = 0; i < num; ++i) {
             char* file, *func;
@@ -707,7 +707,7 @@ void AJS_Console::GetCallStack(CallStack** stack, uint8_t* size)
     }
 }
 
-void AJS_Console::FreeCallStack(CallStack* stack, uint8_t size)
+void AJS_Console::FreeCallStack(AJS_CallStack* stack, uint8_t size)
 {
     int i;
     if (stack) {
@@ -723,7 +723,7 @@ void AJS_Console::FreeCallStack(CallStack* stack, uint8_t size)
     }
 }
 
-void AJS_Console::GetLocals(Locals** list, uint16_t* size)
+void AJS_Console::GetLocals(AJS_Locals** list, uint16_t* size)
 {
     QStatus status;
     Message reply(*aj);
@@ -744,7 +744,7 @@ void AJS_Console::GetLocals(Locals** list, uint16_t* size)
         entries->Get("a(ysv)", &num, &newEntries);
         *size = num;
         if (num) {
-            (*list) = (Locals*)malloc(sizeof(Locals) * num);
+            (*list) = (AJS_Locals*)malloc(sizeof(AJS_Locals) * num);
         }
         for (size_t i = 0; i < num; ++i) {
             char* name;
@@ -777,7 +777,7 @@ void AJS_Console::GetLocals(Locals** list, uint16_t* size)
     }
 }
 
-void AJS_Console::FreeLocals(Locals* list, uint16_t size)
+void AJS_Console::FreeLocals(AJS_Locals* list, uint16_t size)
 {
     int i;
     if (list) {
@@ -996,7 +996,6 @@ void AJS_Console::Announced(const char* busName, uint16_t version, SessionPort p
          */
         context = strdup(busName);
         status = aj->JoinSessionAsync(busName, SCRIPT_CONSOLE_PORT, this, opts, this, context);
-
         if (status != ER_OK) {
             sessionId = 0;
             free(context);
@@ -1210,10 +1209,8 @@ void AJS_Console::Notification(const InterfaceDescription::Member* member, const
     const MsgArg* attrs;
     const MsgArg* cust;
     const MsgArg* strings;
+    AJS_NotifText* notifList;
 
-    if (GetVerbose()) {
-        Print("NOTIFICATION:\n%s\n", msg->ToString().c_str());
-    }
 
     QStatus status = msg->GetArgs("qiqssays***", &version, &notifId, &notifType, &deviceId, &deviceName, &appIdLen, &appId, &appName, &attrs, &cust, &strings);
     if (status != ER_OK) {
@@ -1223,39 +1220,60 @@ void AJS_Console::Notification(const InterfaceDescription::Member* member, const
     if (notifType > 2) {
         notifType = 3;
     }
-    Print("%s Notification from app:%s on device:%s\n", TYPES[notifType], appName, deviceName);
+    /* If no C handler is registered print the notification now */
+    if (!handlers && !handlers->notification) {
+        Print("%s Notification from app:%s on device %s\n", TYPES[notifType], appName, deviceName);
+    }
     /*
      * Unpack the notification strings
      */
-    MsgArg*entries;
+    ajn::MsgArg* entries;
     size_t num;
     strings->Get("a(ss)", &num, &entries);
+    notifList = (AJS_NotifText*)malloc(num * sizeof(AJS_NotifText));
     for (size_t i = 0; i < num; ++i) {
-        char*lang;
-        char*txt;
+        char* lang;
+        char* txt;
         entries[i].Get("(ss)", &lang, &txt);
-        Print("%s: %s\n", lang, txt);
+        notifList[i].lang = (char*)malloc(strlen(lang) * sizeof(char) + 1);
+        memcpy(notifList[i].lang, lang, strlen(lang));
+        notifList[i].lang[strlen(lang)] = '\0';
+        notifList[i].txt = (char*)malloc(strlen(txt) * sizeof(char) + 1);
+        memcpy(notifList[i].txt, txt, strlen(txt));
+        notifList[i].txt[strlen(txt)] = '\0';
     }
+    /* Pass relevant info to the registered handler */
+    if (handlers && handlers->notification) {
+        handlers->notification(appName, deviceName, notifList, num);
+    }
+
 }
 
 void AJS_Console::PrintMsg(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
 {
-    if (!quiet) {
+    if (handlers && handlers->print) {
+        handlers->print(msg->GetArg()->v_string.str);
+    } else {
         Print("%s\n", msg->GetArg()->v_string.str);
     }
 }
 
 void AJS_Console::AlertMsg(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
 {
-    if (!quiet) {
+    if (handlers && handlers->alert) {
+        handlers->alert(msg->GetArg()->v_string.str);
+    } else {
         Print("%s\n", msg->GetArg()->v_string.str);
     }
 }
 
 void AJS_Console::DebugVersion(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
 {
-    QCC_SyncPrintf("Version Information:\n");
-    QCC_SyncPrintf("%s\n", msg->GetArg()->v_string.str);
+    if (handlers && handlers->dbgVersion) {
+        handlers->dbgVersion(msg->GetArg()->v_string.str);
+    } else {
+        Print("%s\n", msg->GetArg()->v_string.str);
+    }
 }
 
 void AJS_Console::DebugNotification(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
@@ -1269,9 +1287,13 @@ void AJS_Console::DebugNotification(const InterfaceDescription::Member* member, 
             const char* funcName;
             uint8_t lineNumber, pc;
             msg->GetArgs("yyssyy", &id, &state, &fileName, &funcName, &lineNumber, &pc);
-            QCC_SyncPrintf("Got status notification\nState=%u, File Name=%s, Function=%s, Line=%u, PC=%u\n", state, fileName, funcName, lineNumber, pc);
             if (state == 1) {
                 debugState = DEBUG_ATTACHED_PAUSED;
+            }
+            if (handlers && handlers->dbgNotification) {
+                handlers->dbgNotification(id, state, fileName, funcName, lineNumber, pc);
+            } else {
+                Print("Got status notification: State=%u, File Name=%s, Function=%s, Line=%u, PC=%u\n", state, fileName, funcName, lineNumber, pc);
             }
         }
         break;
@@ -1288,4 +1310,19 @@ void AJS_Console::DebugNotification(const InterfaceDescription::Member* member, 
         QCC_SyncPrintf("LOG NOTIFICATION: %u %s\n", msg->GetArg()->v_byte, msg->GetArg()->v_string.str);
         break;
     }
+}
+
+void AJS_Console::Print(const char* fmt, ...)
+{
+    va_list ap;
+    int ret;
+
+    va_start(ap, fmt);
+
+    ret = vsnprintf(printBuf, printBufLen, fmt, ap);
+    if (ret > 0) {
+        QCC_SyncPrintf("%s", printBuf);
+    }
+
+    va_end(ap);
 }

@@ -18,6 +18,7 @@
  ******************************************************************************/
 #ifndef _AJS_CONSOLE_H
 
+#include "ajs_console_common.h"
 #include <signal.h>
 #include <qcc/platform.h>
 #include <qcc/Debug.h>
@@ -33,33 +34,17 @@
 
 #define QCC_MODULE "ALLJOYN"
 
-typedef struct {
-    char* fname;
-    uint8_t line;
-} BreakPoint;
-
-typedef struct {
-    char* filename;
-    char* function;
-    uint8_t line;
-    uint8_t pc;
-}CallStack;
-
-typedef struct {
-    char* name;
-    uint16_t size;
-    uint8_t* data;
-    uint8_t type;
-}Locals;
-
 typedef enum {
     DEBUG_DETACHED = 0,             /* Debugger is not attached, state of the target is not known */
     DEBUG_ATTACHED_RUNNING = 1,     /* Debugger is attached and the target is in a running state */
     DEBUG_ATTACHED_PAUSED = 2,      /* Debugger is attached and paused (debug commands can be used) */
     DEBUG_CONNECTED_DETACHED = 3,   /* Debugger is connected but detached from the target */
     DEBUG_DISCONNECTED = 4,         /* Debugger is disconnected from the target */
-}DEBUG_STATE;
+}AJS_DEBUG_STATE;
 
+/*
+ * Type of debug messages
+ */
 typedef enum {
     STATUS_NOTIFICATION     = 0x01,
     PRINT_NOTIFICATION      = 0x02,
@@ -84,6 +69,9 @@ typedef enum {
     DUMP_HEAP_REQ           = 0x20
 } DEBUG_REQUESTS;
 
+/*
+ * Elements of debug messages
+ */
 typedef enum {
     DBG_TYPE_EOM        = 0x00,
     DBG_TYPE_REQ        = 0x01,
@@ -132,7 +120,7 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
 
     virtual void Notification(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
 
-    virtual void Print(const char* fmt, ...) = 0;
+    virtual void Print(const char* fmt, ...);
 
     virtual void PrintMsg(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
 
@@ -231,7 +219,7 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
      * @param breakpoints[out]  Array of BreakPoint structures
      * @param count[out]        Number of breakpoints in param 1's array
      */
-    void ListBreak(BreakPoint** breakpoints, uint8_t* count);
+    void ListBreak(AJS_BreakPoint** breakpoints, uint8_t* count);
 
     /**
      * Frees a list of breakpoints generated from ListBreak
@@ -239,7 +227,7 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
      * @param breakpoints       Array of BreakPoint structures
      * @param num               Number of breakpoint structures
      */
-    void FreeBreakpoints(BreakPoint* breakpoints, uint8_t num);
+    void FreeBreakpoints(AJS_BreakPoint* breakpoints, uint8_t num);
 
     /**
      * Get a variable
@@ -270,7 +258,7 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
      * @param stack[out]    Array of call stack entries
      * @param size[out]     Number of call stack entires
      */
-    void GetCallStack(CallStack** stack, uint8_t* size);
+    void GetCallStack(AJS_CallStack** stack, uint8_t* size);
 
     /**
      * Free the call stack populated by GetCallStack. This function must be called
@@ -279,7 +267,7 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
      * @param stack         Call stack array
      * @param size          Depth of the call stack
      */
-    void FreeCallStack(CallStack* stack, uint8_t size);
+    void FreeCallStack(AJS_CallStack* stack, uint8_t size);
 
     /**
      * Get all local variables.
@@ -287,7 +275,7 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
      * @param list[out]     Array of Locals structure containing all local variables
      * @param size[out]     Number of local variables found
      */
-    void GetLocals(Locals** list, uint16_t* size);
+    void GetLocals(AJS_Locals** list, uint16_t* size);
 
     /**
      * Free local variable array populated by GetLocals
@@ -295,7 +283,7 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
      * @param list          Array of local variables
      * @param size          Number of local variables
      */
-    void FreeLocals(Locals* list, uint16_t size);
+    void FreeLocals(AJS_Locals* list, uint16_t size);
 
     /**
      * Do an eval while in the debugger
@@ -329,21 +317,22 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
         return verbose;
     }
 
-    DEBUG_STATE GetDebugState(void)
+    AJS_DEBUG_STATE GetDebugState(void)
     {
         return debugState;
     }
 
-    void SetDebugState(DEBUG_STATE state)
+    void SetDebugState(AJS_DEBUG_STATE state)
     {
         debugState = state;
     }
 
     class Event;
-    DEBUG_STATE debugState;
+    AJS_DEBUG_STATE debugState;
     bool activeDebug;
     bool quiet;
-
+    SignalRegistration* handlers;
+    bool verbose;
   private:
 
     virtual void RegisterHandlers(ajn::BusAttachment* ajb);
@@ -354,9 +343,9 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
     char* connectedBusName;
     ajn::BusAttachment* aj;
     Event* ev;
-    bool verbose;
     qcc::String deviceName;
-
+    static const size_t printBufLen = 1024;
+    char printBuf[printBufLen];
 };
 
 #endif

@@ -128,11 +128,18 @@ extern uint8_t dbgCONSOLE;
 extern uint8_t dbgGPIO;
 #endif
 
+/*
+ * Approximate limit on number of bytes to accumulate in the log file.
+ */
+#define MAX_LOG_FILE_SIZE 8192
+#define DEFAULT_LOG_FILE  "/tmp/AJS.log"
+
 int main(int argc, char* argv[])
 {
     const char* deviceName = NULL;
     const char* scriptName = NULL;
     const char* nvramFile = NULL;
+    const char* logFile = NULL;
     int argn = 1;
     int daemonize = FALSE;
     AJ_Status status = AJ_OK;
@@ -171,6 +178,13 @@ int main(int argc, char* argv[])
             nvramFile = argv[argn++];
             continue;
         }
+        if (strcmp(argv[argn], "--log-file") == 0) {
+            if (++argn >= argc) {
+                goto Usage;
+            }
+            logFile = argv[argn++];
+            continue;
+        }
         if (strcmp(argv[argn], "--daemon") == 0) {
             daemonize = TRUE;
             ++argn;
@@ -202,7 +216,12 @@ int main(int argc, char* argv[])
             AJ_Printf("Failed to launch daemon errno=%d\n", errno);
             exit(1);
         }
-        AJ_SetLogFile("/tmp/AJS.log", 4096);
+        if (!logFile) {
+            logFile = DEFAULT_LOG_FILE;
+        }
+    }
+    if (logFile) {
+        AJ_SetLogFile(logFile, MAX_LOG_FILE_SIZE);
     }
 
     if (scriptName) {
@@ -224,9 +243,9 @@ int main(int argc, char* argv[])
 Usage:
 
 #ifndef NDEBUG
-    AJ_Printf("Usage: %s [--debug] [--daemon] [--nvram-file <nvram_file>] [--name <device-name>] [script_file]\n", argv[0]);
+    AJ_Printf("Usage: %s [--debug] [--daemon] [--log-file <log_file>] [--nvram-file <nvram_file>] [--name <device_name>] [script_file]\n", argv[0]);
 #else
-    AJ_Printf("Usage: %s [--daemon] [--nvram-file <nvram_file>] [--name <device-name>] [script_file]\n", argv[0]);
+    AJ_Printf("Usage: %s [--daemon] [--log-file <log_file>] [--nvram-file <nvram_file>] [--name <device_name>] [script_file]\n", argv[0]);
 #endif
     exit(-1);
 }

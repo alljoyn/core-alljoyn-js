@@ -803,7 +803,7 @@ static struct PyModuleDef consoleModule = {
 
 
 #if PY_MAJOR_VERSION >= 3
-extern "C" PyObject* PyInit_AJSConsole(void)
+extern "C" PyObject * PyInit_AJSConsole(void)
 {
     PyObject*module = PyModule_Create(&consoleModule);
     PyEval_InitThreads();

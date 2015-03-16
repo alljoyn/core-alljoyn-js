@@ -50,16 +50,16 @@ static const I2C_Info i2cInfo[] = {
 void AJS_TargetIO_I2cStart(void* ctx, uint8_t addr)
 {
     I2C_Pin* i2c = (I2C_Pin*)ctx;
-    while (I2C_GetFlagStatus(i2c->I2Cx, I2C_FLAG_BUSY)) ;
+    while (I2C_GetFlagStatus(i2c->I2Cx, I2C_FLAG_BUSY));
     I2C_GenerateSTART(i2c->I2Cx, ENABLE);
-    while (!I2C_CheckEvent(i2c->I2Cx, I2C_EVENT_MASTER_MODE_SELECT)) ;
+    while (!I2C_CheckEvent(i2c->I2Cx, I2C_EVENT_MASTER_MODE_SELECT));
     I2C_Send7bitAddress(i2c->I2Cx, addr, I2C_Direction_Transmitter);
 }
 void AJS_TargetIO_I2cStop(void* ctx)
 {
     I2C_Pin* i2c = (I2C_Pin*)ctx;
     I2C_GenerateSTOP(i2c->I2Cx, ENABLE);
-    while (!I2C_CheckEvent(i2c->I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED)) ;
+    while (!I2C_CheckEvent(i2c->I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED));
 }
 
 uint8_t AJS_TargetIO_I2cRead(void* ctx)

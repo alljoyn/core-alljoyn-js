@@ -36,7 +36,7 @@ uint32_t AJS_TargetIO_AdcRead(void* adcCtx)
 
     // Regular ADC read
     ADC_SoftwareStartConv(ADC1); //Start the conversion
-    while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET) ;  //Processing the conversion
+    while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET);   //Processing the conversion
     return ADC_GetConversionValue(ADC1); //Return the converted data
 }
 AJ_Status AJS_TargetIO_AdcOpen(uint16_t pinIndex, void** adcCtx)

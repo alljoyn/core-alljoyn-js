@@ -82,9 +82,21 @@ if env['WS'] != 'off' and not env.GetOption('clean') and not env.GetOption('help
     sys.path.append(bin_dir)
     import whitespace
 
+    # def wsbuild(target, source, env):
+    #     print "Evaluating whitespace compliance..."
+    #     return whitespace.main([env['WS'], env['uncrustify_cfg']])
     def wsbuild(target, source, env):
         print "Evaluating whitespace compliance..."
-        return whitespace.main([env['WS'], env['uncrustify_cfg']])
+        print "Note: enter 'scons -h' to see whitespace (WS) options"
+        curdir = os.path.abspath(os.path.dirname(wsbuild.func_code.co_filename))
+        version = whitespace.get_uncrustify_version()
+        if (version == "0.57"):
+            config = env['ajtcl_root'] + '/ajuncrustify.0.57.cfg'
+        else: #use latest known version
+            config = env['ajtcl_root'] + '/ajuncrustify.0.61.cfg'
+        print "Config:", config
+        print "Note: enter 'scons -h' to see whitespace (WS) options"
+        return whitespace.main([env['WS'], config])
 
     env.Command('#/ws_ajtcl', Dir('$DISTDIR'), wsbuild)
 

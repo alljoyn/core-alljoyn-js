@@ -37,9 +37,9 @@ AJ_Status AJS_TargetIO_SpiRead(void* ctx, uint32_t length, uint8_t* buffer)
     AJ_EnterCriticalRegion();
     GPIO_ResetBits(spi->SS_GPIO, spi->SS_Pin);
     while (i < length) {
-        while (!SPI_I2S_GetFlagStatus(spi->SPIx, SPI_I2S_FLAG_TXE)) ;
+        while (!SPI_I2S_GetFlagStatus(spi->SPIx, SPI_I2S_FLAG_TXE));
         SPI_I2S_SendData(spi->SPIx, 0x00);
-        while (SPI_I2S_GetFlagStatus(spi->SPIx, SPI_I2S_FLAG_RXNE) == RESET) ;
+        while (SPI_I2S_GetFlagStatus(spi->SPIx, SPI_I2S_FLAG_RXNE) == RESET);
         *(buffer + i) = SPI_I2S_ReceiveData(spi->SPIx);
         ++i;
     }
@@ -54,9 +54,9 @@ void AJS_TargetIO_SpiWrite(void* ctx, uint8_t* data, uint32_t length)
     AJ_EnterCriticalRegion();
     GPIO_ResetBits(spi->SS_GPIO, spi->SS_Pin);
     while (i < length) {
-        while (!SPI_I2S_GetFlagStatus(spi->SPIx, SPI_I2S_FLAG_TXE)) ;
+        while (!SPI_I2S_GetFlagStatus(spi->SPIx, SPI_I2S_FLAG_TXE));
         SPI_I2S_SendData(spi->SPIx, *(data + i));
-        while (!SPI_I2S_GetFlagStatus(spi->SPIx, SPI_I2S_FLAG_RXNE)) ;
+        while (!SPI_I2S_GetFlagStatus(spi->SPIx, SPI_I2S_FLAG_RXNE));
         SPI_I2S_ReceiveData(spi->SPIx);
         ++i;
     }

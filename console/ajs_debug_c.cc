@@ -112,7 +112,6 @@ AJS_DebugStatusCode AJS_Debug_BasicInfo(AJS_ConsoleCtx* ctx, uint16_t* version, 
     return DBG_OK;
 }
 
-
 AJS_DebugStatusCode AJS_Debug_Trigger(AJS_ConsoleCtx* ctx)
 {
     AJS_Console* console;
@@ -124,7 +123,6 @@ AJS_DebugStatusCode AJS_Debug_Trigger(AJS_ConsoleCtx* ctx)
     console->Trigger();
     return DBG_OK;
 }
-
 
 AJS_DebugStatusCode AJS_Debug_StepIn(AJS_ConsoleCtx* ctx)
 {
@@ -150,7 +148,6 @@ AJS_DebugStatusCode AJS_Debug_StepOut(AJS_ConsoleCtx* ctx)
     return DBG_OK;
 }
 
-
 AJS_DebugStatusCode AJS_Debug_StepOver(AJS_ConsoleCtx* ctx)
 {
     AJS_Console* console;
@@ -163,7 +160,6 @@ AJS_DebugStatusCode AJS_Debug_StepOver(AJS_ConsoleCtx* ctx)
     return DBG_OK;
 }
 
-
 AJS_DebugStatusCode AJS_Debug_Resume(AJS_ConsoleCtx* ctx)
 {
     AJS_Console* console;
@@ -175,7 +171,6 @@ AJS_DebugStatusCode AJS_Debug_Resume(AJS_ConsoleCtx* ctx)
     console->Resume();
     return DBG_OK;
 }
-
 
 AJS_DebugStatusCode AJS_Debug_Pause(AJS_ConsoleCtx* ctx)
 {
@@ -201,7 +196,6 @@ AJS_DebugStatusCode AJS_Debug_Attach(AJS_ConsoleCtx* ctx)
     return DBG_OK;
 }
 
-
 AJS_DebugStatusCode AJS_Debug_Detach(AJS_ConsoleCtx* ctx)
 {
     AJS_Console* console;
@@ -213,7 +207,6 @@ AJS_DebugStatusCode AJS_Debug_Detach(AJS_ConsoleCtx* ctx)
     console->Detach();
     return DBG_OK;
 }
-
 
 AJS_DebugStatusCode AJS_Debug_AddBreakpoint(AJS_ConsoleCtx* ctx, char* file, uint16_t line)
 {
@@ -239,7 +232,6 @@ AJS_DebugStatusCode AJS_Debug_DelBreakpoint(AJS_ConsoleCtx* ctx, uint8_t index)
     return DBG_OK;
 }
 
-
 AJS_DebugStatusCode AJS_Debug_GetVar(AJS_ConsoleCtx* ctx, char* var, uint8_t** value, uint32_t* size, uint8_t* type)
 {
     AJS_Console* console;
@@ -251,7 +243,6 @@ AJS_DebugStatusCode AJS_Debug_GetVar(AJS_ConsoleCtx* ctx, char* var, uint8_t** v
     console->GetVar(var, value, size, type);
     return DBG_OK;
 }
-
 
 AJS_DebugStatusCode AJS_Debug_PutVar(AJS_ConsoleCtx* ctx, char* name, uint8_t* value, uint32_t size, uint8_t type)
 {
@@ -265,7 +256,6 @@ AJS_DebugStatusCode AJS_Debug_PutVar(AJS_ConsoleCtx* ctx, char* name, uint8_t* v
     return DBG_OK;
 }
 
-
 AJS_DebugStatusCode AJS_Debug_GetCallStack(AJS_ConsoleCtx* ctx, AJS_CallStack** stack, uint8_t* size)
 {
     AJS_Console* console;
@@ -277,7 +267,6 @@ AJS_DebugStatusCode AJS_Debug_GetCallStack(AJS_ConsoleCtx* ctx, AJS_CallStack** 
     console->GetCallStack(stack, size);
     return DBG_OK;
 }
-
 
 AJS_DebugStatusCode AJS_Debug_FreeCallStack(AJS_ConsoleCtx* ctx, AJS_CallStack* stack, uint8_t size)
 {

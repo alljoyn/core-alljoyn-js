@@ -21,8 +21,7 @@
 typedef enum {
     AJS_DEBUG_ATTACHED_PAUSED = 0,      /* Debugger is attached and execution is paused */
     AJS_DEBUG_ATTACHED_RUNNING = 1,     /* Debugger is attached and execution is running */
-    AJS_DEBUG_ATTACHED_BUSY = 2,        /* Debugger is attached but no bytecode is executing */
-    AJS_DEBUG_DETACHED = 3              /* Debugger is detached */
+    AJS_DEBUG_DETACHED = 2              /* Debugger is detached */
 }AJS_DebugStatus;
 
 typedef struct {
@@ -35,7 +34,7 @@ typedef struct {
  */
 typedef struct {
     char* fname;        /* File the breakpoint exists in */
-    uint8_t line;       /* Line number the breakpoint is on */
+    uint16_t line;       /* Line number the breakpoint is on */
 } AJS_BreakPoint;
 
 /*
@@ -44,7 +43,7 @@ typedef struct {
 typedef struct {
     char* filename;     /* File the callstack frame is in */
     char* function;     /* Function scope the callstack is in */
-    uint8_t line;       /* Line number of the previous scope */
+    uint16_t line;      /* Line number of the previous scope */
     uint8_t pc;         /* Program counter for the callstack */
 }AJS_CallStack;
 
@@ -89,6 +88,12 @@ typedef void (*AJS_DebugVersionHandler)(const char* version);
 typedef void (*AJS_DebugNotificationHandler)(uint8_t id, uint8_t state, const char* file, const char* function, uint8_t line, uint8_t pc);
 
 /**
+ * Deferred Eval signal handler. This type of C function can be registered to
+ * handle the result of an eval.
+ */
+typedef void (*AJS_DeferredEvalHandler)(uint8_t code, const char* result);
+
+/**
  * User can register their own functions to each type of signal
  * that is sent to the console.
  */
@@ -98,6 +103,7 @@ typedef struct {
     AJS_AlertHandler alert;
     AJS_DebugVersionHandler dbgVersion;
     AJS_DebugNotificationHandler dbgNotification;
+    AJS_DeferredEvalHandler evalResult;
 }SignalRegistration;
 
 typedef enum {

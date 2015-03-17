@@ -138,6 +138,15 @@ uint32_t AJS_GetConsoleSession(void);
 AJ_BusAttachment* AJS_GetBusAttachment();
 
 /**
+ * Evaluate an eval message. This must be public to be call-able
+ * from the debugger read callback as well as from the console.
+ *
+ * @param ctx       Duktape context
+ * @param msg       Eval message from console
+ */
+AJ_Status AJS_Eval(duk_context* ctx, AJ_Message* msg);
+
+/**
  * Attach to an AllJoyn routing node. This may trigger on-boarding.
  *
  * @param aj  Pointer to a bus attachment

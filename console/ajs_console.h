@@ -102,7 +102,7 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
 
     QStatus Connect(const char* deviceName, volatile sig_atomic_t* interrupt);
 
-    QStatus Eval(const qcc::String script, char** output);
+    int8_t Eval(const qcc::String script);
 
     QStatus Reboot();
 
@@ -119,6 +119,8 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
     virtual void AlertMsg(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
 
     virtual void DebugNotification(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
+
+    virtual void EvalResult(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
 
     void Announced(const char* busName, uint16_t version, ajn::SessionPort port, const ajn::MsgArg& objectDescriptionArg, const ajn::MsgArg& aboutDataArg);
 
@@ -196,7 +198,7 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
      * @param file      Script file to add the breakpoint in
      * @param line      Line to add the breakpoint at
      */
-    void AddBreak(char* file, uint8_t line);
+    void AddBreak(char* file, uint16_t line);
 
     /**
      * Delete a breakpoint

@@ -89,17 +89,21 @@ void Alert(const char* message)
     printf("ALERT: %s\n", message);
 }
 
-
 void DebugVersion(const char* version)
 {
     printf("DEBUG VERSION: %s\n", version);
 }
 
-
 void DebugNotification(uint8_t id, uint8_t state, const char* file, const char* function, uint8_t line, uint8_t pc)
 {
     printf("DEBUG NOTIFICATION: ID: %i, State: %i, File: %s, Function: %s, Line: %i, PC: %i\n", id, state, file, function, line, pc);
 }
+
+void EvalResult(uint8_t code, const char* result)
+{
+    printf("Eval result=%d: %s\n", code, result);
+}
+
 int main(int argc, char** argv)
 {
     int status = 1;
@@ -117,6 +121,7 @@ int main(int argc, char** argv)
     handlers.alert = &Alert;
     handlers.dbgVersion = &DebugVersion;
     handlers.dbgNotification = &DebugNotification;
+    handlers.evalResult = &EvalResult;
     /* Register signal handlers */
     AJS_ConsoleRegisterSignalHandlers(ctx, &handlers);
     for (i = 1; i < argc; ++i) {
@@ -155,6 +160,7 @@ int main(int argc, char** argv)
             AJS_Debug_SetDebugState(ctx, AJS_DEBUG_ATTACHED_PAUSED);
         }
         while (!g_interrupt && (status == 1)) {
+            int8_t ret;
             char* input = ReadLine();
             if (input && (strlen(input) > 0)) {
                 if (strcmp(input, "quit") == 0) {
@@ -384,14 +390,42 @@ int main(int argc, char** argv)
                                     free(value);
                                 }
                             }
+                        } else {
+                            goto DoEval;
                         }
                     }
                     continue;
                 }
+            DoEval:
                 if (input[strlen(input) - 1] != ';') {
                     input += ';';
                 }
-                status = AJS_ConsoleEval(ctx, input);
+                ret = AJS_ConsoleEval(ctx, input);
+                switch (ret) {
+                case -1:
+                    /* Eval method failed */
+                    break;
+
+                case 0:
+                    printf("Eval compile success\n");
+                    break;
+
+                case 1:
+                    printf("Eval syntax error\n");
+                    break;
+
+                case 2:
+                    printf("Type or Range error\n");
+                    break;
+
+                case 3:
+                    printf("Resource Error");
+                    break;
+
+                case 5:
+                    printf("Internal Duktape Error");
+                    break;
+                }
             }
         }
     } else {

@@ -67,9 +67,9 @@ int AJS_ConsoleConnect(AJS_ConsoleCtx* ctx, const char* deviceName, volatile sig
  *
  * @param ctx           Console context
  * @param script        Eval string
- * @return              1 on success, 0 on failure
+ * @return              Result of AJSConsole.Eval()
  */
-int AJS_ConsoleEval(AJS_ConsoleCtx* ctx, const char* script);
+int8_t AJS_ConsoleEval(AJS_ConsoleCtx* ctx, const char* script);
 
 /**
  * Signal the AllJoyn.js target to reboot

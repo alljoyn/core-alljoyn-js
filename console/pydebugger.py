@@ -87,9 +87,50 @@ def enableEditing(window, onoff):
         else:
             dbg.BottomFrame.ConsoleWindow.config(state=DISABLED)
 
+# Removes text from all debug windows
+def GUICleanup():
+    global numBreakpoints
+    global selectedLocal
+    global selectedBreakpoint
+    global currentFile
+    global varSelected
+
+    enableEditing('source', 'on')
+    enableEditing('locals', 'on')
+    enableEditing('breakpoints', 'on')
+    enableEditing('stack', 'on')
+    enableEditing('console', 'on')
+
+    dbg.RightFrame.SourceView.delete('0.0', END)
+    dbg.LocalsFrame.LocalVars.delete('0.0', END)
+    dbg.BreakFrame.Breakpoints.delete('0.0', END)
+    dbg.BreakFrame.StackTrace.delete('0.0', END)
+    dbg.BottomFrame.ConsoleWindow.delete('0.0', END)
+
+    numBreakpoints = 0
+    selectedBreakpoint = -1
+    selectedLocal = -1
+    currentFile = ''
+    varSelected = ''
+
+    enableEditing('source', 'off')
+    enableEditing('locals', 'off')
+    enableEditing('breakpoints', 'off')
+    enableEditing('stack', 'off')
+    enableEditing('console', 'off')
+
 # Get the current line number
 def getLine():
     return AJSConsole.GetLine()
+
+# Updates the state label
+def updateStateLable(state):
+    if state == 0:
+        dbg.BottomButtonFrame.Status.config(text="Paused", fg="yellow")
+    elif state == 1:
+        dbg.BottomButtonFrame.Status.config(text="Running", fg="green")
+    elif state == 2:
+        dbg.BottomButtonFrame.Status.config(text="Detached", fg="red")
 
 # Populate the window title with the debug version
 def updateVersion():
@@ -109,7 +150,7 @@ def localUpdate():
     global selectedLocal
     state = AJSConsole.GetTargetStatus()
     # Cut down on error printing and ensure we can get local variables
-    if state != 2 and state != 3:
+    if state != 1 and state != 2:
         locals = AJSConsole.GetLocals()
         if type(locals) != type(None):
             enableEditing('locals', 'on')
@@ -130,7 +171,7 @@ def localUpdate():
 # Updates the current stack trace
 def stackUpdate():
     state = AJSConsole.GetTargetStatus()
-    if state != 2 and state != 3:
+    if state != 1 and state != 2:
         stacktrace = AJSConsole.GetStacktrace()
         if type(stacktrace) != type(None):
             enableEditing('stack', 'on')
@@ -145,7 +186,7 @@ def breakpointUpdate():
     global selectedBreakpoint
     state = AJSConsole.GetTargetStatus()
     # Can be in running, paused, or busy state
-    if state != 3:
+    if state != 2:
         breakpoints = AJSConsole.GetBreakpoints()
         if type(breakpoints) != type(None):
             enableEditing('breakpoints', 'on')
@@ -170,7 +211,8 @@ def breakpointUpdate():
 def globalUpdate():
     state = AJSConsole.GetTargetStatus()
     lineUpdate()
-    if state != 2 and state != 3:
+    updateStateLable(state)
+    if state != 1 and state != 2:
         localUpdate()
         stackUpdate()
 
@@ -216,6 +258,12 @@ def does_index_exist(list, index):
     except IndexError:
         return False
 
+def putVarEventHandler(event):
+    putVar()
+
+def evalEventHandler(event):
+    eval()
+
 def localSelectHandler(event):
     global varSelected
     line_start = dbg.RightFrame.SourceView.index("@%s,%s linestart" % (event.x, event.y))
@@ -233,6 +281,7 @@ def localSelectHandler(event):
                 varLen = len(str(text[i + 1]))
         if var == varSelected:
             dbg.RightFrame.SourceView.tag_config("cur_var", background="white")
+            varSelected = ''
         else:
             dbg.RightFrame.SourceView.tag_delete("cur_var")
             dbg.RightFrame.SourceView.tag_add("cur_var", str(line_start) + '.' + str(index - 4), str(line_start) + '.' + str(index + varLen))
@@ -269,7 +318,7 @@ def sourceViewEventHandler(event):
 def localsEventHandler(event):
     global selectedLocal
     state = AJSConsole.GetTargetStatus()
-    if state != 3:
+    if state != 2:
         enableEditing('locals', 'on')
         locals = AJSConsole.GetLocals()
         if type(locals) != type(None):
@@ -341,10 +390,12 @@ def delBreakpoint():
 # Pause the debugger
 def pause():
     AJSConsole.Pause()
+    globalUpdate()
 
 # Resume the debugger (run/continue)
 def resume():
     AJSConsole.Resume()
+    globalUpdate()
 
 # Gets and updates the source code window with the current script thats running
 def getScript():
@@ -363,11 +414,12 @@ def getScript():
 
 def detach():
     AJSConsole.Detach()
-    breakpointUpdate()
-    #viewBreakpointUpdate()
+    GUICleanup()
+    updateStateLable(AJSConsole.GetTargetStatus())
 
 def attach():
     AJSConsole.Attach()
+    globalUpdate()
 
 def showHelp():
     showinfo('Debugger GUI Help', help_message)
@@ -386,21 +438,25 @@ def install():
         f.seek(os.SEEK_SET, 0)
         data = f.read()
         filename = full_filename.split('/')
+        GUICleanup()
         AJSConsole.Install(filename[len(filename) - 1], data)
         AJSConsole.Attach()
         getScript()
+        updateStateLable(AJSConsole.GetTargetStatus())
 
 def eval():
     status = AJSConsole.GetTargetStatus()
     text = dbg.BottomFrame.EvalTextBox.get('0.0', END)
-    if status != 3:
+    # In a paused state call debug eval for access to local vars
+    if status == 0:
         result = AJSConsole.DebugEval(text)
+        dbg.EvalNotification(result)
+    # If in any other state call standard eval for breakpoint access
     else:
-        result = AJSConsole.DebugEval(text)
-    if type(result) != NoneType:
-            dbg.EvalNotification(`result`)
+        AJSConsole.Eval(text)
     # In case we changed a local variable update locals
     localUpdate();
+    dbg.BottomFrame.EvalTextBox.delete('0.0', END)
 
 def putVar():
     global selectedLocal
@@ -410,11 +466,11 @@ def putVar():
     if selectedLocal != -1 and text != '\n':
         var = dbg.LocalsFrame.LocalVars.get(str(selectedLocal) + '.0', str(selectedLocal) + '.end')
         var = var.split('\t')[0]
-        if state != 3:
+        if state != 2:
             AJSConsole.DebugEval(var + '=' + text);
         localUpdate()
     elif varSelected != '':
-        if state != 3:
+        if state != 2:
             if not text_is_number(text):
                 text = '"' + text + '"'
             AJSConsole.DebugEval(varSelected + '=' + text)
@@ -422,11 +478,29 @@ def putVar():
             dbg.DebugNotification(str("Variable: " + varSelected + " changed to " + text))
             varSelected = ''
     # In case we changed a local variable update locals
+    dbg.LocalsFrame.PutVar.delete('0.0',END)
     localUpdate();
 
 def closeDebugger():
     AJSConsole.Detach()
     quit()
+
+def spaceHandler(event):
+    global currentFile
+    enableEditing('source', 'off')
+    dbg.RightFrame.SourceView.focus_set()
+    line_start = dbg.RightFrame.SourceView.index("@%s,%s linestart" % (event.x, event.y))
+    line_start = line_start.split('.')[0]
+    # Cursor is close to a line number
+    if event.x >= 0 and event.x <= 20:
+        AJSConsole.AddBreakpoint(currentFile + ' ' + line_start)
+        breakpointUpdate()
+
+def returnHandler(event):
+    if str(event.widget) == str(dbg.LocalsFrame.PutVar):
+        putVar()
+    elif str(event.widget) == str(dbg.BottomFrame.EvalTextBox):
+        eval()
 
 root = Tk()
 
@@ -477,6 +551,11 @@ class DebugGUI(Frame):
         self.RightFrame.SourceView.config(wrap=NONE, state=DISABLED)
         self.RightFrame.SourceView.bind('<Double-1>', sourceViewEventHandler)
         self.RightFrame.SourceView.bind('<Button-1>', localSelectHandler)
+        # Set focus when mouse enters source view, needed for setting breakpoints with spacebar
+        self.RightFrame.SourceView.bind('<Enter>', lambda e: dbg.RightFrame.SourceView.focus_set())
+        self.RightFrame.SourceScroll = Scrollbar(self.RightFrame, command=self.RightFrame.SourceView.yview)
+        self.RightFrame.SourceView.config(yscrollcommand=self.RightFrame.SourceScroll.set)
+        self.RightFrame.SourceScroll.grid(row=0, column=6, sticky='ns', rowspan=11)
 
         # LocalsFrame contains the local variables
         self.LocalsFrame = Frame(master)
@@ -493,16 +572,11 @@ class DebugGUI(Frame):
         # BreakFrame contains the breakpoint viewer, breakpoint add/delete, and the stack trace viewer
         self.BreakFrame = Frame(master)
         self.BreakFrame.grid(row = 3, column = 5, rowspan = 1, columnspan = 1, sticky = W+E+N+S)
-        self.BreakFrame.Breakpoints = Text(self.LocalsFrame, width=60, height=10)
+        self.BreakFrame.Breakpoints = Text(self.LocalsFrame, width=60, height=12)
         self.BreakFrame.Breakpoints.grid(row=3, column=5, rowspan=2, columnspan=1, sticky=N)
         self.BreakFrame.Breakpoints.insert('0.0', "No breakpoints")
         self.BreakFrame.Breakpoints.config(state=DISABLED)
         self.BreakFrame.Breakpoints.bind('<Button-1>', breakpointEventHandler)
-
-        self.BreakFrame.AddBreakpoints = Text(self.LocalsFrame, width=60, height=2)
-        self.BreakFrame.AddBreakpoints.grid(row=5, column=5, rowspan=1, columnspan=1, sticky=N+W)
-        self.BreakFrame.AddBreakButton = Button(self.LocalsFrame, text="Add Breakpoint", command=addBreakpoint)
-        self.BreakFrame.AddBreakButton.grid(row=6, column=5, sticky=W+N)
 
         self.BreakFrame.DelBreakpointsButton = Button(self.LocalsFrame, text="Delete", command=delBreakpoint)
         self.BreakFrame.DelBreakpointsButton.grid(row=6, column=5, sticky=N+E)
@@ -517,6 +591,9 @@ class DebugGUI(Frame):
         self.BottomFrame.ConsoleWindow = Text(self.BottomFrame, width=140, height=10)
         self.BottomFrame.ConsoleWindow.grid(row=13, column=1, columnspan=5, sticky=N)
         self.BottomFrame.ConsoleWindow.insert('0.0', 'Text Console Window\n')
+        self.BottomFrame.ConsoleScroll = Scrollbar(self.BottomFrame, command=self.BottomFrame.ConsoleWindow.yview)
+        self.BottomFrame.ConsoleWindow.config(yscrollcommand=self.BottomFrame.ConsoleScroll.set)
+        self.BottomFrame.ConsoleScroll.grid(row=13, column=6, sticky='ns', rowspan=3)
 
         self.BottomFrame.EvalButton = Button(self.BottomFrame, text="Eval", width=10, height=1, command=eval)
         self.BottomFrame.EvalButton.grid(column=1, row=11)
@@ -539,6 +616,19 @@ class DebugGUI(Frame):
         self.BottomButtonFrame.DebugOnOff.grid(row=15, column=0, sticky=W+N)
         self.BottomButtonFrame.DebugOnOff.config(relief=SUNKEN)
 
+        self.BottomButtonFrame.Empty1 = Label(self.BottomButtonFrame, text="")
+        self.BottomButtonFrame.Empty1.grid(row=16, column=0)
+        self.BottomButtonFrame.Empty2 = Label(self.BottomButtonFrame, text="")
+        self.BottomButtonFrame.Empty2.grid(row=17, column=0)
+        self.BottomButtonFrame.Empty3 = Label(self.BottomButtonFrame, text="")
+        self.BottomButtonFrame.Empty3.grid(row=18, column=0)
+        self.BottomButtonFrame.Status = Label(self.BottomButtonFrame, text="Running", fg="green", font="Helvetica 12 bold", anchor=CENTER)
+        self.BottomButtonFrame.Status.grid(row=19, column=0)
+
+        # For submitting eval/putvar with enter key
+        root.bind('<KeyRelease-Return>', lambda event: returnHandler(event))
+        # For setting breakpoints with spacebar
+        root.bind('<KeyRelease-space>', lambda event: spaceHandler(event))
         # This checks for notifications, prints, alerts, and debug messages from the console
         self.master.after(500, self.PollQueue)
 
@@ -603,6 +693,8 @@ class DebugGUI(Frame):
             self.Notification(args)
         elif cbtype == "DebugNotification":
             self.DebugNotification(args)
+        elif cbtype == "EvalResult":
+            self.EvalNotification(args)
 
     # Update the console window with a Print message
     def Print(self, arg):
@@ -628,15 +720,21 @@ class DebugGUI(Frame):
     def DebugNotification(self, args):
         global currentFile
         if args[0][0] == 'S':
+            status = AJSConsole.GetTargetStatus()
             # Make sure this is the proper notification
-            currentFile = args[0].split(',')[1].split(' ')[2]
-            state = args[0].split(',')[0].split(' ')[1]
+            #currentFile = args[0].split(',')[1].split(' ')[2]
+            #state = args[0].split(',')[0].split(' ')[1]
             line = args[0].split(',')[3].split(' ')[2]
             enableEditing('source', 'on')
-            dbg.RightFrame.SourceView.tag_delete("Line")
-            dbg.RightFrame.SourceView.tag_add("Line", line +'.2', line + '.end')
-            dbg.RightFrame.SourceView.tag_config("Line", background="yellow")
-            enableEditing('source', 'off')
+            if status == 0:
+                dbg.RightFrame.SourceView.tag_delete("Line")
+                dbg.RightFrame.SourceView.tag_add("Line", line +'.2', line + '.end')
+                dbg.RightFrame.SourceView.tag_config("Line", background="yellow")
+                enableEditing('source', 'off')
+            else:
+                dbg.RightFrame.SourceView.tag_config("Line", background="white")
+
+            updateStateLable(status)
             localUpdate()
             stackUpdate()
             updateVersion()
@@ -665,6 +763,7 @@ if status == 'ER_OK':
     if status == 'ER_OK':
         # Populates the source view window
         getScript()
+        updateStateLable(AJSConsole.GetTargetStatus())
         dbg.mainloop()
     else:
         showinfo('Failed to start debugger', status)

@@ -17,6 +17,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#include <alljoyn/Init.h>
 #include "ajs_console.h"
 #include "ajs_console_common.h"
 #ifdef _WIN32
@@ -69,7 +70,6 @@ static const char consoleXML[] =
     "   <method name=\"eval\"> "
     "     <arg name=\"script\" type=\"ay\" direction=\"in\"/> "
     "     <arg name=\"status\" type=\"y\" direction=\"out\"/> "
-    "     <arg name=\"output\" type=\"s\" direction=\"out\"/> "
     "   </method> "
     "   <method name=\"install\"> "
     "     <arg name=\"name\" type=\"s\" direction=\"in\"/> "
@@ -86,6 +86,9 @@ static const char consoleXML[] =
     "   </signal> "
     "   <signal name=\"alert\"> "
     "     <arg name=\"txt\" type=\"s\"/> "
+    "   </signal> "
+    "   <signal name=\"evalResult\"> "
+    "     <arg name=\"output\" type=\"ys\"/> "
     "   </signal> "
     " </interface> "
     " <interface name=\"org.allseen.scriptDebugger\"> "
@@ -131,11 +134,11 @@ static const char consoleXML[] =
     "   </method> "
     /* List breakpoints */
     "   <method name=\"listBreak\"> "
-    "     <arg name=\"reply\" type=\"a(sy)\" direction=\"out\"/> "
+    "     <arg name=\"reply\" type=\"a(sq)\" direction=\"out\"/> "
     "   </method> "
     /* Add breakpoint request */
     "   <method name=\"addBreak\"> "
-    "     <arg name=\"request\" type=\"sy\" direction=\"in\"/> "
+    "     <arg name=\"request\" type=\"sq\" direction=\"in\"/> "
     "     <arg name=\"reply\" type=\"y\" direction=\"out\"/> "
     "   </method> "
     /* Delete breakpoint request */
@@ -157,7 +160,7 @@ static const char consoleXML[] =
     "   </method> "
     /* Get call stack request */
     "   <method name=\"getCallStack\"> "
-    "     <arg name=\"reply\" type=\"a(ssyy)\" direction=\"out\"/> "
+    "     <arg name=\"reply\" type=\"a(ssqy)\" direction=\"out\"/> "
     "   </method> "
     /* Get locals request */
     "   <method name=\"getLocals\"> "
@@ -597,7 +600,6 @@ void AJS_Console::Resume(void)
             return;
         }
         reply->GetArgs("y", &ret);
-        printf("CHANGING STATE TO RUNNING\n");
         debugState = AJS_DEBUG_ATTACHED_RUNNING;
     }
 }
@@ -619,14 +621,14 @@ void AJS_Console::Pause(void)
     }
 }
 
-void AJS_Console::AddBreak(char* file, uint8_t line)
+void AJS_Console::AddBreak(char* file, uint16_t line)
 {
     QStatus status;
     Message reply(*aj);
     MsgArg args[2];
     uint8_t ret;
     args[0].Set("s", file);
-    args[1].Set("y", line);
+    args[1].Set("q", line);
     status = proxy->MethodCall("org.allseen.scriptDebugger", "addBreak", args, 2, reply);
     if (status == ER_BUS_REPLY_IS_ERROR_MESSAGE) {
         QCC_SyncPrintf("addBreak failed because debugger is in running state\n");
@@ -672,14 +674,14 @@ void AJS_Console::ListBreak(AJS_BreakPoint** breakpoints, uint8_t* count)
         return;
     }
     entries = reply->GetArg(0);
-    entries->Get("a(sy)", &num, &newEntries);
+    entries->Get("a(sq)", &num, &newEntries);
     *(breakpoints) = (AJS_BreakPoint*)malloc(sizeof(AJS_BreakPoint) * num);
     *count = num;
     for (size_t i = 0; i < num; ++i) {
         char* file;
-        uint8_t line;
+        uint16_t line;
         uint8_t len;
-        newEntries[i].Get("(sy)", &file, &line);
+        newEntries[i].Get("(sq)", &file, &line);
         if (strcmp(file, "") != 0) {
             len = strlen(file);
             (*breakpoints)[i].fname = (char*)malloc(sizeof(char) * len + 1);
@@ -722,14 +724,15 @@ void AJS_Console::GetCallStack(AJS_CallStack** stack, uint8_t* size)
         }
 
         entries = reply->GetArg(0);
-        entries->Get("a(ssyy)", &num, &newEntries);
+        entries->Get("a(ssqy)", &num, &newEntries);
         (*stack) = (AJS_CallStack*)malloc(sizeof(AJS_CallStack) * num);
         *size = num;
         for (size_t i = 0; i < num; ++i) {
             char* file, *func;
-            uint8_t line, pc;
+            uint16_t line;
+            uint8_t pc;
             uint8_t fileLen, funcLen;
-            newEntries[i].Get("(ssyy)", &file, &func, &line, &pc);
+            newEntries[i].Get("(ssqy)", &file, &func, &line, &pc);
             fileLen = strlen(file);
             funcLen = strlen(func);
             (*stack)[i].filename = (char*)malloc(sizeof(char) * fileLen + 1);
@@ -787,7 +790,7 @@ void AJS_Console::GetLocals(AJS_Locals** list, uint16_t* size)
         entries->Get("a(ysv)", &num, &newEntries);
         if (num) {
             locals = (AJS_Locals*)malloc(sizeof(AJS_Locals) * num);
-            if (locals) {
+            if (!locals) {
                 QCC_LogError(ER_OUT_OF_MEMORY, ("getLocals malloc failed\n"));
                 return;
             }
@@ -795,9 +798,6 @@ void AJS_Console::GetLocals(AJS_Locals** list, uint16_t* size)
         }
         for (size_t i = 0; i < num; ++i) {
             char* name;
-            //uint32_t sz;
-            //uint8_t type;
-            //uint8_t* val;
             qcc::String vsig;
             MsgArg* variant;
             uint8_t identifier;
@@ -811,11 +811,6 @@ void AJS_Console::GetLocals(AJS_Locals** list, uint16_t* size)
                  * Unmarshal the variants signature
                  */
                 ParseDvalData(variant, identifier, &locals->data, &locals->size, &locals->type);
-                //ParseDvalData(variant, identifier, &val, &sz, &type);
-                //locals->data = (uint8_t*)malloc(sizeof(uint8_t) * sz);
-                //memcpy(locals->data, val, sz);
-                //locals->size = sz;
-                //locals->type = type;
                 ++locals;
                 *size += 1;
             }
@@ -1078,7 +1073,6 @@ void AJS_Console::JoinSessionCB(QStatus status, SessionId sid, const SessionOpts
 QStatus AJS_Console::Connect(const char* deviceName, volatile sig_atomic_t* interrupt)
 {
     QStatus status;
-
     /*
      * The device we wil be looking for
      */
@@ -1149,6 +1143,11 @@ void AJS_Console::RegisterHandlers(BusAttachment* ajb)
                                ifc->GetMember("alert"),
                                "/ScriptConsole");
 
+    ajb->RegisterSignalHandler(this,
+                               static_cast<MessageReceiver::SignalHandler>(&AJS_Console::EvalResult),
+                               ifc->GetMember("evalResult"),
+                               "/ScriptConsole");
+
     if (this->activeDebug) {
         ajb->RegisterSignalHandler(this,
                                    static_cast<MessageReceiver::SignalHandler>(&AJS_Console::DebugNotification),
@@ -1166,23 +1165,33 @@ void AJS_Console::RegisterHandlers(BusAttachment* ajb)
                                NULL);
 }
 
-QStatus AJS_Console::Eval(const String script, char** output)
+int8_t AJS_Console::Eval(const String script)
 {
     QStatus status;
+    uint8_t result;
     Message reply(*aj);
     MsgArg arg("ay", script.size() + 1, script.c_str());
 
-    Print("Eval: %s\n", script.c_str());
     status = proxy->MethodCall("org.allseen.scriptConsole", "eval", &arg, 1, reply);
     if (status == ER_OK) {
-        uint8_t result;
-
-        reply->GetArgs("ys", &result, output);
-        Print("Eval result=%d: %s\n", result, *output);
+        reply->GetArgs("y", &result);
+        return result;
     } else {
         QCC_LogError(status, ("MethodCall(\"eval\") failed\n"));
     }
-    return status;
+    return -1;
+}
+
+void AJS_Console::EvalResult(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
+{
+    uint8_t code;
+    char* result;
+    msg->GetArgs("ys", &code, &result);
+    if (handlers && handlers->alert) {
+        handlers->evalResult(code, msg->GetArg()->v_string.str);
+    } else {
+        Print("Eval result=%d: %s\n", code, result);
+    }
 }
 
 QStatus AJS_Console::Reboot()

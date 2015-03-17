@@ -14,6 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#include <alljoyn/Init.h>
 #include "ajs_console_common.h"
 #include "ajs_console.h"
 
@@ -22,10 +23,13 @@ extern "C" {
 AJS_ConsoleCtx* AJS_ConsoleInit(void)
 {
     AJS_ConsoleCtx* ctx = (AJS_ConsoleCtx*)malloc(sizeof(AJS_ConsoleCtx));
+    AllJoynInit();
+    AllJoynRouterInit();
     AJS_Console* console = new AJS_Console;
     ctx->console = (void*)console;
     ctx->version = NULL;
     console->handlers = (SignalRegistration*)malloc(sizeof(SignalRegistration));
+    memset(console->handlers, 0, sizeof(SignalRegistration));
     return ctx;
 }
 
@@ -37,7 +41,10 @@ void AJS_ConsoleDeinit(AJS_ConsoleCtx* ctx)
         }
         free(ctx);
     }
+    AllJoynShutdown();
+    AllJoynRouterShutdown();
 }
+
 void AJS_ConsoleRegisterSignalHandlers(AJS_ConsoleCtx* ctx, SignalRegistration* handlers)
 {
     AJS_Console* console;
@@ -65,7 +72,7 @@ int AJS_ConsoleConnect(AJS_ConsoleCtx* ctx, const char* deviceName, volatile sig
     return 1;
 }
 
-int AJS_ConsoleEval(AJS_ConsoleCtx* ctx, const char* script)
+int8_t AJS_ConsoleEval(AJS_ConsoleCtx* ctx, const char* script)
 {
     AJS_Console* console;
     if (ctx && ctx->console) {
@@ -73,10 +80,7 @@ int AJS_ConsoleEval(AJS_ConsoleCtx* ctx, const char* script)
     } else {
         return 0;
     }
-    if (console->Eval(qcc::String(script, 0, strlen(script)), NULL) == ER_OK) {
-        return 1;
-    }
-    return 0;
+    return console->Eval(qcc::String(script, 0, strlen(script)));
 }
 
 int AJS_ConsoleReboot(AJS_ConsoleCtx* ctx)

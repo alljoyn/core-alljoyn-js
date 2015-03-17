@@ -17,6 +17,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#include <alljoyn/Init.h>
 #include "ajs_console.h"
 #include <stdio.h>
 
@@ -104,6 +105,8 @@ int main(int argc, char** argv)
     uint8_t* script = NULL;
     size_t scriptLen = 0;
 
+    AllJoynInit();
+    AllJoynRouterInit();
     /* Install SIGINT handler */
     signal(SIGINT, SigIntHandler);
 
@@ -144,8 +147,8 @@ int main(int argc, char** argv)
             ajsConsole.SetDebugState(AJS_DEBUG_ATTACHED_PAUSED);
         }
         while (!g_interrupt && (status == ER_OK)) {
+            int8_t ret;
             String input = ReadLine();
-            char* output;
             if (input.size() > 0) {
                 if (input == "quit") {
                     break;
@@ -377,14 +380,42 @@ int main(int argc, char** argv)
                                     free(value);
                                 }
                             }
+                        } else {
+                            goto DoEval;
                         }
                     }
                     continue;
                 }
+            DoEval:
                 if (input[input.size() - 1] != ';') {
                     input += ';';
                 }
-                status = ajsConsole.Eval(input, &output);
+                ret = ajsConsole.Eval(input);
+                switch (ret) {
+                case -1:
+                    /* Eval method failed */
+                    break;
+
+                case 0:
+                    QCC_SyncPrintf("Eval compile success\n");
+                    break;
+
+                case 1:
+                    QCC_SyncPrintf("Eval syntax error\n");
+                    break;
+
+                case 2:
+                    QCC_SyncPrintf("Type or Range error\n");
+                    break;
+
+                case 3:
+                    QCC_SyncPrintf("Resource Error");
+                    break;
+
+                case 5:
+                    QCC_SyncPrintf("Internal Duktape Error");
+                    break;
+                }
             }
         }
     } else {
@@ -397,6 +428,8 @@ int main(int argc, char** argv)
     if (g_interrupt) {
         QCC_SyncPrintf(("Interrupted by Ctrl-C\n"));
     }
+    AllJoynShutdown();
+    AllJoynRouterShutdown();
     return -((int)status);
 
 Usage:

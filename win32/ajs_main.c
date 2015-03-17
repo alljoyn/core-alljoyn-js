@@ -118,6 +118,7 @@ extern uint8_t dbgHEAP;
 extern uint8_t dbgNET;
 extern uint8_t dbgHEAPDUMP;
 extern uint8_t dbgCONSOLE;
+extern uint8_t dbgGPIO;
 #endif
 
 int main(int argc, char* argv[])

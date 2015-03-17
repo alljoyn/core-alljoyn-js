@@ -17,10 +17,10 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#include <alljoyn/Init.h>
 #include <Python.h>
 #include "ajs_console.h"
 #include "alljoyn/Status.h"
-#include <byteswap.h>
 
 using namespace qcc;
 using namespace ajn;
@@ -41,6 +41,8 @@ class AJS_PyConsole : public AJS_Console {
 
     virtual void DebugVersion(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
 
+    virtual void EvalResult(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
+
     void Msg(const char* msgType, const char* msgText);
 
     PyObject* pycallback; /* Only modify when Python GIL is held */
@@ -51,6 +53,20 @@ class AJS_PyConsole : public AJS_Console {
     virtual void RegisterHandlers(BusAttachment* ajb);
 
 };
+
+static uint32_t ByteSwap32(uint32_t x)
+{
+    return ((x >> 24) & 0x000000FF) | ((x >> 8) & 0x0000FF00) |
+           ((x << 24) & 0xFF000000) | ((x << 8) & 0x00FF0000);
+}
+
+static uint64_t ByteSwap64(uint64_t x)
+{
+    return ((x >> 56) & 0x00000000000000FF) | ((x >> 40) & 0x000000000000FF00) |
+           ((x << 56) & 0xFF00000000000000) | ((x << 40) & 0x00FF000000000000) |
+           ((x >> 24) & 0x0000000000FF0000) | ((x >>  8) & 0x00000000FF000000) |
+           ((x << 24) & 0x0000FF0000000000) | ((x <<  8) & 0x000000FF00000000);
+}
 
 static AJS_PyConsole* console = NULL;
 static char debugVersion[128];
@@ -82,10 +98,12 @@ void AJS_PyConsole::RegisterHandlers(BusAttachment* ajb)
                                static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::PrintMsg),
                                ifc->GetMember("print"),
                                "/ScriptConsole");
+
     ajb->RegisterSignalHandler(this,
                                static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::AlertMsg),
                                ifc->GetMember("alert"),
                                "/ScriptConsole");
+
     ajb->RegisterSignalHandler(this,
                                static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::DebugNotification),
                                dbg_ifc->GetMember("notification"),
@@ -94,6 +112,11 @@ void AJS_PyConsole::RegisterHandlers(BusAttachment* ajb)
     ajb->RegisterSignalHandler(this,
                                static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::DebugVersion),
                                dbg_ifc->GetMember("version"),
+                               "/ScriptConsole");
+
+    ajb->RegisterSignalHandler(this,
+                               static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::EvalResult),
+                               ifc->GetMember("evalResult"),
                                "/ScriptConsole");
 
     ifc = ajb->GetInterface("org.alljoyn.Notification");
@@ -122,12 +145,9 @@ void AJS_PyConsole::DebugNotification(const InterfaceDescription::Member* member
             msg->GetArgs("yyssyy", &id, &state, &fileName, &funcName, &lineNumber, &pc);
             dbgCurrentLine = lineNumber;
             dbgPC = pc;
-            printf("DEBUG NOTIFICATION\n");
             if (state == 1) {
-                printf("CHANGING STATE TO PAUSED\n");
                 debugState = AJS_DEBUG_ATTACHED_PAUSED;
             } else if (state == 0) {
-                printf("CHANGING STATE TO RESUMED\n");
                 debugState = AJS_DEBUG_ATTACHED_RUNNING;
             }
             sprintf(fullString, "State: %i, File: %s, Function: %s, Line: %i, PC: %i", state, fileName, funcName, lineNumber, pc);
@@ -147,6 +167,38 @@ void AJS_PyConsole::DebugNotification(const InterfaceDescription::Member* member
 
     case LOG_NOTIFICATION:
         QCC_SyncPrintf("LOG NOTIFICATION: %u %s\n", msg->GetArg()->v_byte, msg->GetArg()->v_string.str);
+        break;
+    }
+}
+
+void AJS_PyConsole::EvalResult(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
+{
+    uint8_t code;
+    char* result;
+
+    msg->GetArgs("ys", &code, &result);
+
+    switch (code) {
+    /* Success */
+    case 0:
+        Msg("EvalResult", result);
+        break;
+
+    /* Other possible errors */
+    case 1:
+        Msg("EvalResult", "Syntax Error");
+        break;
+
+    case 2:
+        Msg("EvalResult", "Type or Range error");
+        break;
+
+    case 3:
+        Msg("EvalResult", "Resource Error");
+        break;
+
+    case 5:
+        Msg("EvalResult", "Internal Duktape Error");
         break;
     }
 }
@@ -276,18 +328,43 @@ static PyObject* py_connect(PyObject* self, PyObject* args)
 
 static PyObject* py_eval(PyObject* self, PyObject* args)
 {
+    int8_t ret;
     const char* text;
-    char* output;
 
     if (!PyArg_ParseTuple(args, "s", &text)) {
         return NULL;
     }
 
     Py_BEGIN_ALLOW_THREADS
-    console->Eval(String(text), &output);
+        ret = console->Eval(String(text));
     Py_END_ALLOW_THREADS
 
-    return Py_BuildValue("s", output);
+
+    switch (ret) {
+    /* Success */
+    case 0:
+        console->Msg("EvalResult", "Compile Sucess");
+        break;
+
+    /* Other possible errors */
+    case 1:
+        console->Msg("EvalResult", "Syntax Error");
+        break;
+
+    case 2:
+        console->Msg("EvalResult", "Type or Range error");
+        break;
+
+    case 3:
+        console->Msg("EvalResult", "Resource Error");
+        break;
+
+    case 5:
+        console->Msg("EvalResult", "Internal Duktape Error");
+        break;
+    }
+
+    return statusobject((QStatus)0);
 }
 
 static PyObject* py_install(PyObject* self, PyObject* args)
@@ -439,7 +516,7 @@ static PyObject* py_getlocals(PyObject* self, PyObject* args)
     console->GetLocals(&vars, &size);
     Py_END_ALLOW_THREADS
 
-    if (vars) {
+    if (vars && size > 0) {
         if (strcmp(vars[0].name, "N/A") != 0) {
             tuple = PyTuple_New(size);
             for (i = 0; i < size; i++) {
@@ -458,7 +535,7 @@ static PyObject* py_getlocals(PyObject* self, PyObject* args)
                     uint64_t tmp;
                     double number;
                     memcpy(&tmp, vars[i].data, sizeof(uint64_t));
-                    tmp = bswap_64(tmp);
+                    tmp = ByteSwap64(tmp);
                     memcpy(&number, &tmp, sizeof(uint64_t));
                     PyTuple_SetItem(tuple, i, Py_BuildValue("sd", vars[i].name, number));
                 } else if (vars[i].type == DBG_TYPE_STRLOW) {
@@ -662,7 +739,7 @@ static PyObject* py_debugeval(PyObject* self, PyObject* args)
                 uint64_t tmp;
                 double number;
                 memcpy(&tmp, value, sizeof(uint64_t));
-                tmp = bswap_64(tmp);
+                tmp = ByteSwap64(tmp);
                 memcpy(&number, &tmp, sizeof(uint64_t));
                 tuple = Py_BuildValue("d", number);
             }
@@ -797,6 +874,8 @@ extern "C" PyObject * PyInit_AJSConsole(void)
 {
     PyObject*module = PyModule_Create(&consoleModule);
     PyEval_InitThreads();
+    AllJoynInit();
+    AllJoynRouterInit();
     if (module == NULL) {
         INITERROR;
     }
@@ -814,6 +893,8 @@ extern "C" PyObject * PyInit_AJSConsole(void)
 #else
 PyMODINIT_FUNC initAJSConsole(void)
 {
+    AllJoynInit();
+    AllJoynRouterInit();
     (void) Py_InitModule("AJSConsole", AJSConsoleMethods);
 
     PyEval_InitThreads();

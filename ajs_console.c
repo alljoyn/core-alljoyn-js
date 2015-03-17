@@ -65,12 +65,13 @@ static const char* const scriptConsoleIface[] = {
     "@engine>s",                                   /* Script engine supported e.g. JavaScript, Lua, Python, etc. */
     "@maxEvalLen>u",                               /* Maximum size script the eval method can handle */
     "@maxScriptLen>u",                             /* Maximum size script the install method can handle */
-    "?eval script<ay status>y output>s",           /* Evaluate a short script and run it */
+    "?eval script<ay status>y",                    /* Evaluate a short script and run it */
     "?install name<s script<ay status>y output>s", /* Install a new script, the script engine must be in a reset state */
     "?reset",                                      /* Reset the script engine */
     "?reboot",                                     /* Reboot the device */
     "!print txt>s",                                /* Send a print string to the controller */
     "!alert txt>s",                                /* Send an alert string to the controller */
+    "!evalResult output>ys",                       /* Result of a previous eval */
     NULL
 };
 
@@ -84,12 +85,12 @@ static const char* const scriptDebugIface[] = {
     "?stepInto reply>y",                            /* Step into a function */
     "?stepOver reply>y",                            /* Step over a function */
     "?stepOut reply>y",                             /* Step out of a function */
-    "?listBreak reply>a(sy)",                       /* List breakpoints */
-    "?addBreak request<sy reply>y",                 /* Add a breakpoint */
+    "?listBreak reply>a(sq)",                       /* List breakpoints */
+    "?addBreak request<sq reply>y",                 /* Add a breakpoint */
     "?delBreak request<y reply>y",                  /* Delete a breakpoint */
     "?getVar request<s reply>yyv",                  /* Get a variable */
     "?putVar request<syay reply>y",                 /* Put a variable */
-    "?getCallStack reply>a(ssyy)",                  /* Get the call stack */
+    "?getCallStack reply>a(ssqy)",                  /* Get the call stack */
     "?getLocals reply>a(ysv)",                      /* Get locals */
     "?dumpHeap reply>av",                           /* Dump the heap */
     "!version versionString>s",                     /* Initial version information */
@@ -133,6 +134,7 @@ static const AJ_Object consoleObjects[] = {
 #define REBOOT_MSGID        AJ_APP_MESSAGE_ID(0,  1, 6)
 #define PRINT_SIGNAL_MSGID  AJ_APP_MESSAGE_ID(0,  1, 7)
 #define ALERT_SIGNAL_MSGID  AJ_APP_MESSAGE_ID(0,  1, 8)
+#define EVAL_RESULT_MSGID   AJ_APP_MESSAGE_ID(0,  1, 9)
 
 /*
  * We don't want scripts to fill all available NVRAM.
@@ -261,8 +263,9 @@ void AJS_ConsoleSignalError(duk_context* ctx)
     duk_safe_call(ctx, SafeAlert, 0, 0);
 }
 
-static AJ_Status EvalReply(duk_context* ctx, AJ_Message* msg, int dukStatus)
+static AJ_Status EvalReply(duk_context* ctx, int dukStatus)
 {
+    AJ_Status status;
     AJ_Message reply;
     uint8_t replyStatus;
     const char* replyTxt;
@@ -290,17 +293,23 @@ static AJ_Status EvalReply(duk_context* ctx, AJ_Message* msg, int dukStatus)
         replyStatus = SCRIPT_INTERNAL_ERROR;
     }
 
-    AJ_MarshalReplyMsg(msg, &reply);
+    status = AJ_MarshalSignal(AJS_GetBusAttachment(), &reply, EVAL_RESULT_MSGID,  AJS_GetConsoleBusName(), AJS_GetConsoleSession(), 0, 0);
 
     duk_to_string(ctx, -1);
     replyTxt = duk_get_string(ctx, -1);
-    AJ_MarshalArgs(&reply, "ys", replyStatus, replyTxt);
+    if (status == AJ_OK) {
+        status = AJ_MarshalArgs(&reply, "ys", replyStatus, replyTxt);
+    }
     duk_pop(ctx);
-    return AJ_DeliverMsg(&reply);
+    if (status == AJ_OK) {
+        status = AJ_DeliverMsg(&reply);
+    }
+    return status;
 }
 
-static AJ_Status Eval(duk_context* ctx, AJ_Message* msg)
+AJ_Status AJS_Eval(duk_context* ctx, AJ_Message* msg)
 {
+    AJ_Message reply;
     AJ_Message error;
     AJ_Status status;
     duk_int_t retval;
@@ -347,6 +356,28 @@ static AJ_Status Eval(duk_context* ctx, AJ_Message* msg)
         duk_push_string(ctx, "ConsoleInput.js");
         retval = duk_pcompile_lstring_filename(ctx, DUK_COMPILE_EVAL, (const char*)js, len);
         AJ_Free(js);
+
+        /*
+         * Return the method reply immediately, the result of the Eval
+         * will be sent as a signal when the result is available.
+         */
+        status = AJ_MarshalReplyMsg(msg, &reply);
+        if (status == AJ_OK) {
+            status = AJ_MarshalArgs(&reply, "y", retval);
+        }
+        if (status == AJ_OK) {
+            status = AJ_DeliverMsg(&reply);
+        }
+        /*
+         * If debugging, duk_pcall will cause the debugger read callback to run, which
+         * will begin unmarshalling a new message. This is why this message must be closed
+         * now. If not debugging, AJ_CloseMsg is idempotent so calling it again in the main
+         * message loop won't be a problem
+         */
+        AJ_CloseMsg(msg);
+        if (status != AJ_OK) {
+            AJ_ErrPrintf(("Eval(): Error marshalling eval status: status=%s\n", AJ_StatusText(status)));
+        }
         if (retval == DUK_EXEC_SUCCESS) {
             AJS_SetWatchdogTimer(AJS_DEFAULT_WATCHDOG_TIMEOUT);
             retval = duk_pcall(ctx, 0);
@@ -357,7 +388,8 @@ static AJ_Status Eval(duk_context* ctx, AJ_Message* msg)
          */
         engineState = ENGINE_DIRTY;
     }
-    return EvalReply(ctx, msg, retval);
+
+    return EvalReply(ctx, retval);
 
 ErrorReply:
 
@@ -610,7 +642,7 @@ AJ_Status AJS_ConsoleMsgHandler(duk_context* ctx, AJ_Message* msg)
         break;
 
     case EVAL_MSGID:
-        status = Eval(ctx, msg);
+        status = AJS_Eval(ctx, msg);
         break;
 
     case DBG_BEGIN_MSGID:

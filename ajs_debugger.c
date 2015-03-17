@@ -39,16 +39,11 @@ uint8_t dbgDEBUGGER = 0;
  *
  * ATTACHED_PAUSED:     In this state the debugger can accept any debug commands.
  *
- * ATTACHED_RUNNING:    In this state the debugger is running and executing bytecode.
- *                      A limited number of debug commands are accepted in this state:
- *                      Pause, addBreak, and Eval are all accepted
- *
- * ATTACHED_BUSY        In this state the debugger is waiting for bytecode to execute.
- *                      Since no bytecode is currently executing only one debug command
- *                      is accepted, addBreak. Adding a breakpoint in this state will
- *                      cause the command to get queued up and will only be processed
- *                      when bytecode gets executed. Standard evals are also accepted
- *                      but operations on bytecode that has not executed will not work.
+ * ATTACHED_RUNNING:    In this state the debugger is running within the JS execution engine.
+ *                      It can be either executing bytecode or waiting for bytecode
+ *                      to execute. In this state only a limited number of debug commands
+ *                      are accepted:
+ *                      Pause, listBreak, addBreak, delBreak and Eval are all accepted
  *
  * DETACHED             The debug client has not attached and duktape is not in debug
  *                      mode. The only debug command accepted in this state is attach.
@@ -56,8 +51,7 @@ uint8_t dbgDEBUGGER = 0;
 typedef enum {
     AJS_DEBUG_ATTACHED_PAUSED = 0,      /* Debugger is attached and execution is paused */
     AJS_DEBUG_ATTACHED_RUNNING = 1,     /* Debugger is attached and execution is running */
-    AJS_DEBUG_ATTACHED_BUSY = 2,        /* Debugger is attached but no bytecode is executing */
-    AJS_DEBUG_DETACHED = 3              /* Debugger is detached */
+    AJS_DEBUG_DETACHED = 2              /* Debugger is detached */
 } AJS_DebugStatus;
 
 typedef struct {
@@ -188,6 +182,72 @@ static void printDebugMsg(const void* buffer, uint32_t length)
     AJ_AlwaysPrintf(("\n"));
 }
 #endif
+
+#define AJS_DUK_INT1BYTE_MAX    63
+#define AJS_DUK_INT2BYTE_MAX    16383
+
+/*
+ * Encode any integer value (<= 4 bytes) to a duktape compliant tval.
+ * @param in        Integer value to encode
+ * @param out[out]  Output buffer with duktape tval, *out must be freed
+ * @return          Byte length of *out buffer
+ */
+static uint8_t IntEncode(uint32_t in, uint8_t** out)
+{
+    /* 1 byte integer */
+    if (in <= AJS_DUK_INT1BYTE_MAX) {
+        *out = AJ_Malloc(1);
+        **out = (uint8_t)in | DBG_TYPE_INTSMLOW;
+        return 1;
+        /* 2 byte integer */
+    } else if (in <= AJS_DUK_INT2BYTE_MAX) {
+        *out = AJ_Malloc(2);
+        /*
+         * To encode (from debugger.rst):
+         * ((IB >> 8) | 0xc0) + followup_byte
+         */
+        (*out)[0] = ((in & 0xff00) >> 8) | DBG_TYPE_INTLGLOW;
+        (*out)[1] = (uint8_t)(in & 0x00ff);
+        return 2;
+        /* 4 byte integer (5 including type byte) */
+    } else {
+        *out = AJ_Malloc(5);
+        *out[0] = DBG_TYPE_INTEGER4;
+        memcpy((*out) + 1, &in, 4);
+        return 5;
+    }
+}
+
+/*
+ * Decode a duktape integer tval
+ *
+ * @param in        Input buffer containing duktape integer
+ * @param out       Output integer as uint32
+ *
+ * @return          Number of bytes decoded, zero on error
+ */
+static uint8_t IntDecode(uint8_t* in, uint32_t* out)
+{
+    /* 1 byte integer */
+    if (((uint8_t)*in >= DBG_TYPE_INTSMLOW) && ((uint8_t)*in <= DBG_TYPE_INTSMHIGH)) {
+        *out = *in - DBG_TYPE_INTSMLOW;
+        return 1;
+        /* 2 byte integer */
+    } else if (((uint8_t)*in >= DBG_TYPE_INTLGLOW) && ((uint8_t)*in <= DBG_TYPE_INTLGHIGH)) {
+        /*
+         * To decode(from debugger.rst):
+         * ((IB - 0xc0) << 8) + followup_byte
+         */
+        *out = (((*in & 0x00ff) - DBG_TYPE_INTLGLOW) << 8) | (uint8_t)*(in + 1);
+        return 2;
+    } else if ((uint8_t)*in == DBG_TYPE_INTEGER4) {
+        memcpy(out, in + 1, 4);
+        return 5;
+    } else {
+        AJ_ErrPrintf(("IntDecode(): Error, invalid integer data\n"));
+        return 0;
+    }
+}
 
 /*
  * Uses the cached last message information to compose a reply message
@@ -378,7 +438,7 @@ static uint16_t UnmarshalBuffer(uint8_t* buffer, uint32_t length, uint16_t offse
                 if ((*ptr < DBG_TYPE_STRLOW) || (*ptr > DBG_TYPE_STRHIGH)) {
                     goto ErrorUnmarshal;
                 }
-                size = (*ptr) - 0x60;
+                size = (*ptr) - DBG_TYPE_STRLOW;
                 ptr++;
                 numBytes++;
                 str = (char**)va_arg(args, char*);
@@ -393,12 +453,12 @@ static uint16_t UnmarshalBuffer(uint8_t* buffer, uint32_t length, uint16_t offse
         case (AJ_DUK_TYPE_INTSM):
             {
                 uint8_t* u8;
-                if ((*ptr < 0x80) || (*ptr > 0xbf)) {
+                if ((*ptr < DBG_TYPE_INTSMLOW) || (*ptr > DBG_TYPE_INTSMHIGH)) {
                     goto ErrorUnmarshal;
                 }
                 u8 = (uint8_t*)va_arg(args, uint8_t*);
                 memcpy(u8, ptr, sizeof(uint8_t));
-                *u8 -= 0x80;
+                *u8 -= DBG_TYPE_INTSMLOW;
                 ptr += 1;
                 numBytes += 1;
             }
@@ -407,7 +467,7 @@ static uint16_t UnmarshalBuffer(uint8_t* buffer, uint32_t length, uint16_t offse
         case (AJ_DUK_TYPE_INTLG):
             {
                 uint16_t* u16;
-                if ((*ptr < 0xc0) || (*ptr > 0xff)) {
+                if ((*ptr < DBG_TYPE_INTLGLOW) || (*ptr > DBG_TYPE_INTLGHIGH)) {
                     goto ErrorUnmarshal;
                 }
                 u16 = (uint16_t*)va_arg(args, uint16_t*);
@@ -450,6 +510,8 @@ static AJS_DebuggerState* AllocDebuggerState(duk_context* ctx)
     dbgState->ctx = ctx;
     dbgState->initialNotify = FALSE;
     dbgState->curTypePos = -1;
+    /* State will change to paused when bytecode executes */
+    dbgState->status = AJS_DEBUG_ATTACHED_RUNNING;
 
     return dbgState;
 }
@@ -458,16 +520,34 @@ static AJ_Status DebugAddBreak(AJS_DebuggerState* state, AJ_Message* msg, const 
 {
     uint8_t* dbgMsg;
     size_t flen = strlen(file);
-    uint8_t msgLen = flen + 5;
+    uint8_t msgLen = flen + 4;
+    uint8_t* tmp;
+    uint8_t szline;
+
+    /* Determine the complete message length */
+    if (line <= AJS_DUK_INT1BYTE_MAX) {
+        msgLen += 1;
+    } else if (line <= AJS_DUK_INT2BYTE_MAX) {
+        msgLen += 2;
+    } else {
+        AJ_ErrPrintf(("DebugAddBreak(): Invalid line number: %u\n", line));
+        return AJ_ERR_RESOURCES;
+    }
 
     AJ_InfoPrintf(("DebugAddBreak(): file=%s, line=%i\n", file, line));
+    szline = IntEncode(line, &tmp);
+    if (szline >= 5) {
+        AJ_ErrPrintf(("DebugAddBreak(): Max line number is 16838\n"));
+        AJ_Free(tmp);
+        return AJ_ERR_RESOURCES;
+    }
     dbgMsg = AJ_Malloc(msgLen);
     dbgMsg[0] = DBG_TYPE_REQ;
-    dbgMsg[1] = ADD_BREAK_REQ | 0x80;
-    dbgMsg[2] = flen | 0x60;
+    dbgMsg[1] = ADD_BREAK_REQ | DBG_TYPE_INTSMLOW;
+    dbgMsg[2] = flen | DBG_TYPE_STRLOW;
     memcpy(dbgMsg + 3, file, flen);
-    dbgMsg[3 + flen] = line | 0x80; // TODO - this limits line length to 64???
-    dbgMsg[4 + flen] = DBG_TYPE_EOM;
+    memcpy(dbgMsg + 3 + flen, tmp, szline);
+    dbgMsg[3 + szline + flen] = DBG_TYPE_EOM;
 
     if (AJ_IO_BUF_SPACE(state->read) >= msgLen) {
         memcpy(state->read->writePtr, dbgMsg, msgLen);
@@ -475,9 +555,11 @@ static AJ_Status DebugAddBreak(AJS_DebuggerState* state, AJ_Message* msg, const 
     } else {
         AJ_ErrPrintf(("No space to write debug message\n"));
         AJ_Free(dbgMsg);
+        AJ_Free(tmp);
         return AJ_ERR_RESOURCES;
     }
     AJ_Free(dbgMsg);
+    AJ_Free(tmp);
     state->lastMsgType = ADD_BREAK_REQ;
     return AJ_OK;
 }
@@ -487,8 +569,8 @@ static AJ_Status DebugDelBreak(AJS_DebuggerState* state, AJ_Message* msg, uint8_
     uint8_t dbgMsg[4];
 
     dbgMsg[0] = DBG_TYPE_REQ;
-    dbgMsg[1] = DEL_BREAK_REQ | 0x80;
-    dbgMsg[2] = index | 0x80;
+    dbgMsg[1] = DEL_BREAK_REQ | DBG_TYPE_INTSMLOW;
+    dbgMsg[2] = index | DBG_TYPE_INTSMLOW;
     dbgMsg[3] = DBG_TYPE_EOM;
 
     AJ_InfoPrintf(("DebugDelBreak(): index=%i\n", index));
@@ -513,8 +595,8 @@ static AJ_Status DebugGetVar(AJS_DebuggerState* state, AJ_Message* msg, char* va
 
     dbgMsg = AJ_Malloc(msgLen);
     dbgMsg[0] = DBG_TYPE_REQ;
-    dbgMsg[1] = GET_VAR_REQ | 0x80;
-    dbgMsg[2] = varLen | 0x60;
+    dbgMsg[1] = GET_VAR_REQ | DBG_TYPE_INTSMLOW;
+    dbgMsg[2] = varLen | DBG_TYPE_STRLOW;
     memcpy(dbgMsg + 3, var, varLen);
     dbgMsg[3 + varLen] = DBG_TYPE_EOM;
 
@@ -545,9 +627,9 @@ static AJ_Status DebugPutVar(AJS_DebuggerState* state, AJ_Message* msg, char* na
      */
     *state->read->writePtr++ = DBG_TYPE_REQ;
     runningLength++;
-    *state->read->writePtr++ = PUT_VAR_REQ | 0x80;
+    *state->read->writePtr++ = PUT_VAR_REQ | DBG_TYPE_INTSMLOW;
     runningLength++;
-    *state->read->writePtr++ = nameLen | 0x60;
+    *state->read->writePtr++ = nameLen | DBG_TYPE_STRLOW;
     runningLength++;
     memcpy(state->read->writePtr, name, nameLen);
     runningLength += nameLen;
@@ -587,8 +669,8 @@ static AJ_Status DebugEval(AJS_DebuggerState* state, AJ_Message* msg, char* eval
 
     dbgMsg = AJ_Malloc(msgLen);
     dbgMsg[0] = DBG_TYPE_REQ;
-    dbgMsg[1] = EVAL_REQ | 0x80;
-    dbgMsg[2] = varLen | 0x60;
+    dbgMsg[1] = EVAL_REQ | DBG_TYPE_INTSMLOW;
+    dbgMsg[2] = varLen | DBG_TYPE_STRLOW;
     memcpy(dbgMsg + 3, eval, varLen);
     dbgMsg[3 + varLen] = DBG_TYPE_EOM;
 
@@ -609,7 +691,7 @@ static AJ_Status DebugSimpleCommand(AJS_DebuggerState* state, AJ_Message* msg, D
     uint8_t dbgMsg[3];
 
     dbgMsg[0] = DBG_TYPE_REQ;
-    dbgMsg[1] = command | 0x80;
+    dbgMsg[1] = command | DBG_TYPE_INTSMLOW;
     dbgMsg[2] = DBG_TYPE_EOM;
 
     AJ_InfoPrintf(("DebugSimpleCommand(): command=%i msg=%s\n", command, msg->member));
@@ -622,6 +704,7 @@ static AJ_Status DebugSimpleCommand(AJS_DebuggerState* state, AJ_Message* msg, D
         return AJ_ERR_RESOURCES;
     }
     state->lastMsgType = command;
+
     return AJ_OK;
 }
 
@@ -707,7 +790,7 @@ static uint32_t marshalTvalMsg(AJ_Message* msg, uint8_t valType, uint8_t* buffer
     } else if ((valType >= DBG_TYPE_STRLOW) && (valType <= DBG_TYPE_STRHIGH)) {
         uint8_t valLen;
         char* str;
-        valLen = (valType - 0x60);
+        valLen = (valType - DBG_TYPE_STRLOW);
         str = AJ_Malloc(sizeof(char) * valLen + 1);
         memcpy(str, buffer, valLen);
         str[valLen] = '\0';
@@ -804,6 +887,7 @@ static int DebugCommandAllowed(AJS_DebugStatus dbgStatus, uint32_t msgId)
     case DBG_PUTVAR_MSGID:
     case DBG_EVAL_MSGID:
     case DBG_DETACH_MSGID:
+    case EVAL_MSGID:
         /* These can always be executed */
         return TRUE;
 
@@ -852,8 +936,8 @@ AJ_Status DebugMsgUnmarshal(AJS_DebuggerState* dbgState, AJ_Message* msg)
     case DBG_ADDBREAK_MSGID:
         {
             char* file;
-            uint8_t line;
-            status = AJ_UnmarshalArgs(msg, "sy", &file, &line);
+            uint16_t line;
+            status = AJ_UnmarshalArgs(msg, "sq", &file, &line);
             if (status == AJ_OK) {
                 status = DebugAddBreak(dbgState, msg, file, line);
             }
@@ -987,6 +1071,20 @@ AJ_Status DebugMsgUnmarshal(AJS_DebuggerState* dbgState, AJ_Message* msg)
         status = DebugSimpleCommand(dbgState, msg, DETACH_REQ);
         break;
 
+    case EVAL_MSGID:
+        AJS_Eval(dbgState->ctx, msg);
+        /*
+         * The status must be set to not AJ_OK or AJ_ERR_NO_MATCH because:
+         *
+         * 1. We have no debug command to push to the buffer (eval is done differently, with duk_pcall)
+         *    so the AJ_OK path will not work.
+         * 2. AJS_Eval closes the message so delivering a status message will fail
+         *
+         * This means we need to bypass both 1 and 2 but still must return AJ_OK.
+         */
+        status = AJ_ERR_BUSY;
+        break;
+
     default:
         /*
          * Not a debugger message
@@ -1007,9 +1105,15 @@ AJ_Status DebugMsgUnmarshal(AJS_DebuggerState* dbgState, AJ_Message* msg)
         memcpy(&dbgState->lastMsg.hdr, msg->hdr, sizeof(AJ_MsgHeader));
         dbgState->lastMsg.sessionId = msg->sessionId;
         dbgState->lastMsg.msgId = msg->msgId;
-    } else {
+    } else if (status != AJ_ERR_BUSY) {
         AJ_MarshalStatusMsg(msg, &reply, status);
         status = AJ_DeliverMsg(&reply);
+    } else {
+        /*
+         * Special case for standard Eval. Since it does not use the duktape debug
+         * buffer we need to bypass the if statements above but still return OK.
+         */
+        status = AJ_OK;
     }
     return status;
 }
@@ -1032,6 +1136,7 @@ static duk_size_t DebuggerRead(void* udata, char* buffer, duk_size_t length)
      * Maximize the space in the read buffer
      */
     AJ_IOBufRebase(state->read, 0);
+
     /*
      * Unmarshal messages until we have data to return
      */
@@ -1064,8 +1169,11 @@ static duk_size_t DebuggerRead(void* udata, char* buffer, duk_size_t length)
             status = AJS_ConsoleMsgHandler(state->ctx, state->currentMsg);
             if (status != AJ_ERR_NO_MATCH) {
                 /*
-                 * This will have stopped the debugger.
+                 * This will have stopped the debugger. We must close the message
+                 * because if a debug client attaches again we need to have a clean
+                 * unmarshal state.
                  */
+                AJ_CloseMsg(state->currentMsg);
                 return 0;
             }
             break;
@@ -1509,7 +1617,7 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
     AJ_InfoPrintf(("AJS_DebuggerHandleMessage(): Buffer position=0x%p\n", pos));
 
     if (*pos == DBG_TYPE_NFY) {
-        switch (*(pos + 1) - 0x80) {
+        switch (*(pos + 1) - DBG_TYPE_INTSMLOW) {
         case STATUS_NOTIFICATION:
             {
                 /*
@@ -1540,7 +1648,7 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
                         status = AJ_MarshalArgs(&msg, "yyssyy", STATUS_NOTIFICATION, st, "N/A", "N/A", lineNumber, pc);
                     }
                     /* Notification with undefined as file/function means no bytecode is executing == busy */
-                    state->status = AJS_DEBUG_ATTACHED_BUSY;
+                    state->status = AJS_DEBUG_ATTACHED_RUNNING;
                 } else {
                     /* Regular notification */
                     UnmarshalBuffer(state->write->readPtr, AJ_IO_BUF_AVAIL(state->write), 0, "ssii", &fileName, &funcName, &lineNumber, &pc);
@@ -1606,7 +1714,7 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
                  */
                 valType = *(i + 2);
                 status = MarshalLastMsgReply(state, &reply);
-                valid -= 0x80;
+                valid -= DBG_TYPE_INTSMLOW;
                 if (status == AJ_OK) {
                     status = AJ_MarshalArgs(&reply, "yy", valid, valType);
                 }
@@ -1666,7 +1774,6 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
                  */
                 AJ_Arg array;
                 uint8_t* i = pos;
-                uint16_t numBytes = 0; //Skip past <REP>
 
                 MarshalLastMsgReply(state, &reply);
                 status = AJ_MarshalContainer(&reply, &array, AJ_ARG_ARRAY);
@@ -1675,17 +1782,19 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
                  */
                 i++;
                 while (*i != DBG_TYPE_EOM) {
-                    uint8_t line, pc;
+                    uint32_t line;
+                    uint8_t pc;
                     char* fname, *funcName;
                     AJ_Arg struct1;
 
                     status = AJ_MarshalContainer(&reply, &struct1, AJ_ARG_STRUCT);
 
-                    numBytes = UnmarshalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "ssii", &fname, &funcName, &line, &pc);
-                    i += numBytes;
+                    i += UnmarshalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "ss", &fname, &funcName);
+                    i += IntDecode(i, &line);
+                    i += UnmarshalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "i", &pc);
 
                     AJ_InfoPrintf(("AJS_DebuggerHandleMessage(): Get Callstack, File: %s, Function: %s, Line: %u, PC: %u\n", fname, funcName, line, pc));
-                    status = AJ_MarshalArgs(&reply, "ssyy", fname, funcName, line, pc);
+                    status = AJ_MarshalArgs(&reply, "ssqy", fname, funcName, line, pc);
                     if (status == AJ_OK) {
                         status = AJ_MarshalCloseContainer(&reply, &struct1);
                     }
@@ -1708,7 +1817,6 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
                  */
                 AJ_Arg array;
                 uint8_t* i = pos;
-                uint16_t numBytes = 0; //Skip over REP
 
                 MarshalLastMsgReply(state, &reply);
                 status = AJ_MarshalContainer(&reply, &array, AJ_ARG_ARRAY);
@@ -1718,13 +1826,12 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
                 i++;
                 AJ_InfoPrintf(("AJS_DebuggerHandleMessage(): Get breakpoints\n"));
                 while (*i != DBG_TYPE_EOM) {
-                    uint8_t line;
+                    uint32_t line;
                     char* fname;
                     AJ_Arg struct1;
 
                     status = AJ_MarshalContainer(&reply, &struct1, AJ_ARG_STRUCT);
                     if ((*i == DBG_TYPE_REP) && (*(i + 1) == DBG_TYPE_EOM)) {
-                        printf("NO BREAKPOINTS\n");
                         /* No breakpoints */
                         status = AJ_MarshalArgs(&reply, "sy", "N/A", 0);
                         if (status == AJ_OK) {
@@ -1732,11 +1839,12 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
                         }
                         break;
                     }
-                    numBytes = UnmarshalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "si", &fname, &line);
-                    i += numBytes;
+                    i += UnmarshalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "s", &fname);
+                    /* Line number must be decoded */
+                    i += IntDecode(i, &line);
 
                     AJ_InfoPrintf(("AJS_DebuggerHandleMessage Breakpoint: File: %s, Line: %u\n", fname, line));
-                    status = AJ_MarshalArgs(&reply, "sy", fname, line);
+                    status = AJ_MarshalArgs(&reply, "sq", fname, (uint16_t)line);
                     if (status == AJ_OK) {
                         status = AJ_MarshalCloseContainer(&reply, &struct1);
                     }
@@ -1891,7 +1999,6 @@ AJ_Status AJS_StartDebugger(duk_context* ctx, AJ_Message* msg)
     if (status == AJ_OK) {
         AJS_DisableWatchdogTimer();
         dbgState = AllocDebuggerState(ctx);
-        dbgState->status = AJS_DEBUG_ATTACHED_BUSY;
         /* Start the debugger */
         duk_debugger_attach(ctx,
                             DebuggerRead,
@@ -1911,7 +2018,7 @@ AJ_Status AJS_StopDebugger(duk_context* ctx, AJ_Message* msg)
 
     AJ_InfoPrintf(("StopDebugger()\n"));
     /*
-     * Maybe called because the session was lost 
+     * Maybe called because the session was lost
      */
     if (msg) {
         AJ_Message reply;

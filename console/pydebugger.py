@@ -280,10 +280,11 @@ def localSelectHandler(event):
     line_start = dbg.RightFrame.SourceView.index("@%s,%s linestart" % (event.x, event.y))
     line_start = line_start.split('.')[0]
     text = dbg.RightFrame.SourceView.get(str(line_start) + '.0', str(line_start) + '.end')
-    index = text.find('var')
-    if index != -1:
-        # There is a tab after the line numbers so add 4 (spaces) to the index
-        index = index + 4; 
+    indexv = text.find('var')
+    indexf = text.find('function')
+    if indexv != -1:
+        # There is a tab after the line numbers so add 4 (spaces) to the indexv
+        indexv = indexv + 4;
         # Find the variables string length
         text = re.findall(r"[\w']+", text)
         for i in range(len(text)):
@@ -295,10 +296,24 @@ def localSelectHandler(event):
             varSelected = ''
         else:
             dbg.RightFrame.SourceView.tag_delete("cur_var")
-            dbg.RightFrame.SourceView.tag_add("cur_var", str(line_start) + '.' + str(index - 4), str(line_start) + '.' + str(index + varLen))
+            dbg.RightFrame.SourceView.tag_add("cur_var", str(line_start) + '.' + str(indexv - 4), str(line_start) + '.' + str(indexv + varLen))
             dbg.RightFrame.SourceView.tag_config("cur_var", background="cyan")
             varSelected = var
-
+    elif indexf != -1:
+        indexf = indexf + 4
+        text = re.findall(r"[\w']+", text)
+        func = ''
+        for i in range(len(text)):
+            if (str(text[i]) == 'function'):
+                func = str(text[i + 1])
+                length = len(str(text[i + 1]))
+        if func != '':
+            # Put the function into eval text box highlighted
+            dbg.BottomFrame.EvalTextBox.delete('0.0', END)
+            dbg.BottomFrame.EvalTextBox.insert('0.0', func + '()')
+            dbg.BottomFrame.EvalTextBox.tag_add('sel', '0.0', END)
+    else:
+        dbg.BottomFrame.EvalTextBox.delete('0.0', END)
 
 # Triggered by double left click (add breakpoint)
 def sourceViewEventHandler(event):
@@ -468,6 +483,8 @@ def eval():
     # If in any other state call standard eval for breakpoint access
     else:
         AJSConsole.Eval(text)
+    if type(result) != NoneType:
+            dbg.EvalNotification(str(result))
     # In case we changed a local variable update locals
     localUpdate();
     dbg.BottomFrame.EvalTextBox.delete('0.0', END)

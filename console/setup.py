@@ -22,7 +22,7 @@ platform = platform.system()
 aj_path = os.environ.get('ALLJOYN_DISTDIR')
 
 if aj_path == None:
-    print 'ALLJOYN_DIST must be defined to build'
+    print ('ALLJOYN_DISTDIR must be defined to build')
     quit()
 
 

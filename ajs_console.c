@@ -17,6 +17,9 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+/* If AJS_CONSOLE_LOCKDOWN is compiled in this whole file is unused */
+#if !defined(AJS_CONSOLE_LOCKDOWN)
+
 #define AJ_MODULE CONSOLE
 
 #include "ajs.h"
@@ -72,6 +75,7 @@ static const char* const scriptConsoleIface[] = {
     "!print txt>s",                                /* Send a print string to the controller */
     "!alert txt>s",                                /* Send an alert string to the controller */
     "!evalResult output>ys",                       /* Result of a previous eval */
+    "?lockdown status>y",                          /* Lock out the console application from interfacing with AJS */
     NULL
 };
 
@@ -135,6 +139,7 @@ static const AJ_Object consoleObjects[] = {
 #define PRINT_SIGNAL_MSGID  AJ_APP_MESSAGE_ID(0,  1, 7)
 #define ALERT_SIGNAL_MSGID  AJ_APP_MESSAGE_ID(0,  1, 8)
 #define EVAL_RESULT_MSGID   AJ_APP_MESSAGE_ID(0,  1, 9)
+#define LOCK_CONSOLE_MSGID  AJ_APP_MESSAGE_ID(0,  1, 10)
 
 /*
  * We don't want scripts to fill all available NVRAM.
@@ -259,8 +264,13 @@ static int GetStackSafe(duk_context* ctx)
 
 void AJS_ConsoleSignalError(duk_context* ctx)
 {
-    duk_safe_call(ctx, GetStackSafe, 1, 1);
-    duk_safe_call(ctx, SafeAlert, 0, 0);
+    AJ_Status status;
+    uint8_t ldstate;
+    status = AJS_GetLockdownState(&ldstate);
+    if (status == AJ_OK && ldstate == AJS_CONSOLE_UNLOCKED) {
+        duk_safe_call(ctx, GetStackSafe, 1, 1);
+        duk_safe_call(ctx, SafeAlert, 0, 0);
+    }
 }
 
 static AJ_Status EvalReply(duk_context* ctx, int dukStatus)
@@ -541,6 +551,33 @@ static AJ_Status PropSetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
     return AJ_ERR_UNEXPECTED;
 }
 
+AJ_Status AJS_LockConsole(AJ_Message* msg)
+{
+    AJ_Status status;
+    AJ_Message reply;
+    /* Set the persistent bit and signal to restart for it to take effect */
+    status = AJS_SetLockdownState(AJS_CONSOLE_LOCKED);
+    if (status != AJ_OK) {
+        /* Something went wrong when setting the lockdown bit */
+        AJ_MarshalStatusMsg(msg, &reply, status);
+        return AJ_DeliverMsg(&reply);
+    }
+    status = AJ_MarshalReplyMsg(msg, &reply);
+    if (status == AJ_OK) {
+        status = AJ_MarshalArgs(&reply, "y", AJS_CONSOLE_LOCKED);
+    }
+    if (status == AJ_OK) {
+        status = AJ_DeliverMsg(&reply);
+    }
+    if (status != AJ_OK) {
+        AJ_ErrPrintf(("LockConsole(): Error marshalling reply message (%s)\n", AJ_StatusText(status)));
+    }
+    AJ_AboutUnannounce(msg->bus);
+    AJ_BusLeaveSession(msg->bus, consoleSession);
+    AJS_ConsoleTerminate();
+    return AJ_ERR_RESTART_APP;
+}
+
 AJ_Status AJS_ConsoleMsgHandler(duk_context* ctx, AJ_Message* msg)
 {
     AJ_Status status;
@@ -633,6 +670,10 @@ AJ_Status AJS_ConsoleMsgHandler(duk_context* ctx, AJ_Message* msg)
         AJ_Reboot();
         break;
 
+    case LOCK_CONSOLE_MSGID:
+        status = AJS_LockConsole(msg);
+        break;
+
     case EVAL_MSGID:
         status = AJS_Eval(ctx, msg);
         break;
@@ -703,3 +744,5 @@ void AJS_ConsoleTerminate()
     engineState = ENGINE_DIRTY;
     AJ_RegisterObjects(NULL, NULL);
 }
+
+#endif // AJS_CONSOLE_LOCKDOWN

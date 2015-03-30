@@ -38,6 +38,7 @@ static AJ_Status SessionBindReply(duk_context* ctx, AJ_Message* msg)
     AJ_Status status;
     uint32_t result;
     uint16_t port;
+    uint8_t ldstate;
 
     status = AJ_UnmarshalArgs(msg, "uq", &result, &port);
     if (status != AJ_OK) {
@@ -45,7 +46,12 @@ static AJ_Status SessionBindReply(duk_context* ctx, AJ_Message* msg)
     }
     if (port != AJS_APP_PORT) {
         AJ_ResetArgs(msg);
-        status = AJS_ConsoleMsgHandler(ctx, msg);
+#if !defined(AJS_CONSOLE_LOCKDOWN)
+        status = AJS_GetLockdownState(&ldstate);
+        if (status == AJ_OK && ldstate == AJS_CONSOLE_UNLOCKED) {
+            status = AJS_ConsoleMsgHandler(ctx, msg);
+        }
+#endif
         if (status == AJ_ERR_NO_MATCH) {
             status = AJS_ServicesMsgHandler(msg);
             if (status == AJ_ERR_NO_MATCH) {
@@ -62,6 +68,7 @@ static AJ_Status SessionDispatcher(duk_context* ctx, AJ_Message* msg)
     uint32_t sessionId;
     uint16_t port;
     char* joiner;
+    uint8_t ldstate;
 
     status = AJ_UnmarshalArgs(msg, "qus", &port, &sessionId, &joiner);
     if (status != AJ_OK) {
@@ -87,7 +94,12 @@ static AJ_Status SessionDispatcher(duk_context* ctx, AJ_Message* msg)
      * JavaScript doesn't accept/reject session so the session is either for the console or perhaps
      * a service if the services bind their own ports.
      */
-    status = AJS_ConsoleMsgHandler(ctx, msg);
+#if !defined(AJS_CONSOLE_LOCKDOWN)
+    status = AJS_GetLockdownState(&ldstate);
+    if (status == AJ_OK && ldstate == AJS_CONSOLE_UNLOCKED) {
+        status = AJS_ConsoleMsgHandler(ctx, msg);
+    }
+#endif
     if (status == AJ_ERR_NO_MATCH) {
         status = AJS_ServicesMsgHandler(msg);
     }
@@ -104,14 +116,20 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
     uint8_t accessor = AJS_NOT_ACCESSOR;
     const char* func;
     AJ_Status status;
+    uint8_t ldstate;
 
-    status = AJS_ConsoleMsgHandler(ctx, msg);
-    if (status != AJ_ERR_NO_MATCH) {
-        if (status != AJ_OK) {
-            AJ_WarnPrintf(("AJS_ConsoleMsgHandler returned %s\n", AJ_StatusText(status)));
+#if !defined(AJS_CONSOLE_LOCKDOWN)
+    status = AJS_GetLockdownState(&ldstate);
+    if (status == AJ_OK && ldstate == AJS_CONSOLE_UNLOCKED) {
+        status = AJS_ConsoleMsgHandler(ctx, msg);
+        if (status != AJ_ERR_NO_MATCH) {
+            if (status != AJ_OK) {
+                AJ_WarnPrintf(("AJS_ConsoleMsgHandler returned %s\n", AJ_StatusText(status)));
+            }
+            return status;
         }
-        return status;
     }
+#endif
     /*
      * JOIN_SESSION replies are handled in the AllJoyn.js layer and don't get passed to JavaScript
      */
@@ -283,6 +301,7 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
     uint32_t linkTO;
     uint32_t msgTO = 0x7FFFFFFF;
     duk_idx_t top = duk_get_top_index(ctx);
+    uint8_t ldstate;
 
     AJ_InfoPrintf(("AJS_MessageLoop top=%d\n", (int)top));
 
@@ -344,7 +363,10 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
         /*
          * Do any announcing required
          */
-        status = AJ_AboutAnnounce(aj);
+        status = AJS_GetLockdownState(&ldstate);
+        if (status == AJ_OK && ldstate == AJS_CONSOLE_UNLOCKED) {
+            status = AJ_AboutAnnounce(aj);
+        }
         if (status != AJ_OK) {
             break;
         }

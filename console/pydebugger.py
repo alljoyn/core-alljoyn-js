@@ -40,6 +40,12 @@ selectedLocal = -1
 currentFile = ''
 varSelected = ''
 
+DISCLAMER_TEXT = 'Are you sure you want to lockdown the console?\n\
+                  This means that you will no longer have access to any debug or console\n\
+                  functionality, even after reboots. If you select yes the only way to\n\
+                  undo it is to re-flash/wipe your persistent storage on the device.\n\
+                  Please select yes or no to continue'
+
 help_message = 'This Python debugger is used to debug AllJoyn.js applications\n\
                 \rOn the left side of the GUI you have buttons to control the debug target\n\
                 \rStep Into: Step into a function\n\
@@ -506,6 +512,19 @@ def returnHandler(event):
     elif str(event.widget) == str(dbg.BottomFrame.EvalTextBox):
         eval()
 
+def sendLockDown(self):
+    AJSConsole.Lockdown()
+    self.popup.destroy()
+
+def lockDown(self):
+    self.popup = Toplevel()
+    disclamer = Label(self.popup, text=DISCLAMER_TEXT, width=80, fg="red", font="Helvetica 12 bold")
+    disclamer.grid(row=0, column=0, rowspan=2, columnspan=2)
+    yesbutton = Button(self.popup, text="Yes", width=10, height=2, command=lambda: sendLockDown(self))
+    yesbutton.grid(row=2, column=0)
+    nobutton = Button(self.popup, text="No", width=10, height=2, command=self.popup.destroy)
+    nobutton.grid(row=2, column=1)
+
 root = Tk()
 
 class DebugGUI(Frame):
@@ -544,6 +563,8 @@ class DebugGUI(Frame):
         self.LeftFrame.Close.grid(row=9, column=0, sticky=W+N)
         self.LeftFrame.Help = Button(self.LeftFrame, text="Help", command=showHelp, width=10, height=2)
         self.LeftFrame.Help.grid(row=10, column=0, sticky=W+N)
+        self.LeftFrame.Lockdown = Button(self.LeftFrame, text="Lockdown", command=lambda: lockDown(self), width=10, height=2)
+        self.LeftFrame.Lockdown.grid(row=11, column=0, sticky=W+N)
 
         # RightFrame contains the source code text box
         self.RightFrame = Frame(master)

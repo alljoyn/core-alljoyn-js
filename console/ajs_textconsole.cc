@@ -283,6 +283,8 @@ int main(int argc, char** argv)
                             } else {
                                 QCC_SyncPrintf("No script on target\n");
                             }
+                        } else if (input == "$AJS_LOCKDOWN") {
+                            goto DoLockdown;
                         } else if (input.c_str()[0] == '$') {
                             if (strncmp(input.c_str(), "$delbreak", 9) == 0) {
                                 char* i = (char*)input.c_str() + 9;
@@ -389,6 +391,8 @@ int main(int argc, char** argv)
                         }
                     }
                     continue;
+                } else if (input == "$AJS_LOCKDOWN") {
+                    goto DoLockdown;
                 }
             DoEval:
                 if (input[input.size() - 1] != ';') {
@@ -420,6 +424,14 @@ int main(int argc, char** argv)
                     QCC_SyncPrintf("Internal Duktape Error");
                     break;
                 }
+                continue;
+
+            DoLockdown:
+                ret = ajsConsole.LockdownConsole();
+                if (ret != -1) {
+                    QCC_SyncPrintf("Console was successfully locked down. Session will be terminated\n");
+                }
+                continue;
             }
         }
     } else {

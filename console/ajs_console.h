@@ -108,6 +108,8 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
 
     QStatus Install(qcc::String name, const uint8_t* script, size_t len);
 
+    int8_t LockdownConsole(void);
+
     void SessionLost(ajn::SessionId sessionId, SessionLostReason reason);
 
     virtual void Notification(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);

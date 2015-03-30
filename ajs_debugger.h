@@ -51,6 +51,7 @@
 #define DBG_GETSCRIPTNAME_MSGID AJ_APP_MESSAGE_ID(0, 2, 23)
 /* Duplicate from console because an Eval can be processed in the debugger as well */
 #define EVAL_MSGID              AJ_APP_MESSAGE_ID(0,  1, 3)
+#define LOCK_CONSOLE_MSGID      AJ_APP_MESSAGE_ID(0,  1, 10)
 /**
  * Put the console output into quiet mode.
  *

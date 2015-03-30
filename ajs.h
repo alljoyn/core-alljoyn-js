@@ -60,9 +60,14 @@ extern uint8_t dbgAJS;
 #define AJS_SCRIPT_NAME_NVRAM_ID  (AJ_NVRAM_ID_FOR_APPS + 0)
 #define AJS_SCRIPT_NVRAM_ID       (AJ_NVRAM_ID_FOR_APPS + 1)
 #define AJS_SCRIPT_SIZE_ID        (AJ_NVRAM_ID_FOR_APPS + 2)
+#define AJS_LOCKDOWN_NVRAM_ID     (AJ_NVRAM_ID_FOR_APPS + 3)
 #define AJS_PROPSTORE_NVRAM_ID    (AJ_NVRAM_ID_FOR_APPS + 32)
 #define AJS_PROPSTORE_NVRAM_MIN   (AJS_PROPSTORE_NVRAM_ID + 1)
 #define AJS_PROPSTORE_NVRAM_MAX   (AJS_PROPSTORE_NVRAM_MIN + 256)
+
+#define AJS_CONSOLE_UNLOCKED    0
+#define AJS_CONSOLE_LOCKED      1
+#define AJS_CONSOLE_LOCK_ERR    2
 
 /*
  * Default TTL for sessionless signals and notifications
@@ -110,6 +115,31 @@ typedef struct {
  * Is the AllJoyn bus up and running and ready to send/receiver messages.
  */
 uint8_t AJS_IsRunning();
+
+/**
+ * Get the current lockdown bit from NVRAM.
+ *
+ * @param state[out]    Current lockdown state
+ * @return              AJ_OK upon success
+ */
+AJ_Status AJS_GetLockdownState(uint8_t* state);
+
+/**
+ * Update the lockdown bit to a new value.
+ *
+ * @param bit       New lockdown setting
+ * @return          AJ_OK if bit was set successfully
+ */
+AJ_Status AJS_SetLockdownState(uint8_t state);
+
+/**
+ * Lock out the console and debugger forever
+ *
+ * @param msg       Lockdown message
+ *
+ * @return          AJ_OK if successful
+ */
+AJ_Status AJS_LockConsole(AJ_Message* msg);
 
 /**
  * Gets the size of the script currently in NVRAM
@@ -330,7 +360,11 @@ AJ_Status AJS_ConsoleMsgHandler(duk_context* ctx, AJ_Message* msg);
  *
  * @param ctx  An opaque pointer to a duktape context structure
  */
+#if !defined(AJS_CONSOLE_LOCKDOWN)
 void AJS_ConsoleSignalError(duk_context* ctx);
+#else
+#define AJS_ConsoleSignalError(ctx) do { } while (0)
+#endif
 
 /**
  * Initialize the console service

@@ -808,6 +808,16 @@ static PyObject* py_debugeval(PyObject* self, PyObject* args)
     return Py_BuildValue("");
 }
 
+static PyObject* py_lockdown(PyObject* self, PyObject* args)
+{
+    Py_BEGIN_ALLOW_THREADS
+    if (console->LockdownConsole()) {
+        console->Msg("DebugNotification", "Console locked down sucessfully\n");
+    }
+    Py_END_ALLOW_THREADS
+    return statusobject(ER_OK);
+}
+
 static PyMethodDef AJSConsoleMethods[] = {
     { "Connect", py_connect, METH_VARARGS, "Make a connection" },
     { "Eval", py_eval, METH_VARARGS, "Evaluate a statement" },
@@ -834,6 +844,7 @@ static PyMethodDef AJSConsoleMethods[] = {
     { "DebugEval", py_debugeval, METH_VARARGS, "Do an eval while debugging" },
     { "PutVar", py_putvar, METH_VARARGS, "Change a variables value" },
     { "GetTargetStatus", py_gettargstatus, METH_VARARGS, "Get the targets current status" },
+    { "Lockdown", py_lockdown, METH_VARARGS, "Lockdown the console" },
     { NULL, NULL, 0, NULL }
 };
 

@@ -679,6 +679,7 @@ static AJ_Status DebugEval(AJS_DebuggerState* state, AJ_Message* msg, char* eval
         state->read->writePtr += msgLen;
     } else {
         AJ_ErrPrintf(("No space to write debug message\n"));
+        AJ_Free(dbgMsg);
         return AJ_ERR_RESOURCES;
     }
     AJ_Free(dbgMsg);
@@ -1010,7 +1011,7 @@ AJ_Status DebugMsgUnmarshal(AJS_DebuggerState* dbgState, AJ_Message* msg)
                 memcpy(data + dataLen, raw, sz);
                 dataLen += sz;
             }
-            if (status == AJ_OK) {
+            if (status == AJ_OK && dataLen) {
                 status = DebugPutVar(dbgState, msg, name, type, data, dataLen);
             }
             AJ_Free(data);
@@ -1101,7 +1102,7 @@ AJ_Status DebugMsgUnmarshal(AJS_DebuggerState* dbgState, AJ_Message* msg)
          */
         len = min(len, sizeof(dbgState->lastMsg.sender));
         memcpy(dbgState->lastMsg.sender, msg->sender, len);
-        dbgState->lastMsg.sender[len] = 0;
+        dbgState->lastMsg.sender[len - 1] = 0;
         memcpy(&dbgState->lastMsg.hdr, msg->hdr, sizeof(AJ_MsgHeader));
         dbgState->lastMsg.sessionId = msg->sessionId;
         dbgState->lastMsg.msgId = msg->msgId;

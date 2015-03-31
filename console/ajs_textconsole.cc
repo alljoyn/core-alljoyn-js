@@ -141,6 +141,7 @@ int main(int argc, char** argv)
         if (scriptLen) {
             status = ajsConsole.Install(scriptName, script, scriptLen);
             free(script);
+            script = NULL;
         }
         if (ajsConsole.activeDebug) {
             ajsConsole.StartDebugger();
@@ -173,13 +174,16 @@ int main(int argc, char** argv)
 
                     } else if (input == "$getscript") {
                         bool valid;
-                        char* script;
+                        char* targ_script = NULL;
                         uint32_t length;
-                        valid = ajsConsole.GetScript((uint8_t**)&script, &length);
+                        valid = ajsConsole.GetScript((uint8_t**)&targ_script, &length);
                         if (valid) {
-                            QCC_SyncPrintf("Script:\n%s", script);
+                            QCC_SyncPrintf("Script:\n%s", targ_script);
                         } else {
                             QCC_SyncPrintf("No script on target\n");
+                        }
+                        if (targ_script) {
+                            free(targ_script);
                         }
                     } else if (strncmp(input.c_str(), "$addbreak", 9) == 0) {
                         char* i = (char*)input.c_str() + 10;

@@ -130,6 +130,7 @@ int main(int argc, char** argv)
                 AJS_ConsoleSetVerbose(ctx, 1);
             } else if (strcmp(argv[i], "--name") == 0) {
                 if (++i == argc) {
+                    AJS_ConsoleDeinit(ctx);
                     goto Usage;
                 }
                 deviceName = argv[i];
@@ -138,6 +139,7 @@ int main(int argc, char** argv)
             } else if (strcmp(argv[i], "--quiet") == 0) {
                 AJS_Debug_SetQuiet(ctx, 1);
             } else {
+                AJS_ConsoleDeinit(ctx);
                 goto Usage;
             }
         } else {
@@ -145,6 +147,7 @@ int main(int argc, char** argv)
             status = ReadScriptFile(scriptName, &script, &scriptLen);
             if (status != 1) {
                 printf("Failed to load script file %s\n", argv[1]);
+                AJS_ConsoleDeinit(ctx);
                 return -1;
             }
         }
@@ -184,14 +187,16 @@ int main(int argc, char** argv)
                         AJS_Debug_SetDebugState(ctx, AJS_DEBUG_ATTACHED_PAUSED);
                     } else if (strcmp(input, "$getscript") == 0) {
                         uint8_t valid;
-                        char* script = NULL;
+                        char* targ_script = NULL;
                         uint32_t length;
-                        valid = AJS_Debug_GetScript(ctx, (uint8_t**)&script, &length);
+                        valid = AJS_Debug_GetScript(ctx, (uint8_t**)&targ_script, &length);
                         if (valid) {
-                            printf("Script:\n%s", script);
-                            free(script);
+                            printf("Script:\n%s", targ_script);
                         } else {
                             printf("No script on target\n");
+                        }
+                        if (targ_script) {
+                            free(targ_script);
                         }
                     } else if (strncmp(input, "$addbreak", 9) == 0) {
                         char* i = (char*)input + 10;
@@ -434,16 +439,15 @@ int main(int argc, char** argv)
         } else {
             printf("Failed to connect to script console\n");
         }
-        if (script) {
-            free(script);
-        }
     }
     if (g_interrupt) {
         printf(("Interrupted by Ctrl-C\n"));
     }
+    AJS_ConsoleDeinit(ctx);
     return -((int)status);
 Usage:
 
     printf("usage: %s [--verbose] [--debug] [--quiet] [--name <device-name>] [javascript-file]\n", argv[0]);
+    AJS_ConsoleDeinit(ctx);
     return -1;
 }

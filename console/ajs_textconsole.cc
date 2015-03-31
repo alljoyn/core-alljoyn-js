@@ -173,13 +173,16 @@ int main(int argc, char** argv)
 
                     } else if (input == "$getscript") {
                         bool valid;
-                        char* script;
+                        char* script = NULL;
                         uint32_t length;
                         valid = ajsConsole.GetScript((uint8_t**)&script, &length);
                         if (valid) {
                             QCC_SyncPrintf("Script:\n%s", script);
                         } else {
                             QCC_SyncPrintf("No script on target\n");
+                        }
+                        if (script) {
+                            free(script);
                         }
                     } else if (strncmp(input.c_str(), "$addbreak", 9) == 0) {
                         char* i = (char*)input.c_str() + 10;
@@ -430,10 +433,16 @@ int main(int argc, char** argv)
     }
     AllJoynShutdown();
     AllJoynRouterShutdown();
+    if (script) {
+        free(script);
+    }
     return -((int)status);
 
 Usage:
 
     QCC_SyncPrintf("usage: %s [--verbose] [--debug] [--quiet] [--name <device-name>] [javascript-file]\n", argv[0]);
+    if (script) {
+        free(script);
+    }
     return -1;
 }

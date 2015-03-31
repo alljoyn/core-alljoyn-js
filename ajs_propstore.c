@@ -145,7 +145,7 @@ static uint8_t PropChanged(int8_t field, const char* str)
     AJ_NV_DATASET* handle = AJ_NVRAM_Open(NVRAM_ID(field), "r", 0);
     if (handle) {
         const char* prop = AJ_NVRAM_Peek(handle);
-        if (strcmp(prop, str) == 0) {
+        if (prop && (strcmp(prop, str) == 0)) {
             changed = FALSE;
         }
         AJ_NVRAM_Close(handle);

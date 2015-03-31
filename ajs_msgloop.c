@@ -284,7 +284,7 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
     /*
      * timer clock must be initialized
      */
-    AJ_GetElapsedTime(&timerClock, FALSE);
+    AJ_InitTimer(&timerClock);
 
     AJ_ASSERT(duk_get_top_index(ctx) == top);
 

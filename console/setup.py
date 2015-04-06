@@ -41,7 +41,6 @@ if platform == 'Linux':
                            library_dirs = [distdir + 'cpp/lib',
                                            distdir + 'about/lib'],
                            extra_objects = [
-                               distdir + 'cpp/lib/BundledRouter.o',
                                distdir + 'cpp/lib/libajrouter.a',
                                distdir + 'cpp/lib/liballjoyn.a',
                                distdir + 'cpp/lib/liballjoyn_about.a',
@@ -64,7 +63,6 @@ elif platform == 'Windows':
                            library_dirs = [distdir + 'cpp/lib',
                                            distdir + 'about/lib'],
                            extra_objects = [
-                               #distdir + 'cpp/lib/BundledRouter.obj',
                                distdir + 'cpp/lib/ajrouter.lib',
                                distdir + 'cpp/lib/alljoyn.lib',
                                distdir + 'cpp/lib/alljoyn_about.lib',

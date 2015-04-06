@@ -19,14 +19,14 @@ major_version = sys.version_info[0]
 
 if major_version < 3:
     from Tkinter import *
-    from tkMessageBox import *
-    from tkFileDialog import *
+    import tkMessageBox as tm
+    import tkFileDialog as fd
     import Queue
 else:
     from tkinter import *
     from tkinter import messagebox as tm
     import queue as Queue
-    from tkinter import filedialog
+    from tkinter import filedialog as fd
 import os
 
 import AJSConsole
@@ -112,6 +112,11 @@ def GUICleanup():
     selectedLocal = -1
     currentFile = ''
     varSelected = ''
+
+    dbg.RightFrame.SourceView.tag_delete("Line")
+    dbg.LocalsFrame.LocalVars.tag_delete("LocalSelection")
+    dbg.BreakFrame.Breakpoints.tag_delete("Selection")
+    dbg.RightFrame.SourceView.tag_delete("cur_var")
 
     enableEditing('source', 'off')
     enableEditing('locals', 'off')
@@ -403,7 +408,7 @@ def getScript():
     if len(script) > 0:
         enableEditing('source', 'on')
         dbg.RightFrame.SourceView.delete('0.0', END)
-        dbg.RightFrame.SourceView.insert('0.0', AJSConsole.GetScript())
+        dbg.RightFrame.SourceView.insert('0.0', script)
         # Insert line numbers into the script
         for i in range(1, int(dbg.RightFrame.SourceView.index('end').split('.')[0])):
             dbg.RightFrame.SourceView.insert(str(i)+'.0', str(i)+':\t')
@@ -422,12 +427,12 @@ def attach():
     globalUpdate()
 
 def showHelp():
-    showinfo('Debugger GUI Help', help_message)
+    tm.showinfo('Debugger GUI Help', help_message)
 
 def install():
     options = {}
     options['initialdir'] = os.getcwd()
-    full_filename = askopenfilename(**options)
+    full_filename = fd.askopenfilename(**options)
     if type(full_filename) == str and full_filename != '':
         # Check if the debugger is detached
         if AJSConsole.GetTargetStatus() != 3:
@@ -471,7 +476,7 @@ def putVar():
         localUpdate()
     elif varSelected != '':
         if state != 2:
-            if not text_is_number(text):
+            if not text_is_number(text) and text[0] != '"':
                 text = '"' + text + '"'
             AJSConsole.DebugEval(varSelected + '=' + text)
             dbg.RightFrame.SourceView.tag_config("cur_var", background="white")
@@ -488,7 +493,6 @@ def closeDebugger():
 def spaceHandler(event):
     global currentFile
     enableEditing('source', 'off')
-    dbg.RightFrame.SourceView.focus_set()
     line_start = dbg.RightFrame.SourceView.index("@%s,%s linestart" % (event.x, event.y))
     line_start = line_start.split('.')[0]
     # Cursor is close to a line number
@@ -706,7 +710,7 @@ class DebugGUI(Frame):
 
     # Pop up an Alert message
     def Alert(self, arg):
-        showinfo('Alert', arg[0])
+        tm.showinfo('Alert', arg[0])
 
     # Update the console window with a Notification message
     def Notification(self, args):
@@ -766,9 +770,9 @@ if status == 'ER_OK':
         updateStateLable(AJSConsole.GetTargetStatus())
         dbg.mainloop()
     else:
-        showinfo('Failed to start debugger', status)
+        tm.showinfo('Failed to start debugger', status)
 else:
-    showinfo('Failed to connect to debug target', status)
+    tm.showinfo('Failed to connect to debug target', status)
 
 
 

@@ -141,8 +141,9 @@ void AJS_PyConsole::DebugNotification(const InterfaceDescription::Member* member
             uint8_t state;
             const char* fileName;
             const char* funcName;
-            uint8_t lineNumber, pc;
-            msg->GetArgs("yyssyy", &id, &state, &fileName, &funcName, &lineNumber, &pc);
+            uint16_t lineNumber;
+            uint8_t pc;
+            msg->GetArgs("yyssqy", &id, &state, &fileName, &funcName, &lineNumber, &pc);
             dbgCurrentLine = lineNumber;
             dbgPC = pc;
             if (state == 1) {
@@ -434,7 +435,8 @@ static PyObject* py_getversion(PyObject* self, PyObject* args)
 static PyObject* py_getscript(PyObject* self, PyObject* args)
 {
     bool ret = false;
-    char* script;
+    PyObject* tuple;
+    char* script = NULL;
     uint32_t size;
     Py_BEGIN_ALLOW_THREADS
         ret = console->GetScript((uint8_t**)&script, &size);
@@ -442,7 +444,9 @@ static PyObject* py_getscript(PyObject* self, PyObject* args)
     if (ret == false) {
         return Py_BuildValue("s", "");
     }
-    return Py_BuildValue("s", script);
+    tuple = Py_BuildValue("s", script);
+    free(script);
+    return tuple;
 }
 
 static PyObject* py_startdebugger(PyObject* self, PyObject* args)
@@ -788,6 +792,10 @@ static PyObject* py_debugeval(PyObject* self, PyObject* args)
 
         case DBG_TYPE_STRING2:
             tuple = Py_BuildValue("s", (char*)value);
+            break;
+
+        case DBG_TYPE_OBJECT:
+            tuple = Py_BuildValue("s", "<object>");
             break;
 
         default:

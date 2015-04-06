@@ -174,6 +174,9 @@ if env['TARG'] == 'linux':
         env.Append(CPPDEFINES=['DUK_OPT_INTERRUPT_COUNTER'])
         env.Append(CPPDEFINES=['DUK_CMDLINE_DEBUGGER_SUPPORT'])
     else:
+        env.Append(CPPDEFINES=['DUK_OPT_DEBUGGER_SUPPORT'])
+        env.Append(CPPDEFINES=['DUK_OPT_INTERRUPT_COUNTER'])
+        env.Append(CPPDEFINES=['DUK_CMDLINE_DEBUGGER_SUPPORT'])
         env.Append(CPPDEFINES=['NDEBUG'])
         env.Append(CFLAGS=['-Os'])
         env.Append(LINKFLAGS=['-s'])

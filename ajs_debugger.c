@@ -96,9 +96,21 @@ typedef struct _AJS_DebuggerState {
 #define AJ_DUK_TYPE_POINTER    'c' /* 0x1c <u8><data> */
 #define AJ_DUK_TYPE_LIGHTFUNC  'd' /* 0x1d <u16><u8><data> */
 #define AJ_DUK_TYPE_HEAPPTR    'e' /* 0x1e <u8><data> */
-#define AJ_DUK_TYPE_STRING     's' /* <0x60 - 0x7f><data> */
 #define AJ_DUK_TYPE_INTSM      'i' /* <0x80 - 0xbf> */
 #define AJ_DUK_TYPE_INTLG      't' /* <0xc0 - 0xff><u8> */
+
+/*
+ * Any duktape integer type (1, 2 or 4 byte)
+ */
+#define AJ_DUK_TYPE_INTEGER    'i'
+/*
+ * Any duktape string type (1, 2, or 4 byte)
+ */
+#define AJ_DUK_TYPE_STRING     's'
+/*
+ * Any duktape buffer type (4 or 2 byte)
+ */
+#define AJ_DUK_TYPE_BUFFER     'B'
 
 typedef enum {
     STATUS_NOTIFICATION     = 0x01,
@@ -249,6 +261,62 @@ static uint8_t IntDecode(uint8_t* in, uint32_t* out)
     }
 }
 
+static uint8_t StringDecode(uint8_t* in, char** out)
+{
+    uint8_t adv = 0;
+    uint32_t sz = 0;
+    /* 4 Byte string */
+    if (*in == DBG_TYPE_STRING4) {
+        adv = 5;
+        ++in;
+        memcpy(&sz, in, 4);
+        in += 4;
+        /* 2 Byte string */
+    } else if (*in == DBG_TYPE_STRING2) {
+        adv = 3;
+        ++in;
+        memcpy(&sz, in, 2);
+        in += 2;
+        /* 1 Byte string */
+    } else if ((*in >= DBG_TYPE_STRLOW) && (*in <= DBG_TYPE_STRHIGH)) {
+        adv = 1;
+        sz = *in - DBG_TYPE_STRLOW;
+        ++in;
+    } else {
+        AJ_ErrPrintf(("StringDecode(): Error, invalid identifier\n"));
+        return 0;
+    }
+    *out = (char*)AJ_Malloc(sizeof(char) * sz + 1);
+    memcpy(*out, in, sz);
+    (*out)[sz] = '\0';
+    return sz + adv;
+}
+
+static uint8_t BufferDecode(uint8_t* in, uint8_t** out)
+{
+    uint8_t adv = 0;
+    uint32_t sz = 0;
+    /* 4 Byte string */
+    if (*in == DBG_TYPE_BUFFER4) {
+        adv = 5;
+        ++in;
+        memcpy(&sz, in, 4);
+        in += 4;
+        /* 2 Byte buffer */
+    } else if (*in == DBG_TYPE_BUFFER2) {
+        adv = 3;
+        ++in;
+        memcpy(&sz, in, 2);
+        in += 2;
+    } else {
+        AJ_ErrPrintf(("BufferDecode(): Error, invalid identifier\n"));
+        return 0;
+    }
+    *out = (uint8_t*)AJ_Malloc(sizeof(char) * sz);
+    memcpy(*out, in, sz);
+    return sz + adv;
+}
+
 /*
  * Uses the cached last message information to compose a reply message
  */
@@ -308,103 +376,36 @@ static uint16_t UnmarshalBuffer(uint8_t* buffer, uint32_t length, uint16_t offse
             }
             break;
 
-        case (AJ_DUK_TYPE_UINT32):
+        case (AJ_DUK_TYPE_INTEGER):
             {
-                uint32_t* u32;
-                u32 = (uint32_t*)va_arg(args, uint32_t*);
-                if (*ptr != DBG_TYPE_INTEGER4) {
+                uint8_t adv = IntDecode(ptr, (uint32_t*)va_arg(args, uint32_t*));
+                if (adv == 0) {
                     goto ErrorUnmarshal;
                 }
-                /* Advance past identifier */
-                ptr++;
-                numBytes++;
-                memcpy(u32, ptr, sizeof(uint32_t));
-                ptr += sizeof(uint32_t);
-                numBytes += sizeof(uint32_t);
+                ptr += adv;
+                numBytes += adv;
             }
             break;
 
-        case (AJ_DUK_TYPE_STRING4):
+        case (AJ_DUK_TYPE_STRING):
             {
-                char** str;
-                uint32_t size;
-                if (*ptr != DBG_TYPE_STRING4) {
+                uint32_t adv = StringDecode(ptr, (char**)va_arg(args, char*));
+                if (adv == 0) {
                     goto ErrorUnmarshal;
                 }
-                /* Advance past identifier */
-                ptr++;
-                numBytes++;
-                memcpy(&size, ptr, sizeof(uint32_t));
-                ptr += sizeof(uint32_t);
-                numBytes += sizeof(uint32_t);
-                str = (char**)va_arg(args, char*);
-                *str = (char*)AJ_Malloc(sizeof(char) * size + 1);
-                memcpy(*str, ptr, sizeof(char) * size + 1);
-                (*str)[size] = '\0';
-                ptr += size;
-                numBytes += size;
+                ptr += adv;
+                numBytes += adv;
             }
             break;
 
-        case (AJ_DUK_TYPE_STRING2):
+        case (AJ_DUK_TYPE_BUFFER):
             {
-                char** str;
-                uint16_t size;
-                if (*ptr != DBG_TYPE_STRING2) {
+                uint32_t adv = BufferDecode(ptr, (uint8_t**)va_arg(args, uint8_t*));
+                if (adv == 0) {
                     goto ErrorUnmarshal;
                 }
-                /* Advance past identifier */
-                ptr++;
-                numBytes++;
-                memcpy(&size, ptr, sizeof(uint16_t));
-                ptr += sizeof(uint16_t);
-                numBytes += sizeof(uint16_t);
-                str = (char**)va_arg(args, char*);
-                *str = (char*)AJ_Malloc(sizeof(char) * size + 1);
-                memcpy(*str, ptr, sizeof(char) * size + 1);
-                (*str)[size] = '\0';
-                ptr += size;
-                numBytes += size;
-            }
-            break;
-
-        case (AJ_DUK_TYPE_BUFFER4):
-            {
-                uint8_t** buf;
-                uint32_t size;
-                if (*ptr != DBG_TYPE_BUFFER4) {
-                    goto ErrorUnmarshal;
-                }
-                ptr++;
-                numBytes++;
-                memcpy(&size, ptr, sizeof(uint32_t));
-                ptr += sizeof(uint32_t);
-                numBytes += sizeof(uint32_t);
-                buf = (uint8_t**)va_arg(args, uint8_t*);
-                *buf = (uint8_t*)AJ_Malloc(sizeof(uint8_t) * size);
-                memcpy(*buf, ptr, sizeof(uint8_t) * size);
-                ptr += size;
-                numBytes += size;
-            }
-            break;
-
-        case (AJ_DUK_TYPE_BUFFER2):
-            {
-                uint8_t** buf;
-                uint16_t size;
-                if (*ptr != DBG_TYPE_BUFFER4) {
-                    goto ErrorUnmarshal;
-                }
-                ptr++;
-                numBytes++;
-                memcpy(&size, ptr, sizeof(uint16_t));
-                ptr += sizeof(uint16_t);
-                numBytes += sizeof(uint16_t);
-                buf = (uint8_t**)va_arg(args, uint8_t*);
-                *buf = (uint8_t*)AJ_Malloc(sizeof(uint8_t) * size);
-                memcpy(*buf, ptr, sizeof(uint8_t) * size);
-                ptr += size;
-                numBytes += size;
+                ptr += adv;
+                numBytes += adv;
             }
             break;
 
@@ -430,54 +431,6 @@ static uint16_t UnmarshalBuffer(uint8_t* buffer, uint32_t length, uint16_t offse
             //TODO: Implement object, pointer, light func, and heap pointer types
             AJ_ErrPrintf(("Currently object, pointer, lightfunc and heap pointer types are not implemented\n"));
             goto ErrorUnmarshal;
-
-        case (AJ_DUK_TYPE_STRING):
-            {
-                char** str;
-                uint8_t size;
-                if ((*ptr < DBG_TYPE_STRLOW) || (*ptr > DBG_TYPE_STRHIGH)) {
-                    goto ErrorUnmarshal;
-                }
-                size = (*ptr) - DBG_TYPE_STRLOW;
-                ptr++;
-                numBytes++;
-                str = (char**)va_arg(args, char*);
-                *str = (char*)AJ_Malloc(sizeof(char) * size + 1);
-                memcpy(*str, ptr, sizeof(char) * size + 1);
-                (*str)[size] = '\0';
-                ptr += size;
-                numBytes += size;
-            }
-            break;
-
-        case (AJ_DUK_TYPE_INTSM):
-            {
-                uint8_t* u8;
-                if ((*ptr < DBG_TYPE_INTSMLOW) || (*ptr > DBG_TYPE_INTSMHIGH)) {
-                    goto ErrorUnmarshal;
-                }
-                u8 = (uint8_t*)va_arg(args, uint8_t*);
-                memcpy(u8, ptr, sizeof(uint8_t));
-                *u8 -= DBG_TYPE_INTSMLOW;
-                ptr += 1;
-                numBytes += 1;
-            }
-            break;
-
-        case (AJ_DUK_TYPE_INTLG):
-            {
-                uint16_t* u16;
-                if ((*ptr < DBG_TYPE_INTLGLOW) || (*ptr > DBG_TYPE_INTLGHIGH)) {
-                    goto ErrorUnmarshal;
-                }
-                u16 = (uint16_t*)va_arg(args, uint16_t*);
-                /* ((byte0 - 0xc0) << 8) + byte1 */
-                memcpy(u16, ptr, sizeof(uint16_t));
-                //*u16 = ((((*ptr) - 0xc0) << 8) | *(ptr + 1));
-                ptr += 2;
-                numBytes += 2;
-            }
-            break;
         }
     }
     va_end(args);
@@ -714,13 +667,16 @@ static AJ_Status DebugSimpleCommand(AJS_DebuggerState* state, AJ_Message* msg, D
  * that the message already has been marshalled enough to where the next argument
  * is the tval. Returned is the size of the data that was marshalled.
  */
-static uint32_t marshalTvalMsg(AJ_Message* msg, uint8_t valType, uint8_t* buffer)
+static uint32_t MarshalTvalMsg(AJ_Message* msg, uint8_t valType, uint8_t* buffer)
 {
     AJ_Status status = AJ_OK;
     uint32_t size = 0;
     if (valType == DBG_TYPE_NUMBER) {
         uint64_t value;
         memcpy(&value, buffer, sizeof(uint64_t));
+#if HOST_IS_BIG_ENDIAN
+        value = AJ_ByteSwap64(value);
+#endif
         if (status == AJ_OK) {
             status = AJ_MarshalVariant(msg, "t");
         }
@@ -1590,7 +1546,7 @@ static void DebuggerWriteFlush(void* udata)
 
 static void DebuggerDetached(void* udata)
 {
-    AJ_AlwaysPrintf(("DebuggerDetached(): Debugger was detached\n"));
+    AJ_InfoPrintf(("DebuggerDetached(): Debugger was detached\n"));
     if (dbgState) {
         AJ_InfoPrintf(("Free dbgState=%p\n", dbgState));
         if (dbgState->write) {
@@ -1627,7 +1583,9 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
                 AJ_BusAttachment* bus = AJS_GetBusAttachment();
                 AJ_Message msg;
                 AJ_Status status;
-                uint8_t type, st, lineNumber, pc;
+                uint8_t* i = state->write->readPtr;
+                uint32_t lineNumber, pc;
+                uint32_t type, st;
                 char* fileName = NULL;
                 char* funcName = NULL;
                 uint8_t dummy;
@@ -1636,26 +1594,27 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
                  * Unmarshal the type and state first. fileName/funcName may be null in case of a cooperate call
                  * so those need to be checked before unmarshalling further
                  */
-                state->write->readPtr += UnmarshalBuffer(state->write->readPtr, AJ_IO_BUF_AVAIL(state->write), 1, "ii", &type, &st);
+                i += UnmarshalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 1, "ii", &type, &st);
 
                 status = AJ_MarshalSignal(bus, &msg, DBG_NOTIF_MSGID,  AJS_GetConsoleBusName(), AJS_GetConsoleSession(), 0, 0);
 
                 /* fileName and funcName are null so just send back N/A and the line/pc number */
-                if (*state->write->readPtr == DBG_TYPE_UNDEFINED) {
-                    UnmarshalBuffer(state->write->readPtr, AJ_IO_BUF_AVAIL(state->write), 0, "yyii", &dummy, &dummy, &lineNumber, &pc);
-                    AJ_InfoPrintf(("AJS_DebuggerHandleMessage(): Debug notification, no bytecode executing, status = busy\n"));
+                if (*i == DBG_TYPE_UNDEFINED) {
+                    UnmarshalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "yyii", &dummy, &dummy, &lineNumber, &pc);
+                    AJ_InfoPrintf(("AJS_DebuggerHandleMessage(): Debug notification, no bytecode executing, state = %u lineNum = %u, pc = %u, file=%s, function=%s\n", st, lineNumber, pc, fileName, funcName));
                     if (status == AJ_OK) {
-                        status = AJ_MarshalArgs(&msg, "yyssyy", STATUS_NOTIFICATION, st, "N/A", "N/A", lineNumber, pc);
+                        status = AJ_MarshalArgs(&msg, "yyssqy", STATUS_NOTIFICATION, st, "N/A", "N/A", lineNumber, pc);
                     }
                     /* Notification with undefined as file/function means no bytecode is executing == busy */
                     state->status = AJS_DEBUG_ATTACHED_RUNNING;
                 } else {
                     /* Regular notification */
-                    UnmarshalBuffer(state->write->readPtr, AJ_IO_BUF_AVAIL(state->write), 0, "ssii", &fileName, &funcName, &lineNumber, &pc);
+                    i += UnmarshalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "ssii", &fileName, &funcName, &lineNumber, &pc);
+
                     AJ_InfoPrintf(("AJS_DebuggerHandleMessage(): Debug notification: state = %u lineNum = %u, pc = %u, file=%s, function=%s\n", st, lineNumber, pc, fileName, funcName));
 
                     if (status == AJ_OK) {
-                        status = AJ_MarshalArgs(&msg, "yyssyy", STATUS_NOTIFICATION, st, fileName, funcName, lineNumber, pc);
+                        status = AJ_MarshalArgs(&msg, "yyssqy", STATUS_NOTIFICATION, st, fileName, funcName, lineNumber, pc);
                     }
                     AJ_Free(fileName);
                     AJ_Free(funcName);
@@ -1720,7 +1679,7 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
                 }
                 /* GetVar valid is 1, eval valid is 0 */
                 if (((valid) && (state->lastMsgType == GET_VAR_REQ)) || ((state->lastMsgType == EVAL_REQ) && (valid == 0))) {
-                    marshalTvalMsg(&reply, valType, (i + 3));
+                    MarshalTvalMsg(&reply, valType, (i + 3));
                 } else {
                     if (status == AJ_OK) {
                         status = AJ_MarshalVariant(&reply, "y");
@@ -1742,11 +1701,11 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
                  * Basic info request format:
                  * <REP><duk version><description len><description><targ len><targ info><endianness><EOM>
                  */
-                uint16_t dukVersion;
-                uint8_t endianness;
+                uint32_t dukVersion;
+                uint32_t endianness;
                 char* describe, *targInfo;
 
-                UnmarshalBuffer(state->write->bufStart, AJ_IO_BUF_AVAIL(state->write), 1, "tssi", &dukVersion, &describe, &targInfo, &endianness);
+                UnmarshalBuffer(state->write->bufStart, AJ_IO_BUF_AVAIL(state->write), 1, "issi", &dukVersion, &describe, &targInfo, &endianness);
 
                 AJ_InfoPrintf(("AJS_DebuggerHandleMessage(): Basic Info reply, Version: %u, Describe: %s, Info: %s, Endian: %u\n", dukVersion, describe, targInfo, endianness));
 
@@ -1783,18 +1742,16 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
                 i++;
                 while (*i != DBG_TYPE_EOM) {
                     uint32_t line;
-                    uint8_t pc;
+                    uint32_t pc;
                     char* fname, *funcName;
                     AJ_Arg struct1;
 
                     status = AJ_MarshalContainer(&reply, &struct1, AJ_ARG_STRUCT);
 
-                    i += UnmarshalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "ss", &fname, &funcName);
-                    i += IntDecode(i, &line);
-                    i += UnmarshalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "i", &pc);
+                    i += UnmarshalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "ssii", &fname, &funcName, &line, &pc);
 
                     AJ_InfoPrintf(("AJS_DebuggerHandleMessage(): Get Callstack, File: %s, Function: %s, Line: %u, PC: %u\n", fname, funcName, line, pc));
-                    status = AJ_MarshalArgs(&reply, "ssqy", fname, funcName, line, pc);
+                    status = AJ_MarshalArgs(&reply, "ssqy", fname, funcName, (uint16_t)line, pc);
                     if (status == AJ_OK) {
                         status = AJ_MarshalCloseContainer(&reply, &struct1);
                     }
@@ -1839,9 +1796,7 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
                         }
                         break;
                     }
-                    i += UnmarshalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "s", &fname);
-                    /* Line number must be decoded */
-                    i += IntDecode(i, &line);
+                    i += UnmarshalBuffer(i, AJ_IO_BUF_AVAIL(state->write), 0, "si", &fname, &line);
 
                     AJ_InfoPrintf(("AJS_DebuggerHandleMessage Breakpoint: File: %s, Line: %u\n", fname, line));
                     status = AJ_MarshalArgs(&reply, "sq", fname, (uint16_t)line);
@@ -1921,7 +1876,7 @@ void AJS_DebuggerHandleMessage(AJS_DebuggerState* state)
                     status = AJ_MarshalContainer(&reply, &struct1, AJ_ARG_STRUCT);
                     advance = UnmarshalBuffer(i + 1, AJ_IO_BUF_AVAIL(state->write), 0, "sy", &name, &valType);
                     status = AJ_MarshalArgs(&reply, "ys", valType, name);
-                    advance += marshalTvalMsg(&reply, valType, (i + 1 + strlen(name) + 2));
+                    advance += MarshalTvalMsg(&reply, valType, (i + 1 + strlen(name) + 2));
                     i += advance;
                     state->msgLength -= advance;
                     if (status == AJ_OK) {

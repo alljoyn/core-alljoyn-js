@@ -326,6 +326,10 @@ AJ_Status AJS_TargetIO_PinOpen(uint16_t pinIndex, AJS_IO_PinConfig config, void*
     fd = OpenDeviceProp(dev, gpio_root, "value", (config == AJS_IO_PIN_OUTPUT) ? O_RDWR : O_RDONLY);
     if (fd >= 0) {
         gpio = malloc(sizeof(GPIO));
+        if (!gpio) {
+            AJ_ErrPrintf(("AJS_TargetIO_PinOpen(): Malloc failed to allocate %d bytes\n", sizeof(GPIO)));
+            return AJ_ERR_RESOURCES;
+        }
         gpio->fd = fd;
         gpio->pinId = pin;
         gpio->trigId = AJS_IO_PIN_NO_TRIGGER;

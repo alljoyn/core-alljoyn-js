@@ -43,6 +43,10 @@ static AJ_Status ReadScript(SCRIPTF* sf, const uint8_t** data, uint32_t* len)
     if (fseek(sf->file, 0, SEEK_END) == 0) {
         sf->len = ftell(sf->file);
         sf->buf = malloc(sf->len);
+        if (!sf->buf) {
+            AJ_ErrPrintf(("ReadScript(): Malloc failed to allocate %d bytes\n", sf->len));
+            return AJ_ERR_RESOURCES;
+        }
         fseek(sf->file, 0, SEEK_SET);
         fread(sf->buf, sf->len, 1, sf->file);
         *data = sf->buf;

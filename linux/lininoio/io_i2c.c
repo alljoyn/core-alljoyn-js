@@ -101,7 +101,10 @@ AJ_Status AJS_TargetIO_I2cOpen(uint8_t sda, uint8_t scl, uint32_t clock, uint8_t
         return AJ_ERR_DRIVER;
     }
     i2c = malloc(sizeof(I2C_CONTEXT));
-
+    if (!i2c) {
+        AJ_ErrPrintf(("AJS_TargetIO_PinOpen(): Malloc failed to allocate %d bytes\n", sizeof(I2C_CONTEXT)));
+        return AJ_ERR_RESOURCES;
+    }
     memset(i2c, 0, sizeof(I2C_CONTEXT));
 
     i2c->fd = fd;

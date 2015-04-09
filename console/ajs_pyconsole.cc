@@ -73,6 +73,12 @@ static char debugVersion[128];
 static uint16_t dbgCurrentLine = 0;
 static uint16_t dbgPC = 0;
 
+static void FatalError(void)
+{
+    printf("There was a fatal error, exiting\n");
+    exit(1);
+}
+
 AJS_PyConsole::AJS_PyConsole() : AJS_Console(), pycallback(NULL), notifCallback(NULL) {
 }
 
@@ -773,6 +779,9 @@ static PyObject* py_debugeval(PyObject* self, PyObject* args)
             {
                 /* String type */
                 char* str = (char*)malloc(sizeof(char) * size + 1);
+                if (!str) {
+                    FatalError();
+                }
                 memcpy(str, value, size);
                 str[size] = '\0';
                 tuple = Py_BuildValue("s", str);

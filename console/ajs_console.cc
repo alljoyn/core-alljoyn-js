@@ -299,6 +299,12 @@ static void printDebugMsg(void* buffer, uint32_t length)
 }
 #endif
 
+static void FatalError(void)
+{
+    printf("There was a fatal error, exiting\n");
+    exit(1);
+}
+
 /*
  * Parse a variant knowing that it contains some kind of duktape dvalue/tvalue
  */
@@ -323,6 +329,9 @@ static void ParseDvalData(MsgArg* variant, uint8_t identifier, uint8_t** value, 
     case DBG_TYPE_FALSE:
         *size = 1;
         (*value) = (uint8_t*)malloc(sizeof(uint8_t));
+        if (!(*value)) {
+            FatalError();
+        }
         variant->Get("y", (*value));
         *type = *(*value); /* Value is also the ID */
         break;
@@ -330,6 +339,9 @@ static void ParseDvalData(MsgArg* variant, uint8_t identifier, uint8_t** value, 
     case DBG_TYPE_NUMBER:
         /* Number type */
         (*value) = (uint8_t*)malloc(sizeof(uint8_t) * 8);
+        if (!(*value)) {
+            FatalError();
+        }
         *size = 8;
         variant->Get("t", (*value));
         *type = 0x1a;
@@ -350,12 +362,18 @@ static void ParseDvalData(MsgArg* variant, uint8_t identifier, uint8_t** value, 
             if (id == DBG_TYPE_OBJECT) {
                 /* Object contains the class number as well as a pointer so it needs an extra byte */
                 (*value) = (uint8_t*)malloc(sizeof(uint8_t) * sz + 1);
+                if (!(*value)) {
+                    FatalError();
+                }
                 memcpy((*value), &tmp, 1);
                 memcpy(((*value) + 1), data, sz);
                 *size = sz + 1;
                 /* Pointer or heap pointer */
             } else if ((id == DBG_TYPE_POINTER) || (id == DBG_TYPE_HEAPPTR)) {
                 (*value) = (uint8_t*)malloc(sizeof(uint8_t) * sz);
+                if (!(*value)) {
+                    FatalError();
+                }
                 memcpy((*value), data, sz);
                 *size = sz;
             } else {
@@ -376,10 +394,16 @@ static void ParseDvalData(MsgArg* variant, uint8_t identifier, uint8_t** value, 
             *type = identifier;
             if ((identifier == DBG_TYPE_BUFFER2) || (identifier == DBG_TYPE_BUFFER4)) {
                 (*value) = (uint8_t*)malloc(sizeof(uint8_t) * sz);
+                if (!(*value)) {
+                    FatalError();
+                }
                 *size = sz;
                 memcpy(((*value)), data, *size);
             } else {
                 (*value) = (uint8_t*)malloc(sizeof(uint8_t) * sz + 2);
+                if (!(*value)) {
+                    FatalError();
+                }
                 memcpy((*value), &flags, 2);
                 memcpy(((*value) + 2), data, sz);
                 *size = sz + 2;
@@ -395,17 +419,26 @@ static void ParseDvalData(MsgArg* variant, uint8_t identifier, uint8_t** value, 
             variant->Get("s", &str);
             *size = strlen(str) + 1;
             (*value) = (uint8_t*)malloc(sizeof(char) * (*size));
+            if (!(*value)) {
+                FatalError();
+            }
             memcpy((*value), str, (*size) - 1);
             (*value)[(*size) - 1] = (uint8_t)'\0';
             *type = DBG_TYPE_STRLOW;
         } else if ((identifier >= DBG_TYPE_INTSMLOW) && (identifier <= DBG_TYPE_INTSMHIGH)) {
             (*value) = (uint8_t*)malloc(sizeof(uint8_t));
+            if (!(*value)) {
+                FatalError();
+            }
             variant->Get("y", (*value));
             *size = 1;
             *type = DBG_TYPE_INTLGLOW;
         } else if ((identifier >= DBG_TYPE_INTLGLOW) && (identifier <= DBG_TYPE_INTLGHIGH)) {
             uint16_t bytes;
             (*value) = (uint8_t*)malloc(sizeof(uint8_t) * 2);
+            if (!(*value)) {
+                FatalError();
+            }
             bytes = variant->Get("q", &bytes);
             (*value)[0] = ((((bytes & 0xff00) >> 8) - 0xc0) << 8);
             (*value)[1] = (bytes & 0x00ff);
@@ -676,6 +709,9 @@ void AJS_Console::ListBreak(AJS_BreakPoint** breakpoints, uint8_t* count)
     entries = reply->GetArg(0);
     entries->Get("a(sq)", &num, &newEntries);
     *(breakpoints) = (AJS_BreakPoint*)malloc(sizeof(AJS_BreakPoint) * num);
+    if (!*(breakpoints)) {
+        FatalError();
+    }
     *count = num;
     for (size_t i = 0; i < num; ++i) {
         char* file;
@@ -685,6 +721,9 @@ void AJS_Console::ListBreak(AJS_BreakPoint** breakpoints, uint8_t* count)
         if (strcmp(file, "") != 0) {
             len = strlen(file);
             (*breakpoints)[i].fname = (char*)malloc(sizeof(char) * len + 1);
+            if (!(*breakpoints)[i].fname) {
+                FatalError();
+            }
             memcpy((void*)(*breakpoints)[i].fname, file, len);
             (*breakpoints)[i].fname[len] = '\0';
             (*breakpoints)[i].line = line;
@@ -726,6 +765,9 @@ void AJS_Console::GetCallStack(AJS_CallStack** stack, uint8_t* size)
         entries = reply->GetArg(0);
         entries->Get("a(ssqy)", &num, &newEntries);
         (*stack) = (AJS_CallStack*)malloc(sizeof(AJS_CallStack) * num);
+        if (!*stack) {
+            FatalError();
+        }
         *size = num;
         for (size_t i = 0; i < num; ++i) {
             char* file, *func;
@@ -737,6 +779,9 @@ void AJS_Console::GetCallStack(AJS_CallStack** stack, uint8_t* size)
             funcLen = strlen(func);
             (*stack)[i].filename = (char*)malloc(sizeof(char) * fileLen + 1);
             (*stack)[i].function = (char*)malloc(sizeof(char) * funcLen + 1);
+            if (!(*stack)[i].filename || !(*stack)[i].function) {
+                FatalError();
+            }
             memcpy((*stack)[i].filename, file, fileLen);
             (*stack)[i].filename[fileLen] = '\0';
             memcpy((*stack)[i].function, func, funcLen);
@@ -792,7 +837,7 @@ void AJS_Console::GetLocals(AJS_Locals** list, uint16_t* size)
             locals = (AJS_Locals*)malloc(sizeof(AJS_Locals) * num);
             if (!locals) {
                 QCC_LogError(ER_OUT_OF_MEMORY, ("getLocals malloc failed\n"));
-                return;
+                FatalError();
             }
             *list = locals;
         }
@@ -806,6 +851,9 @@ void AJS_Console::GetLocals(AJS_Locals** list, uint16_t* size)
             if (identifier) {
                 size_t len = strlen(name);
                 locals->name = (char*)malloc(sizeof(char) * (len + 1));
+                if (!locals->name) {
+                    FatalError();
+                }
                 strncpy(locals->name, name, len + 1);
                 /*
                  * Unmarshal the variants signature
@@ -958,6 +1006,9 @@ bool AJS_Console::GetScript(uint8_t** script, uint32_t* length)
     entries = reply->GetArg(0);
     entries->Get("ay", length, &s);
     (*script) = (uint8_t*)malloc(sizeof(char) * (*length) + 1);
+    if (!*script) {
+        FatalError();
+    }
     memcpy((*script), (s + 4), (*length) + 4);
     (*script)[(*length) + 4] = (uint8_t)'\0';
     return true;
@@ -1279,15 +1330,24 @@ void AJS_Console::Notification(const InterfaceDescription::Member* member, const
     size_t num;
     strings->Get("a(ss)", &num, &entries);
     notifList = (AJS_NotifText*)malloc(num * sizeof(AJS_NotifText));
+    if (!notifList) {
+        FatalError();
+    }
     if (notifList) {
         for (size_t i = 0; i < num; ++i) {
             char* lang;
             char* txt;
             entries[i].Get("(ss)", &lang, &txt);
             notifList[i].lang = (char*)malloc(strlen(lang) * sizeof(char) + 1);
+            if (!notifList[i].lang) {
+                FatalError();
+            }
             memcpy(notifList[i].lang, lang, strlen(lang));
             notifList[i].lang[strlen(lang)] = '\0';
             notifList[i].txt = (char*)malloc(strlen(txt) * sizeof(char) + 1);
+            if (!notifList[i].txt) {
+                FatalError();
+            }
             memcpy(notifList[i].txt, txt, strlen(txt));
             notifList[i].txt[strlen(txt)] = '\0';
         }

@@ -24,6 +24,13 @@
 
 static volatile sig_atomic_t g_interrupt = 0;
 
+static void FatalError(void)
+{
+    printf("There was a fatal error, exiting\n");
+    exit(1);
+}
+
+
 static void SigIntHandler(int sig)
 {
     g_interrupt = 1;
@@ -60,6 +67,9 @@ static int ReadScriptFile(const char* fname, uint8_t** data, size_t* len)
     if (fseek(scriptf, 0, SEEK_END) == 0) {
         *len = ftell(scriptf);
         *data = (uint8_t*)malloc(*len);
+        if (!*data) {
+            FatalError();
+        }
         fseek(scriptf, 0, SEEK_SET);
         fread(*data, *len, 1, scriptf);
         fclose(scriptf);
@@ -208,6 +218,9 @@ int main(int argc, char** argv)
                             j++;
                         }
                         file = (char*)malloc(sizeof(char) * j + 1);
+                        if (!file) {
+                            FatalError();
+                        }
                         memcpy(file, input + 10, j);
                         file[j] = '\0';
                         line = atoi(input + 11 + j);
@@ -319,6 +332,9 @@ int main(int argc, char** argv)
                                     j++;
                                 }
                                 var = (char*)malloc(sizeof(char) * j + 1);
+                                if (!var) {
+                                    FatalError();
+                                }
                                 memcpy(var, input + 8, j);
                                 var[j] = '\0';
                                 printf("Get Var: %s, ", var);
@@ -346,11 +362,17 @@ int main(int argc, char** argv)
                                 }
                                 /* Get the variables name */
                                 name = (char*)malloc(sizeof(char) * j + 1);
+                                if (!name) {
+                                    FatalError();
+                                }
                                 memcpy(name, input + 8, j);
                                 name[j] = '\0';
 
                                 /* Get the variables string value */
                                 value = (char*)malloc(sizeof(char) * (strlen(input) - (8 + j)) + 1);
+                                if (!value) {
+                                    FatalError();
+                                }
                                 memcpy(value, input + 9 + j, (strlen(input) - (8 + j)));
                                 value[(strlen(input) - (8 + j))] = '\0';
                                 /* Must get the variables type to ensure the input is valid */

@@ -77,7 +77,7 @@ static const char* const scriptConsoleIface[] = {
 
 static const char* const scriptDebugIface[] = {
     "org.allseen.scriptDebugger",
-    "!notification id>y data>yssyy",                /* Notification to the debug client, id=type of notification */
+    "!notification id>y data>yssqy",                /* Notification to the debug client, id=type of notification */
     "?basicInfo reply>yssy",                        /* Basic info request */
     "?triggerStatus reply>y",                       /* This triggers a notification update */
     "?pause reply>y",                               /* Pause the debugger */

@@ -102,7 +102,7 @@ static const char consoleXML[] =
     /* Request for notification update, reply will come as the 'notification' signal (above) */
     "   <signal name=\"notification\"> "
     "     <arg name=\"id\" type=\"y\"/> "
-    "     <arg name=\"data\" type=\"yssyy\"/> "
+    "     <arg name=\"data\" type=\"yssqy\"/> "
     "   </signal> "
     /* Request for basic debug information (version, target info etc) */
     "   <method name=\"basicInfo\"> "
@@ -1345,8 +1345,9 @@ void AJS_Console::DebugNotification(const InterfaceDescription::Member* member, 
             uint8_t state;
             const char* fileName;
             const char* funcName;
-            uint8_t lineNumber, pc;
-            msg->GetArgs("yyssyy", &id, &state, &fileName, &funcName, &lineNumber, &pc);
+            uint16_t lineNumber;
+            uint8_t pc;
+            msg->GetArgs("yyssqy", &id, &state, &fileName, &funcName, &lineNumber, &pc);
             if (state == 1) {
                 debugState = AJS_DEBUG_ATTACHED_PAUSED;
             } else {

@@ -204,8 +204,16 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
         duk_pop(ctx);
         return status;
     }
+    /*
+     * Opens up a stack entry above the function
+     */
+    duk_dup_top(ctx);
     msgIdx = AJS_UnmarshalMessage(ctx, msg, accessor);
-    AJ_ASSERT(msgIdx == (ajIdx + 2));
+    AJ_ASSERT(msgIdx == (ajIdx + 3));
+    /*
+     * Save the message object on the stack
+     */
+    duk_copy(ctx, msgIdx, -3);
     /*
      * Special case for GET prop so we can get the signature for marshalling the result
      */
@@ -216,16 +224,25 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
     }
     if (status == AJ_OK) {
         duk_idx_t numArgs = duk_get_top(ctx) - msgIdx - 1;
+        AJS_DumpStack(ctx);
         if (duk_pcall_method(ctx, numArgs) != DUK_EXEC_SUCCESS) {
-            AJ_ErrPrintf(("%s: %s\n", func, duk_safe_to_string(ctx, -1)));
+            const char* err = duk_safe_to_string(ctx, -1);
+
+            AJ_ErrPrintf(("%s: %s\n", func, err));
+            /*
+             * Generate an error reply if this was a method call
+             */
+            if (msg->hdr->msgType == AJ_MSG_METHOD_CALL) {
+                duk_push_c_lightfunc(ctx, AJS_MethodCallError, 1, 0, 0);
+                duk_insert(ctx, -3);
+                (void)duk_pcall_method(ctx, 1);
+            }
         }
-        duk_pop(ctx);
-    } else {
-        /*
-         * Cleanup stack back to the AJ object
-         */
-        duk_set_top(ctx, ajIdx);
     }
+    /*
+     * Cleanup stack back to the AJ object
+     */
+    duk_set_top(ctx, ajIdx + 1);
     return status;
 }
 

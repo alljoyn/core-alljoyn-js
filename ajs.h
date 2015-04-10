@@ -420,9 +420,9 @@ int AJS_MarshalSignal(duk_context* ctx);
  * Unmarshals a message from C to JavaScript pushing the resultant JavaScript object onto the
  * duktape stack. Returns the index of the message object.
  *
- * @param ctx      An opaque pointer to a duktape context structure
- * @param msg      The message to unmarshal
- * @param accessor Indicates if the message is an accessor (PropGet/PropSet/PropGetAll method call)
+ * @param ctx          An opaque pointer to a duktape context structure
+ * @param msg          The message to unmarshal
+ * @param accessor     Indicates if the message is an accessor (PropGet/PropSet/PropGetAll method call)
  *
  * @return   Returns the absolute index on the duktape stack for the pushed object.
  */

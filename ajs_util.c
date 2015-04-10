@@ -278,7 +278,7 @@ void AJS_DumpStack(duk_context* ctx)
         duk_idx_t top = duk_get_top_index(ctx);
 
         AJS_DumpJX(ctx, "===== Duktape Stack =====", top);
-        while (--top) {
+        while (top--) {
             AJS_DumpJX(ctx, NULL, top);
         }
         AJ_AlwaysPrintf(("=========================\n"));

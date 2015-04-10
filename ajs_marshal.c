@@ -541,7 +541,12 @@ static int HandleReply(duk_context* ctx, const char* error)
     duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("reply"));
     msgReply = duk_require_buffer(ctx, -1, NULL);
     duk_pop(ctx);
-
+    /*
+     * A zero indicates the reply has already been sent
+     */
+    if (msgReply->serialNum == 0) {
+        duk_error(ctx, DUK_ERR_RANGE_ERROR, "reply already sent");
+    }
     AJ_InfoPrintf(("Reply for serial %d\n", msgReply->serialNum));
     /*
      * Initialze a phoney header for the call
@@ -550,6 +555,10 @@ static int HandleReply(duk_context* ctx, const char* error)
     header.serialNum = msgReply->serialNum;
     header.flags = msgReply->flags;
     header.msgType = AJ_MSG_METHOD_CALL;
+    /*
+     * Zero out the serial number to indicate that the reply has been sent
+     */
+    msgReply->serialNum = 0;
 
     duk_get_prop_string(ctx, -1, "sender");
     call.sender = duk_require_string(ctx, -1);
@@ -561,7 +570,7 @@ static int HandleReply(duk_context* ctx, const char* error)
     call.bus = AJS_GetBusAttachment();
 
     if (error) {
-        status = AJ_MarshalErrorMsg(&call, &msg, error);
+        status = AJ_MarshalErrorMsgWithInfo(&call, &msg, AJ_ErrRejected, error);
     } else {
         status = AJ_MarshalReplyMsg(&call, &msg);
         if (status == AJ_OK) {

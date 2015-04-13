@@ -139,7 +139,7 @@ static const AJ_Object consoleObjects[] = {
 /*
  * We don't want scripts to fill all available NVRAM.
  */
-static uint32_t MaxScriptLen()
+uint32_t AJS_MaxScriptLen()
 {
     return (3 * AJ_NVRAM_GetSizeRemaining()) / 4;
 }
@@ -446,7 +446,7 @@ static AJ_Status Install(duk_context* ctx, AJ_Message* msg)
         len = ENDSWAP32(len);
     }
     AJ_MarshalReplyMsg(msg, &reply);
-    if (len > MaxScriptLen()) {
+    if (len > AJS_MaxScriptLen()) {
         replyStatus = SCRIPT_RESOURCE_ERROR;
         AJ_MarshalArgs(&reply, "ys", replyStatus, "Script too long");
         AJ_ErrPrintf(("Script installation failed - too long\n"));
@@ -537,7 +537,7 @@ static AJ_Status PropGetHandler(AJ_Message* replyMsg, uint32_t propId, void* con
         return AJ_MarshalArgs(replyMsg, "u", MAX_EVAL_LEN);
 
     case MAX_SCRIPT_LEN_PROP:
-        return AJ_MarshalArgs(replyMsg, "u", (uint32_t)MaxScriptLen());
+        return AJ_MarshalArgs(replyMsg, "u", (uint32_t)AJS_MaxScriptLen());
 
     default:
         return AJ_ERR_UNEXPECTED;

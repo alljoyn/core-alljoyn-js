@@ -54,7 +54,7 @@ static AJ_Status SetPasscode(const char* routerRealm, const uint8_t* newPasscode
     return status;
 }
 
-AJ_Status AJS_FactoryReset()
+AJ_Status AJS_FactoryReset(void)
 {
     AJ_Status status = AJ_OK;
 

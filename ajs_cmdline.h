@@ -19,46 +19,21 @@
 
 #include "ajs.h"
 #include "ajs_target.h"
-#include "ajs_cmdline.h"
-#include "aj_target_nvram.h"
+
+/**
+ * Install a script as specified on the command line
+ */
+AJ_Status AJS_InstallScript(const char* fn);
+
+typedef struct {
+    const char* deviceName;
+    const char* scriptName;
+    const char* nvramFile;
+    const char* logFile;
+    uint32_t daemonize;
+} AJS_CmdOptions;
+
+int AJS_CmdlineOptions(int argc, char* argv[], AJS_CmdOptions* options);
 
 
-int main(int argc, char* argv[])
-{
-    AJ_Status status;
-    AJS_CmdOptions options;
-
-    if (AJS_CmdlineOptions(argc, argv, &options)) {
-        goto Usage;
-    }
-    if (options.daemonize || options.logFile) {
-        goto Usage;
-    }
-
-    AJ_SetNVRAM_FilePath(options.nvramFile);
-    AJ_Initialize();
-
-    if (options.scriptName) {
-        status = AJS_InstallScript(options.scriptName);
-        if (status != AJ_OK) {
-            AJ_Printf("Failed to install script %s\n", options.scriptName);
-            exit(1);
-        }
-    }
-
-    do {
-        status = AJS_Main(options.deviceName);
-    } while (status == AJ_ERR_RESTART);
-
-    return (int)status;
-
-Usage:
-
-#ifndef NDEBUG
-    AJ_Printf("Usage: %s [--debug] [--name <device-name>] [--nvram-file <nvram-file>] [script_file]\n", argv[0]);
-#else
-    AJ_Printf("Usage: %s [--name <device-name>] [--nvram-file <nvram-file>] [script_file]\n", argv[0]);
-#endif
-    exit(1);
-}
 

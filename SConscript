@@ -57,6 +57,7 @@ ajs_sources = [
      'ajs_util.c',
      'ajs_debugger.c',
      'ajs_obs_stubs.c',
+     'ajs_cmdline.c',
      env['os'] + '/ajs_main.c',
      env['os'] + '/ajs_malloc.c'
 ]

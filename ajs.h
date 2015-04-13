@@ -543,6 +543,15 @@ typedef enum {
  */
 void AJS_DeferredOperation(duk_context* ctx, AJS_DEFERRED_OP op);
 
+
+/**
+ * Returns the maximum NVRAM space to allocate for a script. The value returned is target specific
+ * and depends on available resources.
+ *
+ * @return  The maximum permitted script length in bytes.
+ */
+uint32_t AJS_MaxScriptLen();
+
 /*
  * Dump the heap pool allocations
  *

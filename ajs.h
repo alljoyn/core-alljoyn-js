@@ -489,45 +489,6 @@ void AJS_AlertHandler(duk_context* ctx, uint8_t alert);
 AJ_Status AJS_PropertyStoreInit(duk_context* ctx, const char* deviceName);
 
 /**
- * Allocate memory
- *
- * @param sz  The size of the memory block to allocate
- *
- * @return A pointer to the allocated memory block or NULL if the request could not be satisfied.
- */
-void* AJS_Alloc(void* userData, size_t sz);
-
-/**
- * Free a memory block returning it to the pool from which it was allocated.
- *
- * @param mem   Pointer to the memory block to free, can be NULL
- */
-void AJS_Free(void* userData, void* mem);
-
-/**
- * Reallocates a memory block with a larger or smaller size. If the current block is large enough to
- * satisfy the request that block is simply returned, otherwise a new larger block is allocated, the
- * contents of the old block are copied over and the old block is freed.
- *
- * @param mem   Pointer to the memory block to reallocate, can be NULL which case this is equivalent
- *              to calling AJS_HeapMalloc.
- * @param newSz The size of the new memory block
- *
- * @return A pointer to the allocated memory block or NULL if the request could not be satisfied.
- */
-void* AJS_Realloc(void* userData, void* mem, size_t newSz);
-
-/**
- * Create the AllJoyn.js heap
- */
-AJ_Status AJS_HeapCreate();
-
-/**
- * Destroy the AllJoyn.js heap
- */
-void AJS_HeapDestroy();
-
-/**
  * Reset the property store to defaults and offboard the device
  */
 AJ_Status AJS_FactoryReset();
@@ -543,7 +504,6 @@ typedef enum {
  */
 void AJS_DeferredOperation(duk_context* ctx, AJS_DEFERRED_OP op);
 
-
 /**
  * Returns the maximum NVRAM space to allocate for a script. The value returned is target specific
  * and depends on available resources.
@@ -552,16 +512,6 @@ void AJS_DeferredOperation(duk_context* ctx, AJS_DEFERRED_OP op);
  */
 uint32_t AJS_MaxScriptLen();
 
-/*
- * Dump the heap pool allocations
- *
- * @param ctx     An opaque pointer to a duktape context structure
- */
-#ifndef NDEBUG
-void AJS_HeapDump();
-#else
-#define AJS_HeapDump() do { } while (0)
-#endif
 #ifdef __cplusplus
 }
 #endif

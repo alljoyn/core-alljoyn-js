@@ -21,6 +21,7 @@
 #include "ajs_util.h"
 #include "ajs_target.h"
 #include "ajs_ctrlpanel.h"
+#include "ajs_heap.h"
 #include "aj_util.h"
 
 /**

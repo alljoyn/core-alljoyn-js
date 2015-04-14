@@ -1222,12 +1222,6 @@ QStatus AJS_Console::Install(qcc::String name, const uint8_t* script, size_t scr
     args[0].Set("s", name.c_str());
     args[1].Set("ay", scriptLen, script);
 
-    status = proxy->MethodCall("org.allseen.scriptConsole", "reset", NULL, 0, reply);
-    if (status != ER_OK) {
-        QCC_LogError(status, ("MethodCall(\"reset\") failed\n"));
-        return status;
-    }
-
     Print("Installing script of length %d\n", scriptLen);
 
     status = proxy->MethodCall("org.allseen.scriptConsole", "install", args, 2, reply);

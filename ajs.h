@@ -403,6 +403,13 @@ AJ_Status AJS_HandleAcceptSession(duk_context* ctx, AJ_Message* msg, uint16_t po
 AJ_Status AJS_SessionLost(duk_context* ctx, AJ_Message* msg);
 
 /**
+ * End all application sessions that are currently active
+ *
+ * @param ctx   An opaque pointer to a duktape context structure
+ */
+AJ_Status AJS_EndSessions(duk_context* ctx);
+
+/**
  * Native function called from JavaScript to marshal and send a method call message
  *
  * @param ctx  An opaque pointer to a duktape context structure

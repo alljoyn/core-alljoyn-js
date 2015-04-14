@@ -159,6 +159,14 @@ void AJS_GetGlobalStashObject(duk_context* ctx, const char* name)
     duk_remove(ctx, -2);
 }
 
+void AJS_ClearGlobalStashObject(duk_context* ctx, const char* name)
+{
+    duk_push_global_stash(ctx);
+    duk_push_object(ctx);
+    duk_put_prop_string(ctx, -2, name);
+    duk_pop(ctx);
+}
+
 void AJS_GetGlobalStashArray(duk_context* ctx, const char* name)
 {
     duk_push_global_stash(ctx);

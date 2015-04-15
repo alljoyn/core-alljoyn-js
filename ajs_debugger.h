@@ -93,6 +93,14 @@ AJ_Status AJS_StopDebugger(duk_context* ctx, AJ_Message* msg);
 AJ_Status AJS_DebuggerGetStatus(duk_context* ctx, AJ_Message* msg);
 
 /**
+ * Check if a debug client is currently attached
+ *
+ * @return  TRUE if attached
+ *          FALSE if detached
+ */
+uint8_t AJS_DebuggerIsAttached(void);
+
+/**
  * Handle a Debugger GetScriptName command.
  *
  * @param ctx  An opaque pointer to a duktape context structure

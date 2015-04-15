@@ -20,6 +20,7 @@
  * The corresponding flag dbgAJSVCAPP is defined in the containing sample app.
  */
 #include "ajs.h"
+#include "ajs_util.h"
 #include "ajs_ctrlpanel.h"
 #include "aj_debug.h"
 
@@ -39,33 +40,6 @@ static AJ_Object* objectList;
 static uint8_t InvolvesRootWidget(uint32_t identifier)
 {
     return OBJ_INDEX(identifier) == 0;
-}
-
-/*
- * Makes a copy of enough of a method call message to construct a reply message.
- */
-static AJ_Message* CloneAndCloseMessage(AJ_Message* msg)
-{
-    size_t len = strlen(msg->sender);
-    struct {
-        AJ_Message msg;
-        AJ_MsgHeader hdr;
-        char sender[1];
-    }* buffer;
-
-    buffer = AJ_Malloc(sizeof(*buffer) + len);
-    if (buffer) {
-        memcpy(buffer->sender, msg->sender, len + 1);
-        memcpy(&buffer->hdr, msg->hdr, sizeof(AJ_MsgHeader));
-        memset(&buffer->msg, 0, sizeof(AJ_Message));
-        buffer->msg.hdr = &buffer->hdr;
-        buffer->msg.sender = buffer->sender;
-        buffer->msg.msgId = msg->msgId;
-        buffer->msg.sessionId = msg->sessionId;
-        buffer->msg.bus = msg->bus;
-    }
-    AJ_CloseMsg(msg);
-    return (AJ_Message*)buffer;
 }
 
 static AJ_Status SetWidgetProp(AJ_Message* msg)
@@ -151,7 +125,7 @@ static AJ_Status SetWidgetProp(AJ_Message* msg)
     /*
      * Need to make a clone of the message and close the original
      */
-    msg = CloneAndCloseMessage(msg);
+    msg = AJS_CloneAndCloseMessage(widget->dukCtx, msg);
     if (!msg) {
         return AJ_ERR_RESOURCES;
     }
@@ -169,7 +143,6 @@ static AJ_Status SetWidgetProp(AJ_Message* msg)
         AJ_MarshalStatusMsg(msg, &reply, status);
     }
     AJ_DeliverMsg(&reply);
-    AJ_Free(msg);
 
     return status;
 }
@@ -183,7 +156,7 @@ static AJ_Status ExecuteAction(AJ_Message* msg, uint8_t action, void* context)
     /*
      * Need to make a clone of the message and close the original
      */
-    msg = CloneAndCloseMessage(msg);
+    msg = AJS_CloneAndCloseMessage(widget->dukCtx, msg);
     if (!msg) {
         return AJ_ERR_RESOURCES;
     }
@@ -196,7 +169,6 @@ static AJ_Status ExecuteAction(AJ_Message* msg, uint8_t action, void* context)
     } else {
         AJ_MarshalStatusMsg(msg, &reply, status);
     }
-    AJ_Free(msg);
     return AJ_DeliverMsg(&reply);
 }
 

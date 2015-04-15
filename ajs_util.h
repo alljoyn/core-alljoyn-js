@@ -155,7 +155,7 @@ void AJS_GetGlobalStashArray(duk_context* ctx, const char* name);
 
 /**
  * Temporarily stabilize a string by storing it in the global stash. The returned string pointer
- * will remain stable until AJ_ClearPinnedStrings() is called.
+ * will remain stable until AJS_ClearPinnedObjects() is called.
  *
  * @param ctx   An opaque pointer to a duktape context structure
  * @param idx   Duktape stack index for the string to be stabilized
@@ -165,11 +165,22 @@ void AJS_GetGlobalStashArray(duk_context* ctx, const char* name);
 const char* AJS_PinString(duk_context* ctx, duk_idx_t idx);
 
 /**
- * Clear the all pinned strings. Pointers to previous pinned strings become invalid.
+ * Temporarily stabilize a buffer by storing it in the global stash. The returned pointer
+ * will remain stable until AJS_ClearPinnedObjects() is called.
+ *
+ * @param ctx   An opaque pointer to a duktape context structure
+ * @param idx   Duktape stack index for the buffer to be stabilized
+ *
+ * @return  Returns a pointer to the stable buffer pointer.
+ */
+void* AJS_PinBuffer(duk_context* ctx, duk_idx_t idx);
+
+/**
+ * Clear the all pinned strings and buffers. Pointers to previous pinned items become invalid.
  *
  * @param ctx   An opaque pointer to a duktape context structure
  */
-void AJS_ClearPinnedStrings(duk_context* ctx);
+void AJS_ClearPins(duk_context* ctx);
 
 /**
  * Get a property of the global AllJoyn object.
@@ -214,6 +225,16 @@ void AJS_SetWatchdogTimer(uint32_t timeout);
  * Clear the current watchdog timer.
  */
 void AJS_ClearWatchdogTimer();
+
+/**
+ * Clones the parts of a message needed for a reply and closes the message. The returned message
+ * pointer is "pinned" so is valid for until control returns the message loop level.
+ *
+ * @param ctx   An opaque pointer to a duktape context structure
+ * @param msg   Message to be cloned and closed
+ * @return      Partial message structure
+ */
+AJ_Message* AJS_CloneAndCloseMessage(duk_context* ctx, AJ_Message* msg);
 
 /**
  * Prints out the JSON for an object on the duktape stack

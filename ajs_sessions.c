@@ -410,7 +410,6 @@ static void AnnouncementCallbacks(duk_context* ctx, const char* peer, SessionInf
 {
     size_t i;
     size_t numSvcs;
-
     AJ_ASSERT(sessionInfo->sessionId);
     /*
      * Get the session object (indexed by the peer string) and from this get the announcements array
@@ -421,12 +420,24 @@ static void AnnouncementCallbacks(duk_context* ctx, const char* peer, SessionInf
      * Iterate over the services implemented by this peer
      */
     numSvcs = duk_get_length(ctx, -1);
+
     for (i = 0; i < numSvcs; ++i) {
         size_t j;
         size_t numIfaces;
         duk_idx_t svcIdx;
 
         duk_get_prop_index(ctx, -1, i);
+        if (duk_is_undefined(ctx, -1)) {
+            /*
+             * Undefined means the iface has been deleted so pop "interfaces"
+             */
+            duk_pop(ctx);
+            /*
+             * Delete the announcement entry and continue
+             */
+            duk_del_prop_index(ctx, -1, i);
+            continue;
+        }
         svcIdx = duk_get_top_index(ctx);
         /*
          * Iterate over the interfaces for this service
@@ -765,7 +776,7 @@ AJ_Status AJS_AboutAnnouncement(duk_context* ctx, AJ_Message* msg)
      * At this point if we don't have a JOIN_SESSION in progress we must delete the session object
      */
     if (sessionInfo->replySerial == 0) {
-        duk_del_prop(ctx, -2);
+        duk_del_prop_string(ctx, -2, sender);
     }
 
 Exit:
@@ -821,12 +832,13 @@ AJ_Status AJS_HandleJoinSessionReply(duk_context* ctx, AJ_Message* msg)
     return AJ_OK;
 }
 
-AJ_Status AJS_SessionLost(duk_context* ctx, AJ_Message* msg)
+/*
+ * Delete session info object pointed to by sessionId. If sessionId
+ * is zero then delete all session info objects.
+ */
+static AJ_Status RemoveSessions(duk_context* ctx, uint32_t sessionId)
 {
-    uint32_t sessionId;
-
-    AJ_UnmarshalArgs(msg, "u", &sessionId);
-
+    AJ_Status status = AJ_OK;
     AJS_GetGlobalStashObject(ctx, "sessions");
     duk_enum(ctx, -1, DUK_ENUM_OWN_PROPERTIES_ONLY);
     while (duk_next(ctx, -1, 1)) {
@@ -835,7 +847,9 @@ AJ_Status AJS_SessionLost(duk_context* ctx, AJ_Message* msg)
         duk_get_prop_string(ctx, -1, "info");
         sessionInfo = duk_get_buffer(ctx, -1, NULL);
         duk_pop_3(ctx);
-        if (sessionInfo->sessionId == sessionId) {
+        if (sessionId == 0) {
+            status = AJ_BusLeaveSession(AJS_GetBusAttachment(), sessionInfo->sessionId);
+        } else if (sessionInfo->sessionId == sessionId) {
             duk_del_prop_string(ctx, -2, peer);
             break;
         }
@@ -848,14 +862,31 @@ AJ_Status AJS_SessionLost(duk_context* ctx, AJ_Message* msg)
      * to clean up sessions that are no longer in use. If we hold a reference the finalizer will
      * never get called.
      */
-    AJS_GetAllJoynProperty(ctx, "onPeerDisconnected");
-    if (duk_is_callable(ctx, -1)) {
-        if (duk_pcall(ctx, 0) != DUK_EXEC_SUCCESS) {
-            AJS_ConsoleSignalError(ctx);
+    if (sessionId != 0) {
+        AJS_GetAllJoynProperty(ctx, "onPeerDisconnected");
+        if (duk_is_callable(ctx, -1)) {
+            if (duk_pcall(ctx, 0) != DUK_EXEC_SUCCESS) {
+                AJS_ConsoleSignalError(ctx);
+            }
         }
+        duk_pop(ctx);
+    } else {
+        AJS_ClearGlobalStashObject(ctx, "sessions");
     }
-    duk_pop(ctx);
-    return AJ_OK;
+    return status;
+}
+
+AJ_Status AJS_EndSessions(duk_context* ctx)
+{
+    return RemoveSessions(ctx, 0);
+}
+
+AJ_Status AJS_SessionLost(duk_context* ctx, AJ_Message* msg)
+{
+    uint32_t sessionId;
+    AJ_UnmarshalArgs(msg, "u", &sessionId);
+
+    return RemoveSessions(ctx, sessionId);
 }
 
 AJ_Status AJS_HandleAcceptSession(duk_context* ctx, AJ_Message* msg, uint16_t port, uint32_t sessionId, const char* joiner)

@@ -136,6 +136,14 @@ uint32_t AJS_GetIntProp(duk_context* ctx, duk_idx_t idx, const char* prop);
 void AJS_GetGlobalStashObject(duk_context* ctx, const char* name);
 
 /**
+ * Clear a global stash object
+ *
+ * @param ctx   An opaque pointer to a duktape context structure
+ * @param name  Name of the object to clean
+ */
+void AJS_ClearGlobalStashObject(duk_context* ctx, const char* name);
+
+/**
  * Get a global stash array creating it if needed. Stashed array is on the top of the stack when
  * this function returns.
  *

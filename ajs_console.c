@@ -407,32 +407,24 @@ static AJ_Status Install(duk_context* ctx, AJ_Message* msg)
     uint32_t len;
     uint8_t endswap = (msg->hdr->endianess != AJ_NATIVE_ENDIAN);
     AJ_NV_DATASET* ds = NULL;
+    const char* scriptName;
 
+    AJS_EndSessions(ctx);
+
+    status = AJ_UnmarshalArgs(msg, "s", &scriptName);
+    if (status != AJ_OK) {
+        goto ErrorReply;
+    }
+    AJ_InfoPrintf(("Installing script %s\n", scriptName));
     /*
-     * Scripts can only be installed on a clean engine
+     * Save the script name so it can be passed to the compiler
      */
-    if (engineState != ENGINE_CLEAN) {
-        AJ_Message reply;
-        AJ_MarshalReplyMsg(msg, &reply);
-        AJ_MarshalArgs(&reply, "ys", SCRIPT_NEED_RESET_ERROR, "Reset required");
-        return AJ_DeliverMsg(&reply);
-    } else {
-        const char* scriptName;
-        status = AJ_UnmarshalArgs(msg, "s", &scriptName);
-        if (status != AJ_OK) {
-            goto ErrorReply;
-        }
-        AJ_InfoPrintf(("Installing script %s\n", scriptName));
-        /*
-         * Save the script name so it can be passed to the compiler
-         */
-        sz = strlen(scriptName) + 1;
-        ds = AJ_NVRAM_Open(AJS_SCRIPT_NAME_NVRAM_ID, "w", sz);
-        if (ds) {
-            AJ_NVRAM_Write(scriptName, sz, ds);
-            AJ_NVRAM_Close(ds);
-            ds = NULL;
-        }
+    sz = strlen(scriptName) + 1;
+    ds = AJ_NVRAM_Open(AJS_SCRIPT_NAME_NVRAM_ID, "w", sz);
+    if (ds) {
+        AJ_NVRAM_Write(scriptName, sz, ds);
+        AJ_NVRAM_Close(ds);
+        ds = NULL;
     }
     /*
      * Load script and install it

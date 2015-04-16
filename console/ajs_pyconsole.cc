@@ -54,6 +54,13 @@ class AJS_PyConsole : public AJS_Console {
 
 };
 
+static volatile sig_atomic_t g_interrupt = false;
+
+static void SigIntHandler(int sig)
+{
+    g_interrupt = true;
+}
+
 static uint32_t ByteSwap32(uint32_t x)
 {
     return ((x >> 24) & 0x000000FF) | ((x >> 8) & 0x0000FF00) |
@@ -319,9 +326,16 @@ static PyObject* statusobject(QStatus status)
 static PyObject* py_connect(PyObject* self, PyObject* args)
 {
     QStatus status;
-    // TODO: Make nonblocking. Start connection on another thread, use g_interrupt to stop it.
+    const char* name;
+    if (!PyArg_ParseTuple(args, "s", &name)) {
+        return NULL;
+    }
     Py_BEGIN_ALLOW_THREADS
-        status = console->Connect(NULL, NULL);
+    if (strcmp(name, "") == 0) {
+        status = console->Connect(NULL, &g_interrupt);
+    } else {
+        status = console->Connect(name, &g_interrupt);
+    }
     Py_END_ALLOW_THREADS
 
     return statusobject(status);
@@ -882,6 +896,8 @@ extern "C" PyObject * PyInit_AJSConsole(void)
 {
     PyObject*module = PyModule_Create(&consoleModule);
     PyEval_InitThreads();
+    /* Install SIGINT handler */
+    signal(SIGINT, SigIntHandler);
     AllJoynInit();
     AllJoynRouterInit();
     if (module == NULL) {
@@ -901,6 +917,8 @@ extern "C" PyObject * PyInit_AJSConsole(void)
 #else
 PyMODINIT_FUNC initAJSConsole(void)
 {
+    /* Install SIGINT handler */
+    signal(SIGINT, SigIntHandler);
     AllJoynInit();
     AllJoynRouterInit();
     (void) Py_InitModule("AJSConsole", AJSConsoleMethods);

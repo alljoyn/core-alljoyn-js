@@ -760,8 +760,15 @@ def callback(cbtype, *args):
 
 dbg = DebugGUI(master=root)
 
+status = 'ER_OK'
+
 AJSConsole.SetCallback(callback)
-status = AJSConsole.Connect()
+
+if len(sys.argv) >= 3 and sys.argv[1] == '--name':
+    status = AJSConsole.Connect(sys.argv[2])
+else:
+    status = AJSConsole.Connect("")
+
 if status == 'ER_OK':
     status = AJSConsole.StartDebugger()
     if status == 'ER_OK':

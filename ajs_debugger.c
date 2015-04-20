@@ -17,6 +17,9 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+/* If AJS_CONSOLE_LOCKDOWN is compiled in this whole file is unused */
+#if !defined(AJS_CONSOLE_LOCKDOWN)
+
 #define AJ_MODULE DEBUGGER
 
 #include "ajs_debugger.h"
@@ -1164,6 +1167,10 @@ static duk_size_t DebuggerRead(void* udata, char* buffer, duk_size_t length)
             status = AJS_DebuggerGetScript(state->ctx, state->currentMsg);
             break;
 
+        case LOCK_CONSOLE_MSGID:
+            status = AJS_LockConsole(state->currentMsg);
+            break;
+
         default:
             status = DebugMsgUnmarshal(state, state->currentMsg);
             break;
@@ -2107,3 +2114,5 @@ AJ_Status AJS_DebuggerCommand(duk_context* ctx, AJ_Message* msg)
     }
     return status;
 }
+
+#endif // AJS_CONSOLE_LOCKDOWN

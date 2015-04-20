@@ -307,6 +307,8 @@ int main(int argc, char** argv)
                             } else {
                                 printf("No script on target\n");
                             }
+                        } else if (strcmp(input, "$AJS_LOCKDOWN") == 0) {
+                            goto DoLockdown;
                         } else if (input[0] == '$') {
                             if (strncmp(input, "$delbreak", 9) == 0) {
                                 char* i = (char*)input + 9;
@@ -422,6 +424,8 @@ int main(int argc, char** argv)
                         }
                     }
                     continue;
+                } else if (strcmp(input, "$AJS_LOCKDOWN") == 0) {
+                    goto DoLockdown;
                 }
             DoEval:
                 if (input[strlen(input) - 1] != ';') {
@@ -453,6 +457,14 @@ int main(int argc, char** argv)
                     printf("Internal Duktape Error");
                     break;
                 }
+                continue;
+
+            DoLockdown:
+                ret = AJS_ConsoleLockdown(ctx);
+                if (ret != -1) {
+                    QCC_SyncPrintf("Console was successfully locked down. Session will be terminated\n");
+                }
+                continue;
             }
         }
     } else {

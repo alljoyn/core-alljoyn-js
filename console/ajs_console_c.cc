@@ -113,6 +113,17 @@ int AJS_ConsoleInstall(AJS_ConsoleCtx* ctx, const char* name, const uint8_t* scr
     return 0;
 }
 
+int AJS_ConsoleLockdown(AJS_ConsoleCtx* ctx)
+{
+    AJS_Console* console;
+    if (ctx && ctx->console) {
+        console = static_cast<AJS_Console*>(ctx->console);
+    } else {
+        return 0;
+    }
+    return console->LockdownConsole();
+}
+
 void AJS_ConsoleSetVerbose(AJS_ConsoleCtx* ctx, uint8_t newValue)
 {
     ctx->verbose = newValue;

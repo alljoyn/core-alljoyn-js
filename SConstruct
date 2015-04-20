@@ -48,6 +48,7 @@ vars.Add(PathVariable('STM_SRC_DIR', 'Path to the source code for the STM32 micr
 vars.Add(PathVariable('FREE_RTOS_DIR','Directory to FreeRTOS source code', os.environ.get('FREE_RTOS_DIR'), PathVariable.PathIsDir))
 vars.Add(EnumVariable('DUK_DEBUG', 'Turn on duktape logging and print debug messages', 'off', allowed_values=('on', 'off')))
 vars.Add(PathVariable('MBED_DIR', 'Path to the mbed source code repository', os.environ.get('MBED_DIR'), PathVariable))
+vars.Add(EnumVariable('CONSOLE_LOCKDOWN', 'Removes all debugger and console code', 'off', allowed_values=('on', 'off')))
 
 
 if default_msvc_version:
@@ -312,6 +313,9 @@ if env['DUKTAPE_SEPARATE'] == 'true':
     env.Append(CPPPATH=[env['duktape_dist'] + '/src-separate'])
 else:
     env.Append(CPPPATH=[env['duktape_dist'] + '/src'])
+
+if env['CONSOLE_LOCKDOWN'] == 'on':
+    env.Append(CPPDEFINES=['AJS_CONSOLE_LOCKDOWN'])
 
 #
 # Libraries

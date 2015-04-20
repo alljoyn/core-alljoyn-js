@@ -90,6 +90,9 @@ static const char consoleXML[] =
     "   <signal name=\"evalResult\"> "
     "     <arg name=\"output\" type=\"ys\"/> "
     "   </signal> "
+    "   <method name=\"lockdown\"> "
+    "     <arg name=\"status\" type=\"y\" direction=\"out\"/> "
+    "   </method> "
     " </interface> "
     " <interface name=\"org.allseen.scriptDebugger\"> "
     "   <method name=\"begin\"> "
@@ -1286,6 +1289,20 @@ QStatus AJS_Console::Install(qcc::String name, const uint8_t* script, size_t scr
         QCC_LogError(status, ("MethodCall(\"install\") failed\n"));
     }
     return status;
+}
+
+int8_t AJS_Console::LockdownConsole(void)
+{
+    QStatus status;
+    Message reply(*aj);
+    uint8_t ret;
+    status = proxy->MethodCall("org.allseen.scriptConsole", "lockdown", NULL, 0, reply);
+    if (status != ER_OK) {
+        QCC_SyncPrintf("MethodCall(\"lockdown\") failed, status = %u\n", status);
+        return -1;
+    }
+    reply->GetArgs("y", &ret);
+    return 1;
 }
 
 void AJS_Console::SessionLost(SessionId sessionId, SessionLostReason reason)

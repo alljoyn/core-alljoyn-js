@@ -33,6 +33,7 @@ uint8_t dbgAJS = 1;
 #endif
 
 static AJ_BusAttachment ajBus;
+static uint8_t lockdown = AJS_CONSOLE_LOCK_ERR;
 
 const char* AJS_AJObjectName = "\377AJ";
 const char* AJS_IOObjectName = "\377IO";
@@ -90,6 +91,71 @@ uint8_t AJS_IsRunning()
     return ajRunning;
 }
 
+/*
+ * Gets the current lockdown configuration.
+ */
+AJ_Status AJS_GetLockdownState(uint8_t* state)
+{
+    AJ_NV_DATASET* ds = NULL;
+    uint8_t bit = AJS_CONSOLE_UNLOCKED;
+    /*
+     * If this is the first get then we need to update the global from NVRAM
+     */
+    if (lockdown == AJS_CONSOLE_LOCK_ERR) {
+        /*
+         * If there is no NVRAM entry create one and set to unlocked
+         */
+        if (!AJ_NVRAM_Exist(AJS_LOCKDOWN_NVRAM_ID)) {
+            ds = AJ_NVRAM_Open(AJS_LOCKDOWN_NVRAM_ID, "w", 1);
+            if (ds) {
+                if (AJ_NVRAM_Write(&bit, 1, ds) != 1) {
+                    AJ_ErrPrintf(("SetLockdownBit(): Error writing NVRAM entry\n"));
+                    lockdown = bit;
+                }
+                AJ_NVRAM_Close(ds);
+            }
+            *state = bit;
+            return AJ_OK;
+        }
+        ds = AJ_NVRAM_Open(AJS_LOCKDOWN_NVRAM_ID, "r", 1);
+        if (ds) {
+            if (AJ_NVRAM_Read(&bit, 1, ds) != 1) {
+                AJ_ErrPrintf(("GetLockdownBit(): Error reading NVRAM entry\n"));
+                return AJ_ERR_NVRAM_READ;
+            }
+            /* Update the global lockdown */
+            if (lockdown != bit) {
+                lockdown = bit;
+            }
+            AJ_NVRAM_Close(ds);
+        }
+    }
+    *state = lockdown;
+    return AJ_OK;
+}
+
+AJ_Status AJS_SetLockdownState(uint8_t state)
+{
+    AJ_NV_DATASET* ds = NULL;
+    if (state == AJS_CONSOLE_UNLOCKED || state == AJS_CONSOLE_LOCKED) {
+        ds = AJ_NVRAM_Open(AJS_LOCKDOWN_NVRAM_ID, "w", 1);
+        if (ds) {
+            if (AJ_NVRAM_Write(&state, 1, ds) != 1) {
+                AJ_ErrPrintf(("SetLockdownBit(): Error writing NVRAM entry\n"));
+            }
+            lockdown = state;
+            AJ_NVRAM_Close(ds);
+        } else {
+            AJ_ErrPrintf(("AJS_SetLockdownBit(): Error opening lockdown dataset\n"));
+            return AJ_ERR_FAILURE;
+        }
+    } else {
+        AJ_ErrPrintf(("AJS_SetLockdownBit(): Error, bit must be 0 (zero) or 1 (one). You supplied %d\n", state));
+        return AJ_ERR_INVALID;
+    }
+    return AJ_OK;
+}
+
 static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx)
 {
     AJ_Status status = AJ_OK;
@@ -110,7 +176,11 @@ static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx)
             AJS_HeapDump();
             status = AJS_AttachAllJoyn(aj);
             if (status == AJ_OK) {
-                status = AJS_ConsoleInit(aj);
+#if !defined(AJS_CONSOLE_LOCKDOWN)
+                if (lockdown == AJS_CONSOLE_UNLOCKED) {
+                    status = AJS_ConsoleInit(aj);
+                }
+#endif
             }
             if (status == AJ_OK) {
                 /*
@@ -156,7 +226,11 @@ static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx)
      * existing BusAttachment.
      */
     if (status != AJ_ERR_RESTART_APP) {
-        AJS_ConsoleTerminate();
+#if !defined(AJS_CONSOLE_LOCKDOWN)
+        if (lockdown == AJS_CONSOLE_UNLOCKED) {
+            AJS_ConsoleTerminate();
+        }
+#endif
         AJS_DetachAllJoyn(aj, status);
         busAttached = FALSE;
     }
@@ -182,6 +256,7 @@ static const uint8_t icon[] = {
 #include "icon.inc"
 };
 
+#if !defined(AJS_CONSOLE_LOCKDOWN)
 static duk_ret_t NativeOverrideAlert(duk_context* ctx)
 {
     AJS_AlertHandler(ctx, 1 /* alert */);
@@ -193,6 +268,7 @@ static duk_ret_t NativeOverridePrint(duk_context* ctx)
     AJS_AlertHandler(ctx, 0 /* print */);
     return 0;
 }
+#endif
 
 static const duk_number_list_entry AJ_constants[] = {
     { "METHOD",      0 },
@@ -253,6 +329,13 @@ AJ_Status AJS_Main(const char* deviceName)
     duk_context* ctx;
     duk_int_t ret;
 
+    /* Get the current lockdown bit */
+    status = AJS_GetLockdownState(&lockdown);
+#if defined(AJS_CONSOLE_LOCKDOWN)
+    /* If lockdown is compiled in then set the bit */
+    AJS_SetLockdownState(AJS_CONSOLE_LOCKED);
+#endif
+
     AJ_AboutSetIcon(icon, sizeof(icon), "image/jpeg", NULL);
 
     /*
@@ -285,11 +368,14 @@ AJ_Status AJS_Main(const char* deviceName)
          * Override the builtin alert and print functions so we can redirect output to debug output
          * or the console if one is attached.
          */
-        duk_push_c_function(ctx, NativeOverridePrint, DUK_VARARGS);
-        duk_put_global_string(ctx, "print");
-        duk_push_c_function(ctx, NativeOverrideAlert, DUK_VARARGS);
-        duk_put_global_string(ctx, "alert");
-
+#if !defined(AJS_CONSOLE_LOCKDOWN)
+        if (lockdown == AJS_CONSOLE_UNLOCKED) {
+            duk_push_c_function(ctx, NativeOverridePrint, DUK_VARARGS);
+            duk_put_global_string(ctx, "print");
+            duk_push_c_function(ctx, NativeOverrideAlert, DUK_VARARGS);
+            duk_put_global_string(ctx, "alert");
+        }
+#endif
         status = AJS_PropertyStoreInit(ctx, deviceName);
         if (status != AJ_OK) {
             AJ_ErrPrintf(("Failed to initialize property store\n"));

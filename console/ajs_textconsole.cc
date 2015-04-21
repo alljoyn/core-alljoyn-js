@@ -449,7 +449,7 @@ int main(int argc, char** argv)
                 continue;
 
             DoLockdown:
-                ret = ajsConsole.LockdownConsole();
+                ret = ajsConsole->LockdownConsole();
                 if (ret != -1) {
                     QCC_SyncPrintf("Console was successfully locked down. Session will be terminated\n");
                 }

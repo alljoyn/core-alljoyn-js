@@ -13,13 +13,21 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 from distutils.core import setup, Extension
-import os.path
+import os
+import sys
 import platform
 
 platform = platform.system()
 
+aj_path = os.environ.get('ALLJOYN_DISTDIR')
+
+if aj_path == None:
+    print 'ALLJOYN_DIST must be defined to build'
+    quit()
+
+
 if platform == 'Linux':
-    distdir = os.path.abspath('../../alljoyn/build/linux/x86_64/debug/dist/') + '/'
+    distdir = os.path.abspath(aj_path) + '/'
     thismodule = Extension('AJSConsole',
                            define_macros = [('QCC_OS_GROUP_POSIX', None),
                                             ('_GLIBCXX_USE_C99_FP_MACROS_DYNAMIC', None)],
@@ -50,7 +58,7 @@ if platform == 'Linux':
 
 elif platform == 'Windows':
     # Windows must be built in release mode due to python being built in release mode
-    distdir = os.path.abspath('../../alljoyn/build/win7/x86_64/release/dist/') + '/'
+    distdir = os.path.abspath(aj_path) + '/'
     thismodule = Extension('AJSConsole',
                            define_macros = [('QCC_OS_GROUP_WINDOWS', None),
                                             ('QCC_CPU_X86_64', None),

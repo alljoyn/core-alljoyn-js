@@ -204,10 +204,15 @@ static int NativeMethod(duk_context* ctx)
     const char* member;
     const char* iface;
 
-    AJ_InfoPrintf(("NativeMethod %s\n", member));
-
     duk_push_this(ctx);
     iface = FindInterfaceForMember(ctx, 0, &member);
+
+    if (!iface || !member) {
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "Interface or member are null\n");
+        return 0;
+    }
+    AJ_InfoPrintf(("NativeMethod %s\n", member));
+
     MessageSetup(ctx, iface, member, NULL, AJ_MSG_METHOD_CALL);
     /*
      * Register function for actually calling this method

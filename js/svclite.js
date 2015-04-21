@@ -18,6 +18,7 @@ var AJ = require('AllJoyn');
 AJ.interfaceDefinition['org.alljoyn.alljoyn_test'] =
 {
     my_ping:{ type:AJ.METHOD, args:[{inStr:'s'}], returns:[{outStr:'s'}] },
+    my_signal:{ type:AJ.SIGNAL, args:["a{ys}"]}
 };
 
 AJ.interfaceDefinition['org.alljoyn.alljoyn_test.values'] =
@@ -68,6 +69,12 @@ AJ.onMethodCall = function(arg)
         this.reply(arg);
     } else {
         throw('rejected');
+    }
+}
+
+AJ.onSignal = function() {
+    if (this.member == 'my_signal') {
+        print('my_signal received');
     }
 }
 

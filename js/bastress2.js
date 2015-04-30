@@ -45,4 +45,5 @@ AJ.onMethodCall = function()
 AJ.onPeerConnected = function(svc)
 {
     print(JSON.stringify(svc));
+    return true;
 }

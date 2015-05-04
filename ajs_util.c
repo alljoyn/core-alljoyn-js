@@ -192,29 +192,43 @@ duk_idx_t AJS_GetAllJoynProperty(duk_context* ctx, const char* prop)
     return duk_get_top_index(ctx);
 }
 
-static uint8_t pinnedStrings = FALSE;
+static uint8_t pins = FALSE;
+
+void* AJS_PinBuffer(duk_context* ctx, duk_idx_t idx)
+{
+    void* stablePtr;
+
+    idx = duk_normalize_index(ctx, idx);
+    AJS_GetGlobalStashArray(ctx, "pins");
+    duk_dup(ctx, idx);
+    stablePtr = duk_require_buffer(ctx, -1, NULL);
+    duk_put_prop_index(ctx, -2, duk_get_length(ctx, -2));
+    duk_pop(ctx);
+    pins = TRUE;
+    return stablePtr;
+}
 
 const char* AJS_PinString(duk_context* ctx, duk_idx_t idx)
 {
     const char* stableStr;
 
     idx = duk_normalize_index(ctx, idx);
-    AJS_GetGlobalStashArray(ctx, "string-stash");
+    AJS_GetGlobalStashArray(ctx, "pins");
     duk_dup(ctx, idx);
     stableStr = duk_require_string(ctx, -1);
     duk_put_prop_index(ctx, -2, duk_get_length(ctx, -2));
     duk_pop(ctx);
-    pinnedStrings = TRUE;
+    pins = TRUE;
     return stableStr;
 }
 
-void AJS_ClearPinnedStrings(duk_context* ctx)
+void AJS_ClearPins(duk_context* ctx)
 {
-    if (pinnedStrings) {
+    if (pins) {
         duk_push_global_stash(ctx);
-        duk_del_prop_string(ctx, -1, "string-stash");
+        duk_del_prop_string(ctx, -1, "pins");
         duk_pop(ctx);
-        pinnedStrings = FALSE;
+        pins = FALSE;
     }
 }
 
@@ -258,6 +272,32 @@ int AJS_ExecTimeoutCheck(const void*udata)
     }
     watchdogTimeout = 0;
     return 0;
+}
+
+AJ_Message* AJS_CloneAndCloseMessage(duk_context* ctx, AJ_Message* msg)
+{
+    size_t len = strlen(msg->sender);
+    struct {
+        AJ_Message msg;
+        AJ_MsgHeader hdr;
+        char sender[1];
+    }* buffer;
+
+    duk_push_fixed_buffer(ctx, (sizeof(*buffer) + len));
+    buffer = AJS_PinBuffer(ctx, -1);
+    duk_pop(ctx);
+
+    memcpy(buffer->sender, msg->sender, len + 1);
+    memcpy(&buffer->hdr, msg->hdr, sizeof(AJ_MsgHeader));
+    memset(&buffer->msg, 0, sizeof(AJ_Message));
+    buffer->msg.hdr = &buffer->hdr;
+    buffer->msg.sender = buffer->sender;
+    buffer->msg.msgId = msg->msgId;
+    buffer->msg.sessionId = msg->sessionId;
+    buffer->msg.bus = msg->bus;
+    AJ_CloseMsg(msg);
+
+    return (AJ_Message*)buffer;
 }
 
 void AJS_DumpJX(duk_context* ctx, const char* tag, duk_idx_t idx)

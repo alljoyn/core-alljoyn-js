@@ -19,6 +19,7 @@
 
 #include "ajs.h"
 #include "ajs_util.h"
+#include "ajs_debugger.h"
 #include <aj_msg_priv.h>
 
 typedef struct {
@@ -907,6 +908,9 @@ AJ_Status AJS_HandleAcceptSession(duk_context* ctx, AJ_Message* msg, uint16_t po
         /* Empty interface array */
         duk_push_array(ctx);
         AddServiceObject(ctx, sessionInfo, "/", joiner);
+        if (AJS_DebuggerIsAttached()) {
+            msg = AJS_CloneAndCloseMessage(ctx, msg);
+        }
         if (duk_pcall(ctx, 1) != DUK_EXEC_SUCCESS) {
             AJS_ConsoleSignalError(ctx);
             accept = FALSE;

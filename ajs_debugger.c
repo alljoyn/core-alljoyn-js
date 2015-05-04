@@ -444,7 +444,19 @@ ErrorUnmarshal:
     return numBytes;
 }
 
-static AJS_DebuggerState* dbgState;
+static AJS_DebuggerState* dbgState = NULL;
+
+/**
+ * Get the debuggers current status
+ */
+uint8_t AJS_DebuggerIsAttached(void)
+{
+    if (dbgState && (dbgState->status == AJS_DEBUG_ATTACHED_PAUSED || dbgState->status == AJS_DEBUG_ATTACHED_RUNNING)) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
 
 static AJS_DebuggerState* AllocDebuggerState(duk_context* ctx)
 {

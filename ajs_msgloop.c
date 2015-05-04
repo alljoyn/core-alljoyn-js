@@ -20,6 +20,7 @@
 #include "ajs.h"
 #include "ajs_util.h"
 #include "ajs_services.h"
+#include "ajs_debugger.h"
 #include <aj_msg_priv.h>
 #include <aj_link_timeout.h>
 #include <alljoyn/controlpanel/ControlPanelService.h>
@@ -166,6 +167,9 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
             return AJS_FoundAdvertisedName(ctx, msg);
         }
         if ((msg->msgId == AJ_SIGNAL_SESSION_LOST) || (msg->msgId == AJ_SIGNAL_SESSION_LOST_WITH_REASON)) {
+            if (AJS_DebuggerIsAttached()) {
+                msg = AJS_CloneAndCloseMessage(ctx, msg);
+            }
             return AJS_SessionLost(ctx, msg);
         }
         func = "onSignal";
@@ -242,7 +246,13 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
     }
     if (status == AJ_OK) {
         duk_idx_t numArgs = duk_get_top(ctx) - msgIdx - 1;
-        AJS_DumpStack(ctx);
+        /*
+         * If attached, the debugger will begin to unmarshal a message when the
+         * method handler is called, therefore it must be cloned-and-closed now.
+         */
+        if (AJS_DebuggerIsAttached()) {
+            msg = AJS_CloneAndCloseMessage(ctx, msg);
+        }
         if (duk_pcall_method(ctx, numArgs) != DUK_EXEC_SUCCESS) {
             const char* err = duk_safe_to_string(ctx, -1);
 
@@ -340,9 +350,9 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
         }
         AJS_SetWatchdogTimer(AJS_DEFAULT_WATCHDOG_TIMEOUT);
         /*
-         * Pinned strings are only valid while running script
+         * Pinned items (strings/buffers) are only valid while running script
          */
-        AJS_ClearPinnedStrings(ctx);
+        AJS_ClearPins(ctx);
         /*
          * Check if there are any pending I/O operations to perform.
          */
@@ -483,6 +493,7 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
             status = DoDeferredOperation(ctx);
         }
     }
+    AJS_ClearPins(ctx);
     AJS_ClearWatchdogTimer();
     return status;
 }

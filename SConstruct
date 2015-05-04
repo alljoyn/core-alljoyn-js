@@ -17,7 +17,6 @@
 import platform
 import os
 import string
-
 #
 # Initialize our build environment
 #
@@ -49,7 +48,8 @@ vars.Add(PathVariable('FREE_RTOS_DIR','Directory to FreeRTOS source code', os.en
 vars.Add(EnumVariable('DUK_DEBUG', 'Turn on duktape logging and print debug messages', 'off', allowed_values=('on', 'off')))
 vars.Add(PathVariable('MBED_DIR', 'Path to the mbed source code repository', os.environ.get('MBED_DIR'), PathVariable))
 vars.Add(EnumVariable('CONSOLE_LOCKDOWN', 'Removes all debugger and console code', 'off', allowed_values=('on', 'off')))
-
+vars.Add(EnumVariable('JSDOCS', 'Generate documentation', 'false', allowed_values=('false', 'true')))
+vars.Add(PathVariable('JSDOC_DIR', 'Path to the JSDoc toolkit', os.environ.get('JSDOC_DIR'), PathVariable.PathIsDir))
 
 if default_msvc_version:
     vars.Add(EnumVariable('MSVC_VERSION', 'MSVC compiler version - Windows', default_msvc_version, allowed_values=('8.0', '9.0', '10.0', '11.0', '11.0Exp', '12.0', '12.0Exp')))
@@ -98,6 +98,18 @@ else:
 if not(os.path.isdir(env['duktape_dist'])):
     print "Duktape distribution dir (DUKTAPE_DIST) not set or invalid"
     Exit(1)
+
+#
+# Documentation setup
+#
+if env['JSDOCS'] == 'true':
+    env.Tool('jsdoc3', toolpath=['tools/'])
+    if env.has_key('JSDOC_DIR'):
+        env.PrependENVPath('PATH', env.get('JSDOC_DIR'))
+
+    if env.has_key('JSDOC_DIR'):
+        env['JSDOC_TEMPLATE'] = env.Dir('$JSDOC_DIR/templates/default')
+        doc_out = env.jsdoc3(target=[env.Dir('doc/jsdoc')], source=['doc/jsdoc/jsdocs'])
 
 ####################################
 # 

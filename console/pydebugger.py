@@ -429,8 +429,11 @@ def detach():
     updateStateLable(AJSConsole.GetTargetStatus())
 
 def attach():
-    AJSConsole.Attach()
-    globalUpdate()
+    state = AJSConsole.GetTargetStatus()
+    if state == 2:
+        AJSConsole.Attach()
+        getScript()
+        globalUpdate()
 
 def showHelp():
     tm.showinfo('Debugger GUI Help', help_message)

@@ -47,11 +47,15 @@ static AJ_Status ReadScript(SCRIPTF* sf, const uint8_t** data, uint32_t* len)
     if (fseek(sf->file, 0, SEEK_END) == 0) {
         sf->len = ftell(sf->file);
         sf->buf = malloc(sf->len);
-        fseek(sf->file, 0, SEEK_SET);
-        fread(sf->buf, sf->len, 1, sf->file);
-        *data = sf->buf;
-        *len = (uint32_t)sf->len;
-        return AJ_OK;
+        if (sf->buf) {
+            fseek(sf->file, 0, SEEK_SET);
+            fread(sf->buf, sf->len, 1, sf->file);
+            *data = sf->buf;
+            *len = (uint32_t)sf->len;
+            return AJ_OK;
+        } else {
+            return AJ_ERR_RESOURCES;
+        }
     } else {
         return AJ_ERR_FAILURE;
     }

@@ -23,13 +23,20 @@ extern "C" {
 AJS_ConsoleCtx* AJS_ConsoleInit(void)
 {
     AJS_ConsoleCtx* ctx = (AJS_ConsoleCtx*)malloc(sizeof(AJS_ConsoleCtx));
-    AllJoynInit();
-    AllJoynRouterInit();
-    AJS_Console* console = new AJS_Console;
-    ctx->console = (void*)console;
-    ctx->version = NULL;
-    console->handlers = (SignalRegistration*)malloc(sizeof(SignalRegistration));
-    memset(console->handlers, 0, sizeof(SignalRegistration));
+    if (ctx) {
+        AllJoynInit();
+        AllJoynRouterInit();
+        AJS_Console* console = new AJS_Console;
+        if (console) {
+            ctx->console = (void*)console;
+            ctx->version = NULL;
+            console->handlers = (SignalRegistration*)malloc(sizeof(SignalRegistration));
+            memset(console->handlers, 0, sizeof(SignalRegistration));
+        } else {
+            free(ctx);
+            ctx = NULL;
+        }
+    }
     return ctx;
 }
 

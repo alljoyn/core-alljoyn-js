@@ -1,12 +1,12 @@
-Import('env')
+Import('jsenv')
 
-env['srcs'] = []
+jsenv['srcs'] = []
 
-env.Prepend(CPPPATH = [ '$TARG' ])
+jsenv.Prepend(CPPPATH = [ '$TARG' ])
 
-env.SConscript('$TARG/SConscript')
+jsenv.SConscript('$TARG/SConscript')
 
-env['srcs'].extend(Glob('*.c'))
-env['srcs'].append(env['duktape_src'])
+jsenv['srcs'].extend(Glob('*.c'))
+jsenv['srcs'].append(jsenv['duktape_src'])
 
-env.Program('#dist/bin/alljoynjs', env['srcs'])
+jsenv.Program('#dist/bin/alljoynjs', jsenv['srcs'])

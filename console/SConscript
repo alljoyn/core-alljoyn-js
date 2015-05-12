@@ -1,0 +1,43 @@
+import os
+import platform
+
+Import('env', 'CheckAJLib')
+
+def CheckAJCXXLib(context, ajlib, ajheader, sconsvarname, ajdistpath):
+    r = CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath, 'cpp', 'inc', '.cc')
+    return r
+
+cenv = env.Clone()
+Export('cenv')
+
+
+cenv['CPU'] = platform.machine()
+
+cenv.SConscript('SConscript.target.$TARG')
+
+#######################################################
+# Check dependencies
+#######################################################
+config = Configure(cenv, custom_tests = { 'CheckAJLib' : CheckAJCXXLib })
+found_aj = config.CheckAJLib('alljoyn',  'alljoyn/BusAttachment.h', 'ALLJOYN_DIST',
+                             os.path.join('#../alljoyn/build', cenv['TARG'], cenv['CPU'], cenv['VARIANT'], 'dist'))
+config.CheckCXXHeader('qcc/String.h')
+cenv = config.Finish()
+
+# config.CheckLib() appends libraries, ajrouter is a static library and must be prepended.
+cenv.Prepend(LIBS = ['ajrouter'])
+
+config = Configure(cenv)
+found_ajrouter = config.CheckFunc('AllJoynRouterInit', '#include <alljoyn/Init.h>', 'c++')
+cenv = config.Finish()
+
+if cenv['VARIANT'] == 'release':
+    cenv.Append(CPPDEFINES = [ 'NDEBUG' ])
+
+if cenv['CPU'] == 'x86_64':
+    cenv.Append(CPPDEFINES=['QCC_CPU_X86_64'])
+else:
+    cenv.Append(CPPDEFINES=['QCC_CPU_X86'])
+
+if found_aj and found_ajrouter:
+    cenv.Program('#dist/bin/ajs_console', ['ajs_console.cc', 'ajs_textconsole.cc'])

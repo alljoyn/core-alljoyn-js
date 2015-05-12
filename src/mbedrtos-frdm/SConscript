@@ -1,5 +1,5 @@
-Import('env')
+Import('jsenv')
 
-env['srcs'].extend(Glob('*.c'))
-env['srcs'].extend(Glob('io/*.cpp'))
-env['srcs'].extend(Glob('io/*.c'))
+jsenv['srcs'].extend(Glob('*.c'))
+jsenv['srcs'].extend(Glob('io/*.cpp'))
+jsenv['srcs'].extend(Glob('io/*.c'))

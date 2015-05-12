@@ -176,3 +176,5 @@ if env['VARIANT'] == 'debug':
 else:
     env.Append(CFLAGS = '-Os')
     env.Append(LINKFLAGS = '-s')
+
+env['build_console'] = False

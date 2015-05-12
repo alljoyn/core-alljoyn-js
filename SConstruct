@@ -11,10 +11,10 @@ def CheckCommand(context, cmd):
     context.Result(r is not None)
     return r
 
-def CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath):
+def CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath, subdist, incpath, ext):
     prog = "#include <%s>\nint main(void) { return 0; }" % ajheader
     context.Message('Checking for AllJoyn library %s...' % ajlib)
-
+    distpath = os.path.join(ajdistpath, subdist)
     prevLIBS = context.env.get('LIBS', [])
     prevLIBPATH = context.env.get('LIBPATH', [])
     prevCPPPATH = context.env.get('CPPPATH', [])
@@ -22,11 +22,12 @@ def CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath):
     # Check if library is in standard system locations
     context.env.Append(LIBS = [ajlib])
     defpath = ''  # default path is a system directory
-    if not context.TryLink(prog, '.c'):
+    if not context.TryLink(prog, ext):
         # Check if library is in project default location
-        context.env.Append(LIBPATH = ajdistpath + '/lib', CPPPATH = ajdistpath + '/include')
-        if context.TryLink(prog, '.c'):
-            defpath = ajdistpath  # default path is the dist directory
+        context.env.Append(LIBPATH = os.path.join(distpath, 'lib'),
+                           CPPPATH = os.path.join(distpath, incpath))
+        if context.TryLink(prog, ext):
+            defpath = str(Dir(ajdistpath))  # default path is the dist directory
         # Remove project default location from LIBPATH and CPPPATH
         context.env.Replace(LIBPATH = prevLIBPATH, CPPPATH = prevCPPPATH)
 
@@ -38,25 +39,30 @@ def CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath):
     vars.Update(context.env)
     Help(vars.GenerateHelpText(context.env))
 
-    # Get the actual library path to use ('' == system path, may be same as ajdistpath)
-    libpath = env.get(sconsvarname, '')
+    # Get the actual library path to use ('' == system path, may be same as distpath)
+    libpath = context.env.get(sconsvarname, '')
+
     if libpath is not '':
         libpath = str(context.env.Dir(libpath))
-        # Add the user specified (or ajdistpath) to LIBPATH and CPPPATH
-        context.env.Append(LIBPATH = libpath + '/lib', CPPPATH = libpath + '/include')
+        # Add the user specified (or distpath) to LIBPATH and CPPPATH
+        context.env.Append(LIBPATH = os.path.join(libpath, subdist, 'lib'),
+                           CPPPATH = os.path.join(libpath, subdist, incpath))
 
     # The real test for the library
-    r = context.TryLink(prog, '.c')
+    r = context.TryLink(prog, ext)
     if not r:
         context.env.Replace(LIBS = prevLIBS, LIBPATH = prevLIBPATH, CPPPATH = prevCPPPATH)
     context.Result(r)
     return r
 
+def CheckAJCLib(context, ajlib, ajheader, sconsvarname, ajdistpath):
+    return CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath, '', 'include', '.c')
+
 #######################################################
 # Initialize our build environment
 #######################################################
 env = Environment()
-Export('env')
+Export('env', 'CheckAJLib')
 
 #######################################################
 # Default target platform
@@ -77,7 +83,6 @@ vars = Variables()
 vars.Add(BoolVariable('V',                  'Build verbosity',                     False))
 vars.Add(EnumVariable('TARG',               'Target platform variant',             os.environ.get('AJ_TARG',               default_target), allowed_values = target_options))
 vars.Add(EnumVariable('VARIANT',            'Build variant',                       os.environ.get('AJ_VARIANT',            'debug'),        allowed_values = ('debug', 'release')))
-vars.Add(BoolVariable('EXCLUDE_ONBOARDING', 'Exclude Onboarding support',          os.environ.get('AJ_EXCLUDE_ONBOARDING', False)))
 vars.Add(PathVariable('DUKTAPE_SRC',        'Path to Duktape generated source',    os.environ.get('AJ_DUCTAPE_SRC'),                        PathVariable.PathIsDir))
 vars.Add(BoolVariable('EXT_STRINGS',        'Enable external string support',      os.environ.get('AJ_EXT_STRINGS',        False)))
 vars.Add(BoolVariable('POOL_MALLOC',        'Use pool based memory allocation',    os.environ.get('AJ_POOL_MALLOC',        False)))
@@ -112,25 +117,46 @@ if not env['V']:
 env['build'] = True
 env['build_shared'] = False
 env['build_unit_tests'] = True
+env['build_console'] = False
 
 env.SConscript('SConscript.target.$TARG')
+
+jsenv = env.Clone()
+Export('jsenv')
 
 #######################################################
 # Check dependencies
 #######################################################
-config = Configure(env, custom_tests = { 'CheckCommand' : CheckCommand,
-                                         'CheckAJLib' : CheckAJLib })
+config = Configure(jsenv, custom_tests = { 'CheckCommand' : CheckCommand,
+                                           'CheckAJLib' : CheckAJCLib })
 found_ws = config.CheckCommand('uncrustify')
 dep_libs = [
-    config.CheckAJLib('ajtcl',          'ajtcl/aj_bus.h', 'AJTCL_DIST', '../ajtcl/dist'),
-    config.CheckAJLib('ajtcl_services', 'ajtcl/services/ConfigService.h', 'SVCS_DIST', '../../services/base_tcl/dist')
+    config.CheckAJLib('ajtcl',          'ajtcl/aj_bus.h',                 'AJTCL_DIST', '../ajtcl/dist'),
+    config.CheckAJLib('ajtcl_services', 'ajtcl/services/ConfigService.h', 'SVCS_DIST',  '../../services/base_tcl/dist')
 ]
-env = config.Finish()
+
+config_check_svc_stub = """
+int AJSVC_PropertyStore_LoadAll() { return 0; }
+int AJSVC_PropertyStore_GetValueForLang() { return 0; }
+int AJSVC_PropertyStore_GetFieldIndex() { return 0; }
+int AJSVC_PropertyStore_Reset() { return 0; }
+int AJSVC_PropertyStore_GetValue() { return 0; }
+int AJSVC_PropertyStore_ReadAll() { return 0; }
+int AJSVC_PropertyStore_GetLanguageIndex() { return 0; }
+int AJSVC_PropertyStore_GetFieldName() { return 0; }
+int AJSVC_PropertyStore_SaveAll() { return 0; }
+int AJSVC_PropertyStore_GetMaxValueLength() { return 0; }
+int AJSVC_PropertyStore_Update() { return 0; }
+"""
+include_onboarding = config.CheckFunc('AJOBS_ClearInfo', config_check_svc_stub)
+
+jsenv = config.Finish()
+
 
 #######################################################
 # Compilation defines
 #######################################################
-env.Append(CPPDEFINES = [
+jsenv.Append(CPPDEFINES = [
     # Base Services defines
     'CONFIG_SERVICE',
     'CONTROLPANEL_SERVICE',
@@ -155,26 +181,26 @@ env.Append(CPPDEFINES = [
     'ALLJOYN_JS',
     'BIG_HEAP' ])
 
-if not env['EXCLUDE_ONBOARDING']:
-    env.Append(CPPDEFINES = 'ONBOARDING_SERVICE')
-if env['VARIANT'] == 'release':
-    env.Append(CPPDEFINES = [ 'NDEBUG' ])
+if include_onboarding:
+    jsenv.Append(CPPDEFINES = 'ONBOARDING_SERVICE')
+if jsenv['VARIANT'] == 'release':
+    jsenv.Append(CPPDEFINES = [ 'NDEBUG' ])
 else:
-    env.Append(CPPDEFINES = [ 'DUK_OPT_ASSERTIONS',
+    jsenv.Append(CPPDEFINES = [ 'DUK_OPT_ASSERTIONS',
                               ( 'AJ_DEBUG_RESTRICT', '5' ),
                               'DBGAll',
                               'DUK_OPT_DEBUGGER_SUPPORT',
                               'DUK_OPT_INTERRUPT_COUNTER',
                               'DUK_CMDLINE_DEBUGGER_SUPPORT' ])
-if env['DUK_DEBUG']:
-    env.Append(CPPDEFINES = [ 'DBG_PRINT_CHUNKS',
+if jsenv['DUK_DEBUG']:
+    jsenv.Append(CPPDEFINES = [ 'DBG_PRINT_CHUNKS',
                               'DUK_OPT_DEBUG',
                               'DUK_OPT_DPRINT' ])
 
-if not env['POOL_MALLOC']:
-    env.Append(CPPDEFINES=['AJS_USE_NATIVE_MALLOC'])
-elif env['SHORT_SIZES']:
-    env.Append(CPPDEFINES = [ 'DUK_OPT_REFCOUNT16',
+if not jsenv['POOL_MALLOC']:
+    jsenv.Append(CPPDEFINES=['AJS_USE_NATIVE_MALLOC'])
+elif jsenv['SHORT_SIZES']:
+    jsenv.Append(CPPDEFINES = [ 'DUK_OPT_REFCOUNT16',
                               'DUK_OPT_STRHASH16',
                               'DUK_OPT_STRLEN16',
                               'DUK_OPT_BUFLEN16',
@@ -183,8 +209,8 @@ elif env['SHORT_SIZES']:
                               ('"DUK_OPT_HEAPPTR_ENC16(u,p)"', '"AJS_EncodePtr16(u,p)"'),
                               ('"DUK_OPT_HEAPPTR_DEC16(u,x)"', '"AJS_DecodePtr16(u,x)"') ])
 
-if env['EXT_STRINGS']:
-    env.Append(CPPDEFINES = [ 'DUK_OPT_EXTERNAL_STRINGS',
+if jsenv['EXT_STRINGS']:
+    jsenv.Append(CPPDEFINES = [ 'DUK_OPT_EXTERNAL_STRINGS',
                               ('"DUK_OPT_EXTSTR_INTERN_CHECK(u,p,l)"', '"AJS_ExternalStringCheck(u,p,l)"'),
                               ('"DUK_OPT_EXTSTR_FREE(u,p)"', '"AJS_ExternalStringFree(u,p)"'),
                               'DUK_OPT_STRTAB_CHAIN',
@@ -200,15 +226,15 @@ if external_path:
 else:
     external_path = None
 
-if env.has_key('DUKTAPE_SRC'):
-    env.Append(CPPPATH = Dir(env['DUKTAPE_SRC']))
-    env['duktape_src'] = File(env['DUKTAPE_SRC'] + '/duktape.c')
+if jsenv.has_key('DUKTAPE_SRC'):
+    jsenv.Append(CPPPATH = Dir(jsenv['DUKTAPE_SRC']))
+    jsenv['duktape_src'] = File(jsenv['DUKTAPE_SRC'] + '/duktape.c')
 elif external_path and os.path.exists(external_path + '/src/duktape.c'):
-    env.Append(CPPPATH = Dir(external_path + '/src/'))
-    env['duktape_src'] = File(external_path + '/src/duktape.c')
+    jsenv.Append(CPPPATH = Dir(external_path + '/src/'))
+    jsenv['duktape_src'] = File(external_path + '/src/duktape.c')
 else:
-    env.Append(CPPPATH = Dir('/usr/src/duktape/'))
-    env['duktape_src'] = File('/usr/src/duktape/duktape.c')
+    jsenv.Append(CPPPATH = Dir('/usr/src/duktape/'))
+    jsenv['duktape_src'] = File('/usr/src/duktape/duktape.c')
 
 #######################################################
 # Include path
@@ -217,15 +243,18 @@ else:
 #######################################################
 # Process commandline defines
 #######################################################
-env.Append(CPPDEFINES = [ v for k, v in ARGLIST if k.lower() == 'define' ])
+jsenv.Append(CPPDEFINES = [ v for k, v in ARGLIST if k.lower() == 'define' ])
 
 #######################################################
 # Setup target specific options and build AllJoyn portion of aj_duk
 #######################################################
-if not env.GetOption('help') and not all(dep_libs):
+if not jsenv.GetOption('help') and not all(dep_libs):
     print 'Missing required external libraries'
     Exit(1)
-env.SConscript('src/SConscript', variant_dir='#build/$VARIANT', duplicate = 0)
+jsenv.SConscript('src/SConscript', variant_dir='#build/src/$VARIANT', duplicate = 0)
+if jsenv['build_console']:
+    jsenv.SConscript('console/SConscript', variant_dir='#build/console/$VARIANT', duplicate = 0)
+
 
 #######################################################
 # Run the whitespace checker
@@ -242,8 +271,8 @@ if found_ws:
     vars = Variables()
     vars.Add(EnumVariable('WS', 'Whitespace Policy Checker', os.environ.get('AJ_WS', 'check'), allowed_values = ('check', 'detail', 'fix', 'off')))
 
-    vars.Update(config.env)
-    Help(vars.GenerateHelpText(config.env))
+    vars.Update(env)
+    Help(vars.GenerateHelpText(jsenv))
 
     if env.get('WS', 'off') != 'off':
         env.Command('#ws_ajtcl', '#dist', Action(wsbuild, '$WSCOMSTR'))

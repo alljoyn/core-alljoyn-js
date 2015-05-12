@@ -28,3 +28,5 @@ else:
     env.Append(CPPDEFINES = [( '_ITERATOR_DEBUG_LEVEL', 0 )])
     env.Append(CFLAGS = [ '/Gy', '/O1', '/Ob2' ])
     env.Append(LINKFLAGS = [ '/opt:ref' ])
+
+env['build_console'] = True

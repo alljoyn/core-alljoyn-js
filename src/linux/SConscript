@@ -1,15 +1,15 @@
-Import('env')
+Import('jsenv')
 
-env['srcs'].extend(File([
+jsenv['srcs'].extend(File([
     'ajs_main.c',
     'ajs_malloc.c',
     'ajs_obs_stubs.c'
 ]))
 
-if env['ENV'].get('YUN_BUILD', '0') == '1':
-    env['srcs'].extend(Glob('lininoio/*.c'))
+if jsenv['ENV'].get('YUN_BUILD', '0') == '1':
+    jsenv['srcs'].extend(Glob('lininoio/*.c'))
 else:
-    env['srcs'].extend(File([
+    jsenv['srcs'].extend(File([
         'io/io_simulation.c',
         'io/io_info.c',
         'io/io_stubs.c'

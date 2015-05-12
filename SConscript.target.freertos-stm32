@@ -112,4 +112,4 @@ else:
     env.Append(CFLAGS = '-Os')
     env.Append(LINKFLAGS = '-s')
 
-env['build_shared'] = False
+env['build_console'] = False

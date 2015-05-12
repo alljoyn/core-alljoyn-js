@@ -1,6 +1,6 @@
-Import('env')
+Import('jsenv')
 
-env['srcs'] += [
+jsenv['srcs'] += [
     'ajs_main.c',
     'ajs_malloc.c',
     'ajs_obs_stubs.c',

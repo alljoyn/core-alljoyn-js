@@ -110,20 +110,38 @@ static int NativeFindServiceByName(duk_context* ctx)
     return 1;
 }
 
-static int NativeAddMatch(duk_context* ctx)
+static int MatchRule(duk_context* ctx, int rule)
 {
     AJ_Status status;
     const char* iface = duk_require_string(ctx, 0);
     const char* signal = duk_require_string(ctx, 1);
-    status = AJ_BusAddSignalRule(ajBus, signal, iface, AJ_BUS_SIGNAL_ALLOW);
+    int sessionless = duk_get_boolean(ctx, 2);
+
+    if (sessionless) {
+        duk_push_sprintf(ctx, "type='signal',sessionless='t',interface='%s',member='%s'", iface, signal);
+    } else {
+        duk_push_sprintf(ctx, "type='signal',interface='%s',member='%s'", iface, signal);
+    }
+    status = AJ_BusSetSignalRule(ajBus, duk_get_string(ctx, -1), rule);
+    duk_pop(ctx);
     if (status != AJ_OK) {
-        duk_error(ctx, DUK_ERR_TYPE_ERROR, "addMatch: %s", AJ_StatusText(status));
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "MatchRule: %s", AJ_StatusText(status));
     }
     /*
      * Push reply object. The method serial number is one less than the serial number
      */
     AJS_PushReplyObject(ctx, ajBus->serial - 1);
     return 1;
+}
+
+static int NativeAddMatch(duk_context* ctx)
+{
+    return MatchRule(ctx, AJ_BUS_SIGNAL_ALLOW);
+}
+
+static int NativeRemoveMatch(duk_context* ctx)
+{
+    return MatchRule(ctx, AJ_BUS_SIGNAL_DENY);
 }
 
 static int NativeFindService(duk_context* ctx)
@@ -379,7 +397,8 @@ static int NativeOffboard(duk_context* ctx)
 }
 
 static const duk_function_list_entry aj_native_functions[] = {
-    { "addMatch",          NativeAddMatch,          2 },
+    { "addMatch",          NativeAddMatch,          3 },
+    { "removeMatch",       NativeRemoveMatch,       3 },
     { "findService",       NativeFindService,       2 },
     { "findServiceByName", NativeFindServiceByName, 3 },
     { "advertiseName",     NativeAdvertiseName,     1 },

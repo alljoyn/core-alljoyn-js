@@ -51,16 +51,16 @@ static const I2C_Info i2cInfo[] = {
 
 static void I2cStart(I2C_Pin* i2c, uint8_t addr)
 {
-    while (I2C_GetFlagStatus(i2c->I2Cx, I2C_FLAG_BUSY)) ;
+    while (I2C_GetFlagStatus(i2c->I2Cx, I2C_FLAG_BUSY));
     I2C_GenerateSTART(i2c->I2Cx, ENABLE);
-    while (!I2C_CheckEvent(i2c->I2Cx, I2C_EVENT_MASTER_MODE_SELECT)) ;
+    while (!I2C_CheckEvent(i2c->I2Cx, I2C_EVENT_MASTER_MODE_SELECT));
     I2C_Send7bitAddress(i2c->I2Cx, addr, I2C_Direction_Transmitter);
 }
 
 static void I2cStop(I2C_Pin* i2c)
 {
     I2C_GenerateSTOP(i2c->I2Cx, ENABLE);
-    while (!I2C_CheckEvent(i2c->I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED)) ;
+    while (!I2C_CheckEvent(i2c->I2Cx, I2C_EVENT_MASTER_BYTE_TRANSMITTED));
 }
 
 static uint8_t I2cRead(I2C_Pin* i2c)

@@ -854,8 +854,10 @@ static AJ_Status RemoveSessions(duk_context* ctx, uint32_t sessionId)
         sessionInfo = duk_get_buffer(ctx, -1, NULL);
         duk_pop_3(ctx);
         if (sessionId == 0) {
+            AJ_InfoPrintf(("RemoveSessions(): Leaving session: %u\n", sessionInfo->sessionId));
             status = AJ_BusLeaveSession(AJS_GetBusAttachment(), sessionInfo->sessionId);
         } else if (sessionInfo->sessionId == sessionId) {
+            status = AJ_BusLeaveSession(AJS_GetBusAttachment(), sessionInfo->sessionId);
             duk_del_prop_string(ctx, -2, peer);
             break;
         }
@@ -892,6 +894,7 @@ AJ_Status AJS_SessionLost(duk_context* ctx, AJ_Message* msg)
     uint32_t sessionId;
     AJ_UnmarshalArgs(msg, "u", &sessionId);
 
+    AJ_InfoPrintf(("AJS_SessionLost(): Removing session: %u\n", sessionId));
     return RemoveSessions(ctx, sessionId);
 }
 

@@ -454,6 +454,13 @@ AJ_Status AJS_Main(const char* deviceName)
         duk_destroy_heap(ctx);
         AJS_HeapDestroy();
     }
+    /*
+     * Returning here will cause AllJoyn to fully restart so a fatal error
+     * can be ignored.
+     */
+    if ((status == AJ_ERR_READ) || (status == AJ_ERR_WRITE)) {
+        status = AJ_ERR_RESTART;
+    }
     return status;
 }
 

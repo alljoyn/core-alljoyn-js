@@ -35,6 +35,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             #
 ############################################################################
 
+# Copyright AllSeen Alliance. All rights reserved.
 
 
 # the URLDownload-Builder can be download any data from an URL into a target file
@@ -107,10 +108,6 @@ def __action( target, source, env ) :
 # @param source URL for download
 # @param env environment object
 def __emitter( target, source, env ) :
-    # we need a temporary file, because the dependency graph
-    # of Scons need a physical existing file - so we prepare it
-    target[0].prepare()
-
     if not env.get("URLDOWNLOAD_USEURLFILENAME", False) :
         return target, source
 

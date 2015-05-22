@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
     AJ_Initialize();
 
     if (options.daemonize) {
-        int ret = daemon(0, 0);
+        int ret = daemon(1, 0);
         if (ret < 0) {
             AJ_Printf("Failed to launch daemon errno=%d\n", errno);
             exit(1);

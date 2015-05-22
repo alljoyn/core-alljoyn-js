@@ -84,7 +84,10 @@ class URLNode(SCons.Node.Python.Value) :
 # @param source source name
 # @param env environment object
 def __message( s, target, source, env ) :
-    print "downloading [%s] to [%s] ..." % (source[0], target[0])
+    if s.startswith("__action"):
+        print env.subst(env["URLDOWNLOADCOMSTR"], 1, target, source)
+    else:
+        print s
 
 
 # the download function, which reads the data from the URL
@@ -126,6 +129,7 @@ def __emitter( target, source, env ) :
 # the filename of the URL
 # @param env environment object
 def generate( env ) :
+    env["URLDOWNLOADCOMSTR"] = "downloading $SOURCE to $TARGET"
     env["BUILDERS"]["URLDownload"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.File,  source_factory = URLNode,  single_source = True,  PRINT_CMD_LINE_FUNC = __message )
     env.Replace(URLDOWNLOAD_USEURLFILENAME =  True )
 

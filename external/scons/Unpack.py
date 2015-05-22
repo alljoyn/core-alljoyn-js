@@ -181,8 +181,11 @@ def __getExtractor( source, env ) :
 # @param target target name
 # @param source source name
 # @param env environment object
-def __message( s, target, source, env ) :
-    print "extract [%s] ..." % (source[0])
+def __message( s, target, source, env ) : 
+    if s.startswith("__action"):
+        print env.subst(env["UNPACKCOMSTR"], 1, target, source)
+    else:
+        print s
 
 
 # action function for extracting of the data
@@ -509,6 +512,7 @@ def generate( env ) :
 
     # the target_factory must be a "Entry", because the target list can be files and dirs, so we can not specified the targetfactory explicite
     env.Replace(UNPACK = toolset)
+    env["UNPACKCOMSTR"] = "extract $SOURCE"
     env["BUILDERS"]["Unpack"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.Entry,  source_factory = SCons.Node.FS.File,  single_source = True,  PRINT_CMD_LINE_FUNC = __message )
 
 

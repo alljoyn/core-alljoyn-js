@@ -68,18 +68,17 @@ static uint8_t validatePins(uint8_t txPin, uint8_t rxPin)
     }
     return TRUE;
 }
-uint8_t* AJS_TargetIO_UartRead(void* uartCtx, uint32_t length)
+uint32_t AJS_TargetIO_UartRead(void* uartCtx, uint8_t* buf, uint32_t length)
 {
     UART* uart = (UART*)uartCtx;
     uint8_t i = 0;
-    uint8_t* buffer = AJS_Alloc(NULL, length);
     while (i < length) {
         while (USART_GetFlagStatus(uart->USARTx, USART_FLAG_TXE) == RESET);
 
-        *(buffer + i) = USART_ReceiveData(uart->USARTx);
+        *(buf + i) = USART_ReceiveData(uart->USARTx);
         ++i;
     }
-    return buffer;
+    return i;
 
 }
 AJ_Status AJS_TargetIO_UartWrite(void* uartCtx, uint8_t* buffer, uint32_t length)

@@ -663,7 +663,7 @@ AJ_Status AJS_TargetIO_SpiClose(void* spiCtx)
     return AJ_ERR_UNEXPECTED;
 }
 
-uint8_t* AJS_TargetIO_UartRead(void* uartCtx, uint32_t length)
+uint32_t AJS_TargetIO_UartRead(void* uartCtx, uint8_t* buf, uint32_t length)
 {
     return 0;
 }

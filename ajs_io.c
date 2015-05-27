@@ -540,9 +540,8 @@ static int NativeUartFinalizer(duk_context* ctx)
 static int NativeUartRead(duk_context* ctx)
 {
     int size = duk_require_int(ctx, -1);
-    void* ptrIn = AJS_TargetIO_UartRead(PinCtxPtr(ctx), size);
     void* ptrOut = duk_push_fixed_buffer(ctx, size);
-    memcpy(ptrOut, ptrIn, size);
+    AJS_TargetIO_UartRead(PinCtxPtr(ctx), ptrOut, size);
     return 1;
 }
 

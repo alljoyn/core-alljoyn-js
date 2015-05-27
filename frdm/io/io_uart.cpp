@@ -37,15 +37,20 @@ static UART_Info uartInfo[] = {
     { 39, PTC14, AJS_IO_FUNCTION_UART_TX, true  }
 };
 
-uint8_t* AJS_TargetIO_UartRead(void* uartCtx, uint32_t length)
+uint32_t AJS_TargetIO_UartRead(void* uartCtx, uint8_t* buf, uint32_t length)
 {
     UART* uart = (UART*)uartCtx;
     uint32_t i = 0;
     while (i < length) {
-        uart->object->getc();
-        i++;
+        /* Check there is a character to read */
+        if (uart->object->readable()) {
+            buf[i] = uart->object->getc();
+            i++;
+        } else {
+            break;
+        }
     }
-    return 0;
+    return i;
 }
 
 AJ_Status AJS_TargetIO_UartWrite(void* uartCtx, uint8_t* data, uint32_t length)

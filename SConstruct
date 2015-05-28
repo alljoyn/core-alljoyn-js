@@ -1,6 +1,17 @@
 import os
 import platform
 import re
+import urlparse
+
+#######################################################
+# Default Duktape version
+#######################################################
+duktape_version = '1.2.1'
+duktape_md5sum = '86362304a347fd88bcbcdfc00ff3663c'
+
+duktape_tarball = 'duktape-%s.tar.xz' % duktape_version
+duktape_urlbase = 'http://duktape.org/'
+duktape_default_url = duktape_urlbase + duktape_tarball
 
 #######################################################
 # Custom Configure functions
@@ -15,9 +26,9 @@ def CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath, subdist, incp
     prog = "#include <%s>\nint main(void) { return 0; }" % ajheader
     context.Message('Checking for AllJoyn library %s...' % ajlib)
     distpath = os.path.join(ajdistpath, subdist)
-    prevLIBS = context.env.get('LIBS', [])
-    prevLIBPATH = context.env.get('LIBPATH', [])
-    prevCPPPATH = context.env.get('CPPPATH', [])
+    prevLIBS = list(context.env.get('LIBS', []))
+    prevLIBPATH = list(context.env.get('LIBPATH', []))
+    prevCPPPATH = list(context.env.get('CPPPATH', []))
 
     # Check if library is in standard system locations
     context.env.Append(LIBS = [ajlib])
@@ -61,8 +72,9 @@ def CheckAJCLib(context, ajlib, ajheader, sconsvarname, ajdistpath):
 #######################################################
 # Initialize our build environment
 #######################################################
-env = Environment(tools = ['default', 'JSDoc'],
-                  toolpath = ['tools/scons'])
+env = Environment(tools = ['default', 'JSDoc', 'URLDownload', 'Unpack'],
+                  toolpath = ['tools/scons', 'external/scons'],
+                  URLDOWNLOAD_USEURLFILENAME = False)
 Export('env', 'CheckAJLib')
 
 #######################################################
@@ -84,12 +96,12 @@ vars = Variables()
 vars.Add(BoolVariable('V',                  'Build verbosity',                     False))
 vars.Add(EnumVariable('TARG',               'Target platform variant',             os.environ.get('AJ_TARG',               default_target), allowed_values = target_options))
 vars.Add(EnumVariable('VARIANT',            'Build variant',                       os.environ.get('AJ_VARIANT',            'debug'),        allowed_values = ('debug', 'release')))
-vars.Add(PathVariable('DUKTAPE_SRC',        'Path to Duktape generated source',    os.environ.get('AJ_DUCTAPE_SRC'),                        PathVariable.PathIsDir))
 vars.Add(BoolVariable('EXT_STRINGS',        'Enable external string support',      os.environ.get('AJ_EXT_STRINGS',        False)))
 vars.Add(BoolVariable('POOL_MALLOC',        'Use pool based memory allocation',    os.environ.get('AJ_POOL_MALLOC',        False)))
 vars.Add(BoolVariable('SHORT_SIZES',        'Use 16 bit sizes and pointers - only when POOL_MALLOC == True', os.environ.get('AJ_SHORT_SIZES', True)))
 vars.Add(BoolVariable('DUK_DEBUG',          'Turn on duktape logging and print debug messages', os.environ.get('AJ_DUK_DEBUG',   False)))
 vars.Add(BoolVariable('CONSOLE_LOCKDOWN',   'Removes all debugger and console code', os.environ.get('AJ_CONSOLE_LOCKDOWN', False)))
+vars.Add('DUKTAPE_SRC', 'URL/Path to Duktape generated source', os.environ.get('AJ_DUCTAPE_SRC', duktape_default_url))
 vars.Add('CC',  'C Compiler override')
 vars.Add('CXX', 'C++ Compiler override')
 vars.Update(env)
@@ -99,20 +111,22 @@ Help(vars.GenerateHelpText(env))
 # Setup non-verbose output
 #######################################################
 if not env['V']:
-    env.Replace( CCCOMSTR =     '\t[CC]      $SOURCE',
-                 SHCCCOMSTR =   '\t[CC-SH]   $SOURCE',
-                 CXXCOMSTR =    '\t[CXX]     $SOURCE',
-                 SHCXXCOMSTR =  '\t[CXX-SH]  $SOURCE',
-                 LINKCOMSTR =   '\t[LINK]    $TARGET',
-                 SHLINKCOMSTR = '\t[LINK-SH] $TARGET',
-                 JAVACCOMSTR =  '\t[JAVAC]   $SOURCE',
-                 JARCOMSTR =    '\t[JAR]     $TARGET',
-                 ARCOMSTR =     '\t[AR]      $TARGET',
-                 ASCOMSTR =     '\t[AS]      $TARGET',
-                 RANLIBCOMSTR = '\t[RANLIB]  $TARGET',
-                 INSTALLSTR =   '\t[INSTALL] $TARGET',
-                 JSDOCCOMSTR =  '\t[JSDOC]   $TARGET.dir',
-                 WSCOMSTR =     '\t[WS]      $WS' )
+    env.Replace( CCCOMSTR =          '\t[CC]       $SOURCE',
+                 SHCCCOMSTR =        '\t[CC-SH]    $SOURCE',
+                 CXXCOMSTR =         '\t[CXX]      $SOURCE',
+                 SHCXXCOMSTR =       '\t[CXX-SH]   $SOURCE',
+                 LINKCOMSTR =        '\t[LINK]     $TARGET',
+                 SHLINKCOMSTR =      '\t[LINK-SH]  $TARGET',
+                 JAVACCOMSTR =       '\t[JAVAC]    $SOURCE',
+                 JARCOMSTR =         '\t[JAR]      $TARGET',
+                 ARCOMSTR =          '\t[AR]       $TARGET',
+                 ASCOMSTR =          '\t[AS]       $TARGET',
+                 RANLIBCOMSTR =      '\t[RANLIB]   $TARGET',
+                 INSTALLSTR =        '\t[INSTALL]  $TARGET',
+                 JSDOCCOMSTR =       '\t[JSDOC]    $TARGET.dir',
+                 UNPACKCOMSTR =      '\t[UNPACK]   $SOURCE',
+                 URLDOWNLOADCOMSTR = '\t[DOWNLOAD] $SOURCE',
+                 WSCOMSTR =          '\t[WS]       $WS' )
 
 #######################################################
 # Load target setup
@@ -120,7 +134,6 @@ if not env['V']:
 env['build'] = True
 env['build_shared'] = False
 env['build_unit_tests'] = True
-env['build_console'] = False
 
 env.SConscript('SConscript.target.$TARG')
 
@@ -156,6 +169,42 @@ int AJSVC_PropertyStore_Update() { return 0; }
 include_onboarding = config.CheckFunc('AJOBS_ClearInfo', config_check_svc_stub)
 
 jsenv = config.Finish()
+
+#######################################################
+# Find Duktape source
+#######################################################
+tarball = None
+tarball_match = re.match('.*/(?P<basename>.*)(?P<suffix>\.(tar(\.(gz|gzip|bz2?|bzip2?|xz))?|tgz|tbz|txz|zip))$',
+                         jsenv['DUKTAPE_SRC'])
+
+if tarball_match:
+    if bool(urlparse.urlparse(jsenv['DUKTAPE_SRC']).netloc):
+        # Download a tarball from a URL
+        tarball = jsenv.URLDownload('#external/dl/' + duktape_tarball, jsenv['DUKTAPE_SRC'])
+    else:
+        # Use an existing tarball on the local filesystem
+        tarball = [jsenv.File(jsenv['DUKTAPE_SRC'])]
+
+    duktape_srcdir = '#external/%s/src' % tarball_match.groupdict()['basename']
+    jsenv.Append(UNPACK = {'EXTRACTDIR': jsenv.Dir('#external') })
+    jsenv['duktape_src'], hfile = jsenv.Unpack(tarball, UNPACKLIST = [ os.path.join(duktape_srcdir, 'duktape.c'),
+                                                                       os.path.join(duktape_srcdir, 'duktape.h') ])
+    if os.path.basename(str(tarball[0])) == duktape_tarball:
+        # Using default tarball -- verify MD5SUM of file
+        def md5sum_check(target, source, env):
+            if source[0].get_content_hash() != duktape_md5sum:
+                return 'MD5SUM mismatch for %s (%s vs %s)' % (source[0], source[0].get_content_hash(), duktape_md5sum)
+            return None
+        jsenv.AddPreAction([jsenv['duktape_src'], hfile], Action(md5sum_check, '\t[MD5SUM]   $SOURCE') )
+
+    # Tell SCons to include the extracted tarball code when cleaning.
+    duktape_dir = jsenv.Dir(os.path.dirname(duktape_srcdir))
+    jsenv.Clean(os.path.dirname(str(duktape_dir)), duktape_dir)
+else:
+    duktape_srcdir = jsenv['DUKTAPE_SRC']
+    jsenv['duktape_src'] = jsenv.File(os.path.join(duktape_srcdir, 'duktape.c'))
+
+jsenv.Append(CPPPATH = jsenv.Dir(duktape_srcdir))
 
 
 #######################################################
@@ -222,26 +271,6 @@ if jsenv['CONSOLE_LOCKDOWN'] :
     jsenv.Append(CPPDEFINES = [ 'AJS_CONSOLE_LOCKDOWN' ])
 
 #######################################################
-# Setup references to dependent projects
-#######################################################
-external_path = Glob('external/duktape*')
-if external_path:
-    # Pick the latest version
-    external_path = str(external_path[-1])
-else:
-    external_path = None
-
-if jsenv.has_key('DUKTAPE_SRC'):
-    jsenv.Append(CPPPATH = Dir(jsenv['DUKTAPE_SRC']))
-    jsenv['duktape_src'] = File(jsenv['DUKTAPE_SRC'] + '/duktape.c')
-elif external_path and os.path.exists(external_path + '/src/duktape.c'):
-    jsenv.Append(CPPPATH = Dir(external_path + '/src/'))
-    jsenv['duktape_src'] = File(external_path + '/src/duktape.c')
-else:
-    jsenv.Append(CPPPATH = Dir('/usr/src/duktape/'))
-    jsenv['duktape_src'] = File('/usr/src/duktape/duktape.c')
-
-#######################################################
 # Include path
 #######################################################
 
@@ -254,8 +283,9 @@ jsenv.Append(CPPDEFINES = [ v for k, v in ARGLIST if k.lower() == 'define' ])
 # Setup target specific options and build AllJoyn portion of aj_duk
 #######################################################
 if not jsenv.GetOption('help') and not all(dep_libs):
-    print 'Missing required external libraries'
+    print '*** Missing required external libraries'
     Exit(1)
+
 jsenv.SConscript('src/SConscript', variant_dir='#build/src/$VARIANT', duplicate = 0)
 jsenv.SConscript('console/SConscript', variant_dir='#build/console/$VARIANT', duplicate = 0)
 

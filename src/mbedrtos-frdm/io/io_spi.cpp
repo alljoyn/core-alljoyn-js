@@ -99,7 +99,7 @@ AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t c
             break;
         }
     }
-    spi = (SPI_Pin*)AJS_Alloc(NULL, sizeof(SPI_Pin));
+    spi = (SPI_Pin*)AJ_Malloc(sizeof(SPI_Pin));
     spi->object = new SPI((PinName)spiInfo[indexMosi].pinId, (PinName)spiInfo[indexMiso].pinId, (PinName)spiInfo[indexClk].pinId);
     spi->cs = new DigitalOut((PinName)spiInfo[indexCs].pinId);
     spi->object->frequency(SystemCoreClock / prescaler);
@@ -132,7 +132,7 @@ AJ_Status AJS_TargetIO_SpiClose(void* spiCtx)
         if (spi->object) {
             delete spi->object;
         }
-        AJS_Free(NULL, spi);
+        AJ_Free(spi);
     }
     return AJ_OK;
 }

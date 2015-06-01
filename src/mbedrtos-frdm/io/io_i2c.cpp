@@ -120,7 +120,7 @@ AJ_Status AJS_TargetIO_I2cOpen(uint8_t sda, uint8_t scl, uint32_t clock, uint8_t
         return AJ_ERR_INVALID;
     }
 
-    i2c = (I2C_Pin*)AJS_Alloc(NULL, sizeof(I2C_Pin));
+    i2c = (I2C_Pin*)AJ_Malloc(sizeof(I2C_Pin));
     memset(i2c, 0, sizeof(I2C));
 
     i2c->object = new I2C((PinName)i2cInfo[indexSda].pinId, (PinName)i2cInfo[indexScl].pinId);
@@ -138,7 +138,7 @@ AJ_Status AJS_TargetIO_I2cClose(void* ctx)
         if (i2c->object) {
             delete i2c->object;
         }
-        AJS_Free(NULL, i2c);
+        AJ_Free(i2c);
     }
     return AJ_OK;
 }

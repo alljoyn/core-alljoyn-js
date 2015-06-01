@@ -20,6 +20,7 @@
  * The corresponding flag dbgAJSVCAPP is defined in the containing sample app.
  */
 #include "ajs.h"
+#include "ajs_util.h"
 #include "ajs_ctrlpanel.h"
 #include <ajtcl/aj_debug.h>
 
@@ -121,16 +122,13 @@ static AJ_Status SetWidgetProp(AJ_Message* msg)
             break;
         }
     }
-    if (status == AJ_OK) {
-        AJ_MarshalReplyMsg(msg, &reply);
-    } else {
-        AJ_MarshalStatusMsg(msg, &reply, status);
-    }
     /*
-     * Need to deliver the reply before calling onValueChanged because this is likely to cause
-     * signals to be sent which would overwrite the I/O buffer being used for the reply.
+     * Need to make a clone of the message and close the original
      */
-    AJ_DeliverMsg(&reply);
+    msg = AJS_CloneAndCloseMessage(widget->dukCtx, msg);
+    if (!msg) {
+        return AJ_ERR_RESOURCES;
+    }
     if (status == AJ_OK) {
         /*
          * Call JavaScript to report the value change
@@ -139,6 +137,13 @@ static AJ_Status SetWidgetProp(AJ_Message* msg)
     } else {
         AJ_ErrPrintf(("SetWidgetProp %s\n", AJ_StatusText(status)));
     }
+    if (status == AJ_OK) {
+        AJ_MarshalReplyMsg(msg, &reply);
+    } else {
+        AJ_MarshalStatusMsg(msg, &reply, status);
+    }
+    AJ_DeliverMsg(&reply);
+
     return status;
 }
 
@@ -148,6 +153,13 @@ static AJ_Status ExecuteAction(AJ_Message* msg, uint8_t action, void* context)
     AJ_Status status;
     AJ_Message reply;
 
+    /*
+     * Need to make a clone of the message and close the original
+     */
+    msg = AJS_CloneAndCloseMessage(widget->dukCtx, msg);
+    if (!msg) {
+        return AJ_ERR_RESOURCES;
+    }
     /*
      * Call into JavaScript object to perform action
      */

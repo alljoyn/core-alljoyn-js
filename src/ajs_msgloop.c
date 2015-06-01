@@ -20,9 +20,7 @@
 #include "ajs.h"
 #include "ajs_util.h"
 #include "ajs_services.h"
-#include <ajtcl/aj_msg_priv.h>
-#include <ajtcl/aj_link_timeout.h>
-#include <ajtcl/services/ControlPanelService.h>
+#include "ajs_debugger.h"
 
 static uint8_t IsPropAccessor(AJ_Message* msg)
 {
@@ -38,6 +36,7 @@ static AJ_Status SessionBindReply(duk_context* ctx, AJ_Message* msg)
     AJ_Status status;
     uint32_t result;
     uint16_t port;
+    uint8_t ldstate;
 
     status = AJ_UnmarshalArgs(msg, "uq", &result, &port);
     if (status != AJ_OK) {
@@ -45,7 +44,12 @@ static AJ_Status SessionBindReply(duk_context* ctx, AJ_Message* msg)
     }
     if (port != AJS_APP_PORT) {
         AJ_ResetArgs(msg);
-        status = AJS_ConsoleMsgHandler(ctx, msg);
+#if !defined(AJS_CONSOLE_LOCKDOWN)
+        status = AJS_GetLockdownState(&ldstate);
+        if (status == AJ_OK && ldstate == AJS_CONSOLE_UNLOCKED) {
+            status = AJS_ConsoleMsgHandler(ctx, msg);
+        }
+#endif
         if (status == AJ_ERR_NO_MATCH) {
             status = AJS_ServicesMsgHandler(msg);
             if (status == AJ_ERR_NO_MATCH) {
@@ -62,6 +66,7 @@ static AJ_Status SessionDispatcher(duk_context* ctx, AJ_Message* msg)
     uint32_t sessionId;
     uint16_t port;
     char* joiner;
+    uint8_t ldstate;
 
     status = AJ_UnmarshalArgs(msg, "qus", &port, &sessionId, &joiner);
     if (status != AJ_OK) {
@@ -87,7 +92,12 @@ static AJ_Status SessionDispatcher(duk_context* ctx, AJ_Message* msg)
      * JavaScript doesn't accept/reject session so the session is either for the console or perhaps
      * a service if the services bind their own ports.
      */
-    status = AJS_ConsoleMsgHandler(ctx, msg);
+#if !defined(AJS_CONSOLE_LOCKDOWN)
+    status = AJS_GetLockdownState(&ldstate);
+    if (status == AJ_OK && ldstate == AJS_CONSOLE_UNLOCKED) {
+        status = AJS_ConsoleMsgHandler(ctx, msg);
+    }
+#endif
     if (status == AJ_ERR_NO_MATCH) {
         status = AJS_ServicesMsgHandler(msg);
     }
@@ -104,14 +114,20 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
     uint8_t accessor = AJS_NOT_ACCESSOR;
     const char* func;
     AJ_Status status;
+    uint8_t ldstate;
 
-    status = AJS_ConsoleMsgHandler(ctx, msg);
-    if (status != AJ_ERR_NO_MATCH) {
-        if (status != AJ_OK) {
-            AJ_WarnPrintf(("AJS_ConsoleMsgHandler returned %s\n", AJ_StatusText(status)));
+#if !defined(AJS_CONSOLE_LOCKDOWN)
+    status = AJS_GetLockdownState(&ldstate);
+    if (status == AJ_OK && ldstate == AJS_CONSOLE_UNLOCKED) {
+        status = AJS_ConsoleMsgHandler(ctx, msg);
+        if (status != AJ_ERR_NO_MATCH) {
+            if (status != AJ_OK) {
+                AJ_WarnPrintf(("AJS_ConsoleMsgHandler returned %s\n", AJ_StatusText(status)));
+            }
+            return status;
         }
-        return status;
     }
+#endif
     /*
      * JOIN_SESSION replies are handled in the AllJoyn.js layer and don't get passed to JavaScript
      */
@@ -148,6 +164,9 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
             return AJS_FoundAdvertisedName(ctx, msg);
         }
         if ((msg->msgId == AJ_SIGNAL_SESSION_LOST) || (msg->msgId == AJ_SIGNAL_SESSION_LOST_WITH_REASON)) {
+            if (AJS_DebuggerIsAttached()) {
+                msg = AJS_CloneAndCloseMessage(ctx, msg);
+            }
             return AJS_SessionLost(ctx, msg);
         }
         func = "onSignal";
@@ -204,8 +223,16 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
         duk_pop(ctx);
         return status;
     }
+    /*
+     * Opens up a stack entry above the function
+     */
+    duk_dup_top(ctx);
     msgIdx = AJS_UnmarshalMessage(ctx, msg, accessor);
-    AJ_ASSERT(msgIdx == (ajIdx + 2));
+    AJ_ASSERT(msgIdx == (ajIdx + 3));
+    /*
+     * Save the message object on the stack
+     */
+    duk_copy(ctx, msgIdx, -3);
     /*
      * Special case for GET prop so we can get the signature for marshalling the result
      */
@@ -216,16 +243,31 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
     }
     if (status == AJ_OK) {
         duk_idx_t numArgs = duk_get_top(ctx) - msgIdx - 1;
-        if (duk_pcall_method(ctx, numArgs) != DUK_EXEC_SUCCESS) {
-            AJ_ErrPrintf(("%s: %s\n", func, duk_safe_to_string(ctx, -1)));
-        }
-        duk_pop(ctx);
-    } else {
         /*
-         * Cleanup stack back to the AJ object
+         * If attached, the debugger will begin to unmarshal a message when the
+         * method handler is called, therefore it must be cloned-and-closed now.
          */
-        duk_set_top(ctx, ajIdx);
+        if (AJS_DebuggerIsAttached()) {
+            msg = AJS_CloneAndCloseMessage(ctx, msg);
+        }
+        if (duk_pcall_method(ctx, numArgs) != DUK_EXEC_SUCCESS) {
+            const char* err = duk_safe_to_string(ctx, -1);
+
+            AJ_ErrPrintf(("%s: %s\n", func, err));
+            /*
+             * Generate an error reply if this was a method call
+             */
+            if (msg->hdr->msgType == AJ_MSG_METHOD_CALL) {
+                duk_push_c_lightfunc(ctx, AJS_MethodCallError, 1, 0, 0);
+                duk_insert(ctx, -3);
+                (void)duk_pcall_method(ctx, 1);
+            }
+        }
     }
+    /*
+     * Cleanup stack back to the AJ object
+     */
+    duk_set_top(ctx, ajIdx + 1);
     return status;
 }
 
@@ -268,6 +310,7 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
     uint32_t linkTO;
     uint32_t msgTO = 0x7FFFFFFF;
     duk_idx_t top = duk_get_top_index(ctx);
+    uint8_t ldstate;
 
     AJ_InfoPrintf(("AJS_MessageLoop top=%d\n", (int)top));
 
@@ -286,7 +329,7 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
     /*
      * timer clock must be initialized
      */
-    AJ_GetElapsedTime(&timerClock, FALSE);
+    AJ_InitTimer(&timerClock);
 
     AJ_ASSERT(duk_get_top_index(ctx) == top);
 
@@ -306,9 +349,9 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
         }
         AJS_SetWatchdogTimer(AJS_DEFAULT_WATCHDOG_TIMEOUT);
         /*
-         * Pinned strings are only valid while running script
+         * Pinned items (strings/buffers) are only valid while running script
          */
-        AJS_ClearPinnedStrings(ctx);
+        AJS_ClearPins(ctx);
         /*
          * Check if there are any pending I/O operations to perform.
          */
@@ -329,7 +372,10 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
         /*
          * Do any announcing required
          */
-        status = AJ_AboutAnnounce(aj);
+        status = AJS_GetLockdownState(&ldstate);
+        if (status == AJ_OK && ldstate == AJS_CONSOLE_UNLOCKED) {
+            status = AJ_AboutAnnounce(aj);
+        }
         if (status != AJ_OK) {
             break;
         }
@@ -442,8 +488,11 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
          * Perform any deferred operations. These are operations such as factory reset that cannot
          * be cleanly performed from inside duktape.
          */
-        status = DoDeferredOperation(ctx);
+        if (status == AJ_OK) {
+            status = DoDeferredOperation(ctx);
+        }
     }
+    AJS_ClearPins(ctx);
     AJS_ClearWatchdogTimer();
     return status;
 }

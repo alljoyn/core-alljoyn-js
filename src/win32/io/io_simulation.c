@@ -171,6 +171,10 @@ AJ_Status AJS_TargetIO_PinOpen(uint16_t pin, AJS_IO_PinConfig config, void** pin
 
     AJ_ErrPrintf(("AJS_TargetIO_PinOpen(%d, %02x)\n", pin, config));
     gpio = malloc(sizeof(GPIO));
+    if (!gpio) {
+        AJ_ErrPrintf(("AJS_TargetIO_PinOpen(): Malloc failed to allocate %d bytes\n", sizeof(GPIO)));
+        return AJ_ERR_RESOURCES;
+    }
     gpio->pinId = pin;
     gpio->trigId = AJS_IO_PIN_NO_TRIGGER;
     if (pipe == INVALID_HANDLE_VALUE) {

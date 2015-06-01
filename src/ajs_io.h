@@ -318,11 +318,12 @@ AJ_Status AJS_TargetIO_SpiClose(void* spiCtx);
  * Read from the UART peripheral
  *
  * @param uartCtx   Pointer to an opaque target specific data structure for the UART channel
+ * @param buf       Buffer to be read into
  * @param length    Number of bytes requesting to be read
  *
- * @return          Pointer to the data that was read
+ * @return          Number of bytes actually read
  */
-uint8_t* AJS_TargetIO_UartRead(void* uartCtx, uint32_t length);
+uint32_t AJS_TargetIO_UartRead(void* uartCtx, uint8_t* buf, uint32_t length);
 
 /**
  * Write data to the UART peripheral

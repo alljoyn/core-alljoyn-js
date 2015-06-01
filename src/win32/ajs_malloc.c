@@ -52,6 +52,10 @@ AJ_Status AJS_HeapCreate()
     for (i = 0; i < NUM_HEAPS; ++i) {
         heapSz[i] = AJS_HeapRequired(heapConfig, ArraySize(heapConfig), i);
         heap[i] = malloc(heapSz[i]);
+        if (!heap[i]) {
+            AJ_ErrPrintf(("AJS_HeapCreate(): Malloc failed to allocate %d bytes\n", heapSz[i]));
+            return AJ_ERR_RESOURCES;
+        }
         AJ_Printf("Allocated heap[%d] %d bytes\n", i, (int)heapSz[i]);
     }
     return AJS_HeapInit(heap, heapSz, heapConfig, ArraySize(heapConfig), NUM_HEAPS);

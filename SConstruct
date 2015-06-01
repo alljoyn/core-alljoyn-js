@@ -61,7 +61,8 @@ def CheckAJCLib(context, ajlib, ajheader, sconsvarname, ajdistpath):
 #######################################################
 # Initialize our build environment
 #######################################################
-env = Environment()
+env = Environment(tools = ['default', 'jsdoc3'],
+                  toolpath = ['tools'])
 Export('env', 'CheckAJLib')
 
 #######################################################
@@ -88,6 +89,7 @@ vars.Add(BoolVariable('EXT_STRINGS',        'Enable external string support',   
 vars.Add(BoolVariable('POOL_MALLOC',        'Use pool based memory allocation',    os.environ.get('AJ_POOL_MALLOC',        False)))
 vars.Add(BoolVariable('SHORT_SIZES',        'Use 16 bit sizes and pointers - only when POOL_MALLOC == True', os.environ.get('AJ_SHORT_SIZES', True)))
 vars.Add(BoolVariable('DUK_DEBUG',          'Turn on duktape logging and print debug messages', os.environ.get('AJ_DUK_DEBUG',   False)))
+vars.Add(BoolVariable('CONSOLE_LOCKDOWN',   'Removes all debugger and console code', os.environ.get('AJ_CONSOLE_LOCKDOWN', False)))
 vars.Add('CC',  'C Compiler override')
 vars.Add('CXX', 'C++ Compiler override')
 vars.Update(env)
@@ -109,6 +111,7 @@ if not env['V']:
                  ASCOMSTR =     '\t[AS]      $TARGET',
                  RANLIBCOMSTR = '\t[RANLIB]  $TARGET',
                  INSTALLSTR =   '\t[INSTALL] $TARGET',
+                 JSDOCCOMSTR =  '\t[JSDOC]   $TARGET.dir',
                  WSCOMSTR =     '\t[WS]      $WS' )
 
 #######################################################
@@ -130,6 +133,8 @@ Export('jsenv')
 config = Configure(jsenv, custom_tests = { 'CheckCommand' : CheckCommand,
                                            'CheckAJLib' : CheckAJCLib })
 found_ws = config.CheckCommand('uncrustify')
+found_jsdoc = config.CheckCommand('jsdoc')
+
 dep_libs = [
     config.CheckAJLib('ajtcl',          'ajtcl/aj_bus.h',                 'AJTCL_DIST', '../ajtcl/dist'),
     config.CheckAJLib('ajtcl_services', 'ajtcl/services/ConfigService.h', 'SVCS_DIST',  '../../services/base_tcl/dist')
@@ -168,15 +173,15 @@ jsenv.Append(CPPDEFINES = [
     'DUK_OPT_DPRINT_COLORS',
     ( 'DUK_OPT_FORCE_ALIGN', '4' ),
     'DDUK_OPT_LIGHTFUNC_BUILTINS',
+    'DDUK_OPT_FASTINT',
     'DUK_OPT_HAVE_CUSTOM_H',
     'DUK_OPT_NO_FILE_IO',
     'DUK_OPT_SEGFAULT_ON_PANIC',
     'DUK_OPT_SHORT_LENGTHS',
-
-    # Enable timeout checks
+    'DUK_OPT_DEBUGGER_SUPPORT',
     'DUK_OPT_INTERRUPT_COUNTER',
+    'DUK_CMDLINE_DEBUGGER_SUPPORT',
     ( '"DUK_OPT_EXEC_TIMEOUT_CHECK(u)"', '"AJS_ExecTimeoutCheck(u)"'),
-
     # AllJoyn-JS defines
     'ALLJOYN_JS',
     'BIG_HEAP' ])
@@ -188,10 +193,7 @@ if jsenv['VARIANT'] == 'release':
 else:
     jsenv.Append(CPPDEFINES = [ 'DUK_OPT_ASSERTIONS',
                               ( 'AJ_DEBUG_RESTRICT', '5' ),
-                              'DBGAll',
-                              'DUK_OPT_DEBUGGER_SUPPORT',
-                              'DUK_OPT_INTERRUPT_COUNTER',
-                              'DUK_CMDLINE_DEBUGGER_SUPPORT' ])
+                              'DBGAll' ])
 if jsenv['DUK_DEBUG']:
     jsenv.Append(CPPDEFINES = [ 'DBG_PRINT_CHUNKS',
                               'DUK_OPT_DEBUG',
@@ -215,6 +217,9 @@ if jsenv['EXT_STRINGS']:
                               ('"DUK_OPT_EXTSTR_FREE(u,p)"', '"AJS_ExternalStringFree(u,p)"'),
                               'DUK_OPT_STRTAB_CHAIN',
                               'DUK_OPT_STRTAB_CHAIN_SIZE=128' ])
+
+if jsenv['CONSOLE_LOCKDOWN'] :
+    jsenv.Append(CPPDEFINES = [ 'AJS_CONSOLE_LOCKDOWN' ])
 
 #######################################################
 # Setup references to dependent projects
@@ -271,8 +276,11 @@ if found_ws:
     vars = Variables()
     vars.Add(EnumVariable('WS', 'Whitespace Policy Checker', os.environ.get('AJ_WS', 'check'), allowed_values = ('check', 'detail', 'fix', 'off')))
 
-    vars.Update(env)
+    vars.Update(jsenv)
     Help(vars.GenerateHelpText(jsenv))
 
-    if env.get('WS', 'off') != 'off':
-        env.Command('#ws_ajtcl', '#dist', Action(wsbuild, '$WSCOMSTR'))
+    if jsenv.get('WS', 'off') != 'off':
+        jsenv.Command('#ws_ajtcl', '#dist', Action(wsbuild, '$WSCOMSTR'))
+
+if found_jsdoc:
+    doc_out = jsenv.JSDoc(jsenv.Dir('#dist/doc/jsdoc'), 'doc/jsdoc/jsdocs')

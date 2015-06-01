@@ -52,7 +52,7 @@ AJ_Status AJS_TargetIO_AdcOpen(uint16_t pinIndex, void** adcCtx)
     if (pin >= ArraySize(pinInfo)) {
         return AJ_ERR_INVALID;
     }
-    adc = (ADC*)AJS_Alloc(NULL, sizeof(ADC));
+    adc = (ADC*)AJ_Malloc(sizeof(ADC));
     memset(adc, 0, sizeof(ADC));
 
     adc->adcObj = new AnalogIn((PinName)pinInfo[pin].pinId);
@@ -69,7 +69,7 @@ AJ_Status AJS_TargetIO_AdcClose(void* adcCtx)
         if (adc->adcObj) {
             delete adc->adcObj;
         }
-        AJS_Free(NULL, adc);
+        AJ_Free(adc);
     }
     return AJ_OK;
 }

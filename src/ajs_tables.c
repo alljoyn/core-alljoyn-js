@@ -173,8 +173,9 @@ static void BuildMemberList(duk_context* ctx, const char** ifc)
     duk_pop(ctx);
 }
 
-static void BuildInterfaceTable(duk_context* ctx, duk_idx_t ajIdx)
+static AJ_Status BuildInterfaceTable(duk_context* ctx, duk_idx_t ajIdx)
 {
+    AJ_Status status = AJ_OK;
     size_t i;
     size_t allocSz;
 
@@ -187,7 +188,7 @@ static void BuildInterfaceTable(duk_context* ctx, duk_idx_t ajIdx)
      * Nothing to do if interfaceDefinition is not defined
      */
     if (duk_is_undefined(ctx, -1)) {
-        return;
+        return AJ_OK;
     }
     /*
      * The interfaceDefinition table cannot change after the tables have been constructed
@@ -199,6 +200,9 @@ static void BuildInterfaceTable(duk_context* ctx, duk_idx_t ajIdx)
      * Allocate space for a NULL terminated interface table
      */
     interfaceTable = duk_alloc(ctx, allocSz);
+    if (!interfaceTable) {
+        return AJ_ERR_RESOURCES;
+    }
     memset((void*)interfaceTable, 0, allocSz);
     /*
      * Always add the properties interface to the list
@@ -212,6 +216,11 @@ static void BuildInterfaceTable(duk_context* ctx, duk_idx_t ajIdx)
          * Allocate space for a NULL terminated interface description
          */
         const char** ifc = duk_alloc(ctx, (2 + numMembers) * sizeof(char*));
+        if (!ifc) {
+            duk_pop_2(ctx);
+            status = AJ_ERR_RESOURCES;
+            break;
+        }
         memset((void*)ifc, 0, (2 + numMembers) * sizeof(char*));
         /*
          * First entry is the interface name
@@ -224,6 +233,7 @@ static void BuildInterfaceTable(duk_context* ctx, duk_idx_t ajIdx)
         interfaceTable[i] = ifc;
     }
     duk_pop_2(ctx); // enum + interfaces
+    return status;
 }
 
 static AJ_InterfaceDescription LookupInterface(duk_context* ctx, const char* iface)
@@ -237,8 +247,9 @@ static AJ_InterfaceDescription LookupInterface(duk_context* ctx, const char* ifa
     return NULL;
 }
 
-static void BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
+static AJ_Status BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
 {
+    AJ_Status status = AJ_OK;
     size_t numObjects = NumProps(ctx, ajIdx) + 1;
     size_t allocSz;
     AJ_Object* jsObjects;
@@ -252,11 +263,14 @@ static void BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
      * Nothing to do if objectDefinition is not defined
      */
     if (duk_is_undefined(ctx, -1)) {
-        return;
+        return AJ_OK;
     }
     allocSz = numObjects * sizeof(AJ_Object);
 
     objectList = duk_alloc(ctx, allocSz);
+    if (!objectList) {
+        return AJ_ERR_RESOURCES;
+    }
     memset(objectList, 0, allocSz);
 
     /*
@@ -282,6 +296,11 @@ static void BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
 
         numInterfaces = duk_get_length(ctx, -1);
         interfaces = duk_alloc(ctx, (numInterfaces + 2) * sizeof(AJ_InterfaceDescription*));
+        if (!interfaces) {
+            duk_pop_3(ctx);
+            status = AJ_ERR_RESOURCES;
+            break;
+        }
         memset((void*)interfaces, 0, (numInterfaces + 2) * sizeof(AJ_InterfaceDescription*));
         /*
          * Locate the interfaces in the interface table
@@ -307,6 +326,7 @@ static void BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
     }
     duk_pop(ctx); // enum
     duk_pop(ctx); // JavaScript objects
+    return status;
 }
 
 void AJS_ResetTables(duk_context* ctx)
@@ -391,20 +411,24 @@ static const char* DescriptionFinder(uint32_t descId, const char* lang)
 
 AJ_Status AJS_InitTables(duk_context* ctx, duk_idx_t ajIdx)
 {
-    AJ_Status status;
-    BuildInterfaceTable(ctx, ajIdx);
-    BuildLocalObjects(ctx, ajIdx);
-    AJ_RegisterObjectList(proxyList, AJ_PRX_ID_FLAG);
-    /*
-     * Have to register this global so DescriptionFinder has access to the duktape context
-     */
-    dukContext = ctx;
-    status = AJ_RegisterObjectListWithDescriptions(objectList, JS_OBJ_INDEX, DescriptionFinder);
-#ifndef NDEBUG
-    if (dbgAJS) {
-        AJ_PrintXMLWithDescriptions(objectList, "en");
+    AJ_Status status = BuildInterfaceTable(ctx, ajIdx);
+
+    if (status == AJ_OK) {
+        status = BuildLocalObjects(ctx, ajIdx);
     }
+    if (status == AJ_OK) {
+        AJ_RegisterObjectList(proxyList, AJ_PRX_ID_FLAG);
+        /*
+         * Have to register this global so DescriptionFinder has access to the duktape context
+         */
+        dukContext = ctx;
+        status = AJ_RegisterObjectListWithDescriptions(objectList, JS_OBJ_INDEX, DescriptionFinder);
+#ifndef NDEBUG
+        if (dbgAJS) {
+            AJ_PrintXMLWithDescriptions(objectList, "en");
+        }
 #endif
+    }
     return status;
 }
 

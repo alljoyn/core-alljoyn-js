@@ -60,9 +60,14 @@ extern uint8_t dbgAJS;
 #define AJS_SCRIPT_NAME_NVRAM_ID  (AJ_NVRAM_ID_FOR_APPS + 0)
 #define AJS_SCRIPT_NVRAM_ID       (AJ_NVRAM_ID_FOR_APPS + 1)
 #define AJS_SCRIPT_SIZE_ID        (AJ_NVRAM_ID_FOR_APPS + 2)
+#define AJS_LOCKDOWN_NVRAM_ID     (AJ_NVRAM_ID_FOR_APPS + 3)
 #define AJS_PROPSTORE_NVRAM_ID    (AJ_NVRAM_ID_FOR_APPS + 32)
 #define AJS_PROPSTORE_NVRAM_MIN   (AJS_PROPSTORE_NVRAM_ID + 1)
 #define AJS_PROPSTORE_NVRAM_MAX   (AJS_PROPSTORE_NVRAM_MIN + 256)
+
+#define AJS_CONSOLE_UNLOCKED    0
+#define AJS_CONSOLE_LOCKED      1
+#define AJS_CONSOLE_LOCK_ERR    2
 
 /*
  * Default TTL for sessionless signals and notifications
@@ -112,6 +117,31 @@ typedef struct {
 uint8_t AJS_IsRunning();
 
 /**
+ * Get the current lockdown bit from NVRAM.
+ *
+ * @param state[out]    Current lockdown state
+ * @return              AJ_OK upon success
+ */
+AJ_Status AJS_GetLockdownState(uint8_t* state);
+
+/**
+ * Update the lockdown bit to a new value.
+ *
+ * @param bit       New lockdown setting
+ * @return          AJ_OK if bit was set successfully
+ */
+AJ_Status AJS_SetLockdownState(uint8_t state);
+
+/**
+ * Lock out the console and debugger forever
+ *
+ * @param msg       Lockdown message
+ *
+ * @return          AJ_OK if successful
+ */
+AJ_Status AJS_LockConsole(AJ_Message* msg);
+
+/**
  * Gets the size of the script currently in NVRAM
  *
  * @return      Script size
@@ -136,6 +166,15 @@ uint32_t AJS_GetConsoleSession(void);
  * Get a pointer to the bus attachment
  */
 AJ_BusAttachment* AJS_GetBusAttachment();
+
+/**
+ * Evaluate an eval message. This must be public to be call-able
+ * from the debugger read callback as well as from the console.
+ *
+ * @param ctx       Duktape context
+ * @param msg       Eval message from console
+ */
+AJ_Status AJS_Eval(duk_context* ctx, AJ_Message* msg);
 
 /**
  * Attach to an AllJoyn routing node. This may trigger on-boarding.
@@ -321,7 +360,11 @@ AJ_Status AJS_ConsoleMsgHandler(duk_context* ctx, AJ_Message* msg);
  *
  * @param ctx  An opaque pointer to a duktape context structure
  */
+#if !defined(AJS_CONSOLE_LOCKDOWN)
 void AJS_ConsoleSignalError(duk_context* ctx);
+#else
+#define AJS_ConsoleSignalError(ctx) do { } while (0)
+#endif
 
 /**
  * Initialize the console service
@@ -394,6 +437,13 @@ AJ_Status AJS_HandleAcceptSession(duk_context* ctx, AJ_Message* msg, uint16_t po
 AJ_Status AJS_SessionLost(duk_context* ctx, AJ_Message* msg);
 
 /**
+ * End all application sessions that are currently active
+ *
+ * @param ctx   An opaque pointer to a duktape context structure
+ */
+AJ_Status AJS_EndSessions(duk_context* ctx);
+
+/**
  * Native function called from JavaScript to marshal and send a method call message
  *
  * @param ctx  An opaque pointer to a duktape context structure
@@ -411,9 +461,9 @@ int AJS_MarshalSignal(duk_context* ctx);
  * Unmarshals a message from C to JavaScript pushing the resultant JavaScript object onto the
  * duktape stack. Returns the index of the message object.
  *
- * @param ctx      An opaque pointer to a duktape context structure
- * @param msg      The message to unmarshal
- * @param accessor Indicates if the message is an accessor (PropGet/PropSet/PropGetAll method call)
+ * @param ctx          An opaque pointer to a duktape context structure
+ * @param msg          The message to unmarshal
+ * @param accessor     Indicates if the message is an accessor (PropGet/PropSet/PropGetAll method call)
  *
  * @return   Returns the absolute index on the duktape stack for the pushed object.
  */
@@ -480,45 +530,6 @@ void AJS_AlertHandler(duk_context* ctx, uint8_t alert);
 AJ_Status AJS_PropertyStoreInit(duk_context* ctx, const char* deviceName);
 
 /**
- * Allocate memory
- *
- * @param sz  The size of the memory block to allocate
- *
- * @return A pointer to the allocated memory block or NULL if the request could not be satisfied.
- */
-void* AJS_Alloc(void* userData, size_t sz);
-
-/**
- * Free a memory block returning it to the pool from which it was allocated.
- *
- * @param mem   Pointer to the memory block to free, can be NULL
- */
-void AJS_Free(void* userData, void* mem);
-
-/**
- * Reallocates a memory block with a larger or smaller size. If the current block is large enough to
- * satisfy the request that block is simply returned, otherwise a new larger block is allocated, the
- * contents of the old block are copied over and the old block is freed.
- *
- * @param mem   Pointer to the memory block to reallocate, can be NULL which case this is equivalent
- *              to calling AJS_HeapMalloc.
- * @param newSz The size of the new memory block
- *
- * @return A pointer to the allocated memory block or NULL if the request could not be satisfied.
- */
-void* AJS_Realloc(void* userData, void* mem, size_t newSz);
-
-/**
- * Create the AllJoyn.js heap
- */
-AJ_Status AJS_HeapCreate();
-
-/**
- * Destroy the AllJoyn.js heap
- */
-void AJS_HeapDestroy();
-
-/**
  * Reset the property store to defaults and offboard the device
  */
 AJ_Status AJS_FactoryReset();
@@ -534,16 +545,14 @@ typedef enum {
  */
 void AJS_DeferredOperation(duk_context* ctx, AJS_DEFERRED_OP op);
 
-/*
- * Dump the heap pool allocations
+/**
+ * Returns the maximum NVRAM space to allocate for a script. The value returned is target specific
+ * and depends on available resources.
  *
- * @param ctx     An opaque pointer to a duktape context structure
+ * @return  The maximum permitted script length in bytes.
  */
-#ifndef NDEBUG
-void AJS_HeapDump();
-#else
-#define AJS_HeapDump() do { } while (0)
-#endif
+uint32_t AJS_MaxScriptLen();
+
 #ifdef __cplusplus
 }
 #endif

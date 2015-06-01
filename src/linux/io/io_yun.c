@@ -446,6 +446,10 @@ AJ_Status AJS_TargetIO_PinOpen(uint16_t pin, AJS_IO_PinConfig config, void** pin
 
     AJ_ErrPrintf(("AJS_TargetIO_PinOpen(%d, %02x)\n", pin, config));
     gpio = malloc(sizeof(GPIO));
+    if (!gpio) {
+        AJ_ErrPrintf(("AJS_TargetIO_PinOpen(): Malloc failed to allocate %d bytes\n", sizeof(GPIO)));
+        return AJ_ERR_RESOURCES;
+    }
     gpio->pinId = pin;
     gpio->trigMode = AJS_IO_PIN_NO_TRIGGER;
     *pinCtx = gpio;
@@ -558,6 +562,10 @@ AJ_Status AJS_TargetIO_AdcOpen(uint16_t pin, void** adcCtx)
     AJ_ErrPrintf(("AJS_TargetIO_AdcOpen(%d)\n", pin));
     GPIO* gpio;
     gpio = malloc(sizeof(GPIO));
+    if (!gpio) {
+        AJ_ErrPrintf(("AJS_TargetIO_PinOpen(): Malloc failed to allocate %d bytes\n", sizeof(GPIO)));
+        return AJ_ERR_RESOURCES;
+    }
     gpio->pinId = pin;
     gpio->trigMode = AJS_IO_PIN_TRIGGER_DISABLE; // ignored
     *adcCtx = gpio;
@@ -592,6 +600,10 @@ AJ_Status AJS_TargetIO_DacOpen(uint16_t pin, void** dacCtx)
     GPIO* gpio;
     AJ_ErrPrintf(("AJS_TargetIO_DacOpen(%d)\n", pin));
     gpio = malloc(sizeof(GPIO));
+    if (!gpio) {
+        AJ_ErrPrintf(("AJS_TargetIO_PinOpen(): Malloc failed to allocate %d bytes\n", sizeof(GPIO)));
+        return AJ_ERR_RESOURCES;
+    }
     gpio->pinId = pin;
     gpio->trigMode = AJS_IO_PIN_TRIGGER_DISABLE; // ignored
     *dacCtx = gpio;
@@ -651,7 +663,7 @@ AJ_Status AJS_TargetIO_SpiClose(void* spiCtx)
     return AJ_ERR_UNEXPECTED;
 }
 
-uint8_t* AJS_TargetIO_UartRead(void* uartCtx, uint32_t length)
+uint32_t AJS_TargetIO_UartRead(void* uartCtx, uint8_t* buf, uint32_t length)
 {
     return 0;
 }

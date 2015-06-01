@@ -17,10 +17,10 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#include <alljoyn/Init.h>
 #include <Python.h>
 #include "ajs_console.h"
 #include "alljoyn/Status.h"
-#include <byteswap.h>
 
 using namespace qcc;
 using namespace ajn;
@@ -41,6 +41,8 @@ class AJS_PyConsole : public AJS_Console {
 
     virtual void DebugVersion(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
 
+    virtual void EvalResult(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
+
     void Msg(const char* msgType, const char* msgText);
 
     PyObject* pycallback; /* Only modify when Python GIL is held */
@@ -52,11 +54,37 @@ class AJS_PyConsole : public AJS_Console {
 
 };
 
+static volatile sig_atomic_t g_interrupt = false;
+
+static void SigIntHandler(int sig)
+{
+    g_interrupt = true;
+}
+
+static uint32_t ByteSwap32(uint32_t x)
+{
+    return ((x >> 24) & 0x000000FF) | ((x >> 8) & 0x0000FF00) |
+           ((x << 24) & 0xFF000000) | ((x << 8) & 0x00FF0000);
+}
+
+static uint64_t ByteSwap64(uint64_t x)
+{
+    return ((x >> 56) & 0x00000000000000FF) | ((x >> 40) & 0x000000000000FF00) |
+           ((x << 56) & 0xFF00000000000000) | ((x << 40) & 0x00FF000000000000) |
+           ((x >> 24) & 0x0000000000FF0000) | ((x >>  8) & 0x00000000FF000000) |
+           ((x << 24) & 0x0000FF0000000000) | ((x <<  8) & 0x000000FF00000000);
+}
+
 static AJS_PyConsole* console = NULL;
 static char debugVersion[128];
 static uint16_t dbgCurrentLine = 0;
 static uint16_t dbgPC = 0;
-static uint8_t dbgState;
+
+static void FatalError(void)
+{
+    printf("There was a fatal error, exiting\n");
+    exit(1);
+}
 
 AJS_PyConsole::AJS_PyConsole() : AJS_Console(), pycallback(NULL), notifCallback(NULL) {
 }
@@ -83,10 +111,12 @@ void AJS_PyConsole::RegisterHandlers(BusAttachment* ajb)
                                static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::PrintMsg),
                                ifc->GetMember("print"),
                                "/ScriptConsole");
+
     ajb->RegisterSignalHandler(this,
                                static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::AlertMsg),
                                ifc->GetMember("alert"),
                                "/ScriptConsole");
+
     ajb->RegisterSignalHandler(this,
                                static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::DebugNotification),
                                dbg_ifc->GetMember("notification"),
@@ -95,6 +125,11 @@ void AJS_PyConsole::RegisterHandlers(BusAttachment* ajb)
     ajb->RegisterSignalHandler(this,
                                static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::DebugVersion),
                                dbg_ifc->GetMember("version"),
+                               "/ScriptConsole");
+
+    ajb->RegisterSignalHandler(this,
+                               static_cast<MessageReceiver::SignalHandler>(&AJS_PyConsole::EvalResult),
+                               ifc->GetMember("evalResult"),
                                "/ScriptConsole");
 
     ifc = ajb->GetInterface("org.alljoyn.Notification");
@@ -119,14 +154,15 @@ void AJS_PyConsole::DebugNotification(const InterfaceDescription::Member* member
             uint8_t state;
             const char* fileName;
             const char* funcName;
-            uint8_t lineNumber, pc;
-            msg->GetArgs("yyssyy", &id, &state, &fileName, &funcName, &lineNumber, &pc);
+            uint16_t lineNumber;
+            uint8_t pc;
+            msg->GetArgs("yyssqy", &id, &state, &fileName, &funcName, &lineNumber, &pc);
             dbgCurrentLine = lineNumber;
             dbgPC = pc;
             if (state == 1) {
-                debugState = DEBUG_ATTACHED_PAUSED;
+                debugState = AJS_DEBUG_ATTACHED_PAUSED;
             } else if (state == 0) {
-                debugState = DEBUG_ATTACHED_RUNNING;
+                debugState = AJS_DEBUG_ATTACHED_RUNNING;
             }
             sprintf(fullString, "State: %i, File: %s, Function: %s, Line: %i, PC: %i", state, fileName, funcName, lineNumber, pc);
             Msg("DebugNotification", fullString);
@@ -145,6 +181,38 @@ void AJS_PyConsole::DebugNotification(const InterfaceDescription::Member* member
 
     case LOG_NOTIFICATION:
         QCC_SyncPrintf("LOG NOTIFICATION: %u %s\n", msg->GetArg()->v_byte, msg->GetArg()->v_string.str);
+        break;
+    }
+}
+
+void AJS_PyConsole::EvalResult(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
+{
+    uint8_t code;
+    char* result;
+
+    msg->GetArgs("ys", &code, &result);
+
+    switch (code) {
+    /* Success */
+    case 0:
+        Msg("EvalResult", result);
+        break;
+
+    /* Other possible errors */
+    case 1:
+        Msg("EvalResult", "Syntax Error");
+        break;
+
+    case 2:
+        Msg("EvalResult", "Type or Range error");
+        break;
+
+    case 3:
+        Msg("EvalResult", "Resource Error");
+        break;
+
+    case 5:
+        Msg("EvalResult", "Internal Duktape Error");
         break;
     }
 }
@@ -264,9 +332,16 @@ static PyObject* statusobject(QStatus status)
 static PyObject* py_connect(PyObject* self, PyObject* args)
 {
     QStatus status;
-    // TODO: Make nonblocking. Start connection on another thread, use g_interrupt to stop it.
+    const char* name;
+    if (!PyArg_ParseTuple(args, "s", &name)) {
+        return NULL;
+    }
     Py_BEGIN_ALLOW_THREADS
-        status = console->Connect(NULL, NULL);
+    if (strcmp(name, "") == 0) {
+        status = console->Connect(NULL, &g_interrupt);
+    } else {
+        status = console->Connect(name, &g_interrupt);
+    }
     Py_END_ALLOW_THREADS
 
     return statusobject(status);
@@ -274,7 +349,7 @@ static PyObject* py_connect(PyObject* self, PyObject* args)
 
 static PyObject* py_eval(PyObject* self, PyObject* args)
 {
-    QStatus status;
+    int8_t ret;
     const char* text;
 
     if (!PyArg_ParseTuple(args, "s", &text)) {
@@ -282,10 +357,35 @@ static PyObject* py_eval(PyObject* self, PyObject* args)
     }
 
     Py_BEGIN_ALLOW_THREADS
-        status = console->Eval(String(text));
+        ret = console->Eval(String(text));
     Py_END_ALLOW_THREADS
 
-    return statusobject(status);
+
+    switch (ret) {
+    /* Success */
+    case 0:
+        console->Msg("EvalResult", "Compile Sucess");
+        break;
+
+    /* Other possible errors */
+    case 1:
+        console->Msg("EvalResult", "Syntax Error");
+        break;
+
+    case 2:
+        console->Msg("EvalResult", "Type or Range error");
+        break;
+
+    case 3:
+        console->Msg("EvalResult", "Resource Error");
+        break;
+
+    case 5:
+        console->Msg("EvalResult", "Internal Duktape Error");
+        break;
+    }
+
+    return statusobject((QStatus)0);
 }
 
 static PyObject* py_install(PyObject* self, PyObject* args)
@@ -337,14 +437,14 @@ static PyObject* py_setcallback(PyObject* self, PyObject* args)
     return Py_BuildValue("");
 }
 
-static PyObject* py_gettargetstate(PyObject* self, PyObject* args)
+static PyObject* py_gettargstatus(PyObject* self, PyObject* args)
 {
-    DEBUG_STATE state;
+    int8_t status;
     Py_BEGIN_ALLOW_THREADS
-        state = console->GetDebugState();
+        status = console->GetDebugStatus();
     Py_END_ALLOW_THREADS
 
-    return Py_BuildValue("i", (uint8_t)state);
+    return Py_BuildValue("i", (int8_t)status);
 }
 
 static PyObject* py_getversion(PyObject* self, PyObject* args)
@@ -355,7 +455,8 @@ static PyObject* py_getversion(PyObject* self, PyObject* args)
 static PyObject* py_getscript(PyObject* self, PyObject* args)
 {
     bool ret = false;
-    char* script;
+    PyObject* tuple;
+    char* script = NULL;
     uint32_t size;
     Py_BEGIN_ALLOW_THREADS
         ret = console->GetScript((uint8_t**)&script, &size);
@@ -363,19 +464,9 @@ static PyObject* py_getscript(PyObject* self, PyObject* args)
     if (ret == false) {
         return Py_BuildValue("s", "");
     }
-    return Py_BuildValue("s", script);
-}
-
-static PyObject* py_setstate(PyObject* self, PyObject* args)
-{
-    int state;
-    if (!PyArg_ParseTuple(args, "i", &state)) {
-        return NULL;
-    }
-    Py_BEGIN_ALLOW_THREADS
-    console->SetDebugState((DEBUG_STATE)state);
-    Py_END_ALLOW_THREADS
-    return statusobject(ER_OK);
+    tuple = Py_BuildValue("s", script);
+    free(script);
+    return tuple;
 }
 
 static PyObject* py_startdebugger(PyObject* self, PyObject* args)
@@ -441,7 +532,7 @@ static PyObject* py_getcurrentline(PyObject* self, PyObject* args)
 
 static PyObject* py_getlocals(PyObject* self, PyObject* args)
 {
-    Locals* vars = NULL;
+    AJS_Locals* vars = NULL;
     uint16_t size;
     int i;
     PyObject* tuple;
@@ -449,7 +540,7 @@ static PyObject* py_getlocals(PyObject* self, PyObject* args)
     console->GetLocals(&vars, &size);
     Py_END_ALLOW_THREADS
 
-    if (vars) {
+    if (vars && size > 0) {
         if (strcmp(vars[0].name, "N/A") != 0) {
             tuple = PyTuple_New(size);
             for (i = 0; i < size; i++) {
@@ -468,7 +559,7 @@ static PyObject* py_getlocals(PyObject* self, PyObject* args)
                     uint64_t tmp;
                     double number;
                     memcpy(&tmp, vars[i].data, sizeof(uint64_t));
-                    tmp = bswap_64(tmp);
+                    tmp = ByteSwap64(tmp);
                     memcpy(&number, &tmp, sizeof(uint64_t));
                     PyTuple_SetItem(tuple, i, Py_BuildValue("sd", vars[i].name, number));
                 } else if (vars[i].type == DBG_TYPE_STRLOW) {
@@ -496,7 +587,7 @@ static PyObject* py_getlocals(PyObject* self, PyObject* args)
 
 static PyObject* py_getstacktrace(PyObject* self, PyObject* args)
 {
-    CallStack* stack = NULL;
+    AJS_CallStack* stack = NULL;
     uint8_t size;
     int i;
     PyObject* tuple;
@@ -516,7 +607,7 @@ static PyObject* py_getstacktrace(PyObject* self, PyObject* args)
 
 static PyObject* py_getbreakpoints(PyObject* self, PyObject* args)
 {
-    BreakPoint* list = NULL;
+    AJS_BreakPoint* list = NULL;
     uint8_t num;
     int i;
     PyObject* tuple;
@@ -537,7 +628,7 @@ static PyObject* py_getbreakpoints(PyObject* self, PyObject* args)
 static PyObject* py_addbreakpoint(PyObject* self, PyObject* args)
 {
     const char* text;
-    char file[16];
+    char file[128];
     uint8_t line;
     uint16_t i = 0;
 
@@ -556,7 +647,7 @@ static PyObject* py_addbreakpoint(PyObject* self, PyObject* args)
     line = atoi(text + i);
 
     Py_BEGIN_ALLOW_THREADS
-    console->AddBreak(file, line);
+    console->AddBreak(console->GetScriptName(), line);
     Py_END_ALLOW_THREADS
 
     return statusobject(ER_OK);
@@ -611,7 +702,7 @@ static PyObject* py_putvar(PyObject* self, PyObject* args)
     if ((type >= 0x60) && (type <= 0x7f)) {
         /* Any characters can be treated as a string */
         Py_BEGIN_ALLOW_THREADS
-        console->PutVar(varName, (uint8_t*)newValue, strlen(newValue));
+        console->PutVar(varName, (uint8_t*)newValue, strlen(newValue), type);
         Py_END_ALLOW_THREADS
     } else if (type == 0x1a) {
         uint8_t k = 0;
@@ -626,14 +717,14 @@ static PyObject* py_putvar(PyObject* self, PyObject* args)
         }
         number = atof(newValue);
         Py_BEGIN_ALLOW_THREADS
-        console->PutVar(varName, (uint8_t*)&number, sizeof(double));
+        console->PutVar(varName, (uint8_t*)&number, sizeof(double), type);
         Py_END_ALLOW_THREADS
     } else if (type == 0x18) {
         /* True, can change to false */
         if ((strcmp(newValue, "False") == 0) || (strcmp(newValue, "false") == 0)) {
             uint8_t tmp = 0x19;
             Py_BEGIN_ALLOW_THREADS
-            console->PutVar(varName, (uint8_t*)&tmp, 1);
+            console->PutVar(varName, (uint8_t*)&tmp, 1, type);
             Py_END_ALLOW_THREADS
         }
     } else if (type == 0x19) {
@@ -641,7 +732,7 @@ static PyObject* py_putvar(PyObject* self, PyObject* args)
         if ((strcmp(newValue, "True") == 0) || (strcmp(newValue, "true") == 0)) {
             uint8_t tmp = 0x18;
             Py_BEGIN_ALLOW_THREADS
-            console->PutVar(varName, (uint8_t*)&tmp, 1);
+            console->PutVar(varName, (uint8_t*)&tmp, 1, type);
             Py_END_ALLOW_THREADS
         }
     } else {
@@ -672,7 +763,7 @@ static PyObject* py_debugeval(PyObject* self, PyObject* args)
                 uint64_t tmp;
                 double number;
                 memcpy(&tmp, value, sizeof(uint64_t));
-                tmp = bswap_64(tmp);
+                tmp = ByteSwap64(tmp);
                 memcpy(&number, &tmp, sizeof(uint64_t));
                 tuple = Py_BuildValue("d", number);
             }
@@ -702,6 +793,9 @@ static PyObject* py_debugeval(PyObject* self, PyObject* args)
             {
                 /* String type */
                 char* str = (char*)malloc(sizeof(char) * size + 1);
+                if (!str) {
+                    FatalError();
+                }
                 memcpy(str, value, size);
                 str[size] = '\0';
                 tuple = Py_BuildValue("s", str);
@@ -723,6 +817,10 @@ static PyObject* py_debugeval(PyObject* self, PyObject* args)
             tuple = Py_BuildValue("s", (char*)value);
             break;
 
+        case DBG_TYPE_OBJECT:
+            tuple = Py_BuildValue("s", "<object>");
+            break;
+
         default:
             printf("Currently unhandled type 0x%02x, size = %u\n", type, size);
             tuple = Py_BuildValue("");
@@ -731,6 +829,16 @@ static PyObject* py_debugeval(PyObject* self, PyObject* args)
         return tuple;
     }
     return Py_BuildValue("");
+}
+
+static PyObject* py_lockdown(PyObject* self, PyObject* args)
+{
+    Py_BEGIN_ALLOW_THREADS
+    if (console->LockdownConsole()) {
+        console->Msg("DebugNotification", "Console locked down sucessfully\n");
+    }
+    Py_END_ALLOW_THREADS
+    return statusobject(ER_OK);
 }
 
 static PyMethodDef AJSConsoleMethods[] = {
@@ -742,7 +850,6 @@ static PyMethodDef AJSConsoleMethods[] = {
     { "GetScript", py_getscript, METH_VARARGS, "Get the installed script" },
     { "GetLine", py_getcurrentline, METH_VARARGS, "Get the current line of execution" },
     { "GetDebugVersion", py_getversion, METH_VARARGS, "Get the debugger version" },
-    { "SetDebugState", py_setstate, METH_VARARGS, "Set the debuggers state" },
     { "StartDebugger", py_startdebugger, METH_VARARGS, "Start the debugger" },
     { "StopDebugger", py_stopdebugger, METH_VARARGS, "Stop the debugger" },
     { "StepInto", py_stepinto, METH_VARARGS, "Debugger step into function" },
@@ -757,16 +864,86 @@ static PyMethodDef AJSConsoleMethods[] = {
     { "GetStacktrace", py_getstacktrace, METH_VARARGS, "Get the current stack trace" },
     { "Attach", py_attach, METH_VARARGS, "Attach the debugger to the target" },
     { "Detach", py_detach, METH_VARARGS, "Detach the debugger from the target" },
-    { "GetTargetState", py_gettargetstate, METH_VARARGS, "Get the debug targets state" },
     { "DebugEval", py_debugeval, METH_VARARGS, "Do an eval while debugging" },
     { "PutVar", py_putvar, METH_VARARGS, "Change a variables value" },
+    { "GetTargetStatus", py_gettargstatus, METH_VARARGS, "Get the targets current status" },
+    { "Lockdown", py_lockdown, METH_VARARGS, "Lockdown the console" },
     { NULL, NULL, 0, NULL }
 };
 
+struct module_state {
+    PyObject*error;
+};
+
+#if PY_MAJOR_VERSION >= 3
+#define GET_PY_STATE(s) ((struct module_state*)PyModule_GetState(s))
+#else
+#define GET_PY_STATE(s) (&_state)
+#endif
+
+#if PY_MAJOR_VERSION >= 3
+
+#define INITERROR return NULL
+
+static int myextension_traverse(PyObject*m, visitproc visit, void*arg) {
+    Py_VISIT(GET_PY_STATE(m)->error);
+    return 0;
+}
+
+static int myextension_clear(PyObject*m) {
+    Py_CLEAR(GET_PY_STATE(m)->error);
+    return 0;
+}
+
+static struct PyModuleDef consoleModule = {
+    PyModuleDef_HEAD_INIT,
+    "AJSConsole",
+    NULL,
+    sizeof(struct module_state),
+    AJSConsoleMethods,
+    NULL,
+    myextension_traverse,
+    myextension_clear,
+    NULL
+};
+
+
+#endif
+
+
+#if PY_MAJOR_VERSION >= 3
+extern "C" PyObject * PyInit_AJSConsole(void)
+{
+    PyObject*module = PyModule_Create(&consoleModule);
+    PyEval_InitThreads();
+    /* Install SIGINT handler */
+    signal(SIGINT, SigIntHandler);
+    AllJoynInit();
+    AllJoynRouterInit();
+    if (module == NULL) {
+        INITERROR;
+    }
+    struct module_state*st = GET_PY_STATE(module);
+
+    st->error = PyErr_NewException("AJSConsole.Error", NULL, NULL);
+    if (st->error == NULL) {
+        Py_DECREF(module);
+        INITERROR;
+    }
+
+    console = new AJS_PyConsole();
+    return module;
+}
+#else
 PyMODINIT_FUNC initAJSConsole(void)
 {
+    /* Install SIGINT handler */
+    signal(SIGINT, SigIntHandler);
+    AllJoynInit();
+    AllJoynRouterInit();
     (void) Py_InitModule("AJSConsole", AJSConsoleMethods);
 
     PyEval_InitThreads();
     console = new AJS_PyConsole();
 }
+#endif

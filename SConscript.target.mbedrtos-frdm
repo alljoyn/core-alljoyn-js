@@ -35,9 +35,11 @@ env.Replace(LIBDIRPREFIX    = '-L')
 env.Replace(LIBDIRSUFFIX    = '')
 env.Replace(LIBLINKPREFIX   = '-l')
 env.Replace(LIBLINKSUFFIX   = '')
-env.Replace(LINKCOM         = '$LINK $PRELINKFLAGS $LINKSCRIPT $LIBPATHS -o $TARGET $__RPATH $SOURCES $_LIBDIRFLAGS $_LIBFLAGS $LINKFLAGS')
+env.Replace(LINKCOM         = '$LINK $PRELINKFLAGS $LINKSCRIPT $LIBPATHS -o $TARGET $__RPATH $SOURCES $system_objects $_LIBDIRFLAGS $_LIBFLAGS $LINKFLAGS')
 env.Replace(CCFLAGS         = '')
+env.Replace(CXXFLAGS        = '')
 env.Replace(CPPFLAGS        = '')
+env.Replace(LINKFLAGS       = '')
 env.Replace(ASFLAGS         = '')
 env.Replace(ASPPCOM         = '$AS')
 env.Replace(ARFLAGS         = 'rc')
@@ -84,8 +86,8 @@ env.Prepend(_LIBFLAGS = ['-Wl,-start-group'])
 env.Append(_LIBFLAGS = ['-Wl,-end-group'])
 
 env.Append(LIBS = ['mbed',
-                   'stdc++',
                    'gcc',
+                   'stdc++',
                    'm',
                    'c'])
 
@@ -169,6 +171,14 @@ env.Append(CPPPATH = [env['MBED_DIR'] + '/mbed-rtos',
                       env['MBED_DIR'] + '/mbed/TARGET_K64F/TARGET_Freescale/TARGET_KPSDK_MCUS/TARGET_MCU_K64F/device/MK64F12',
                       env['MBED_DIR'] + '/mbed/TARGET_K64F/TARGET_Freescale/TARGET_KPSDK_MCUS/TARGET_MCU_K64F/TARGET_FRDM',
                       env['MBED_DIR'] + '/mbed/TARGET_K64F/TOOLCHAIN_GCC_ARM'])
+
+# Pre-compiled object files for the K64F
+env['system_objects'] = [env['MBED_DIR'] + '/mbed/TARGET_K64F/TOOLCHAIN_GCC_ARM/startup_MK64F12.o',
+                      env['MBED_DIR'] + '/mbed/TARGET_K64F/TOOLCHAIN_GCC_ARM/cmsis_nvic.o',
+                      env['MBED_DIR'] + '/mbed/TARGET_K64F/TOOLCHAIN_GCC_ARM/system_MK64F12.o',
+                      env['MBED_DIR'] + '/mbed/TARGET_K64F/TOOLCHAIN_GCC_ARM/mbed_overrides.o',
+                      env['MBED_DIR'] + '/mbed/TARGET_K64F/TOOLCHAIN_GCC_ARM/board.o',
+                      env['MBED_DIR'] + '/mbed/TARGET_K64F/TOOLCHAIN_GCC_ARM/retarget.o']
 
 # Debug/Release Variants
 if env['VARIANT'] == 'debug':

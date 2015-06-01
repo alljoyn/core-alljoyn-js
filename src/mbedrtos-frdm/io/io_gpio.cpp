@@ -304,7 +304,7 @@ extern "C" AJ_Status AJS_TargetIO_PinClose(void* pinCtx)
         if (gpio->trigId != -1) {
             delete gpio->interrupt;
         }
-        AJS_Free(NULL, gpio);
+        AJ_Free(gpio);
     }
     return AJ_OK;
 }
@@ -322,7 +322,7 @@ extern "C" AJ_Status AJS_TargetIO_PinOpen(uint16_t pinIndex, AJS_IO_PinConfig co
     if (pin >= ArraySize(pinInfo)) {
         return AJ_ERR_INVALID;
     }
-    gpio = (GPIO*)AJS_Alloc(NULL, sizeof(GPIO));
+    gpio = (GPIO*)AJ_Malloc(sizeof(GPIO));
     memset(gpio, 0, sizeof(GPIO));
 
     /*

@@ -36,6 +36,10 @@ duk_idx_t AJS_UnmarshalMessage(duk_context* ctx, AJ_Message* msg, uint8_t access
         duk_put_prop_string(ctx, objIndex, "iface");
         duk_push_string(ctx, msg->objPath);
         duk_put_prop_string(ctx, objIndex, "path");
+        /* If sender == unique name then true, otherwise false */
+        duk_push_boolean(ctx, !abs(strcmp(msg->sender, AJS_GetBusAttachment()->uniqueName)));
+        duk_put_prop_string(ctx, objIndex, "fromSelf");
+
         if (msg->hdr->msgType == AJ_MSG_METHOD_CALL) {
             /*
              * Private information needed for composing the reply

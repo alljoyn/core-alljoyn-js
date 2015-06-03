@@ -17,7 +17,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include "ajs.h"
+#include "../ajs.h"
 
 AJ_Status AJS_RegisterIO(duk_context* ctx)
 {

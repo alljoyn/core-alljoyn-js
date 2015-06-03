@@ -17,9 +17,9 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include "ajs.h"
-#include "ajs_target.h"
-#include "ajs_cmdline.h"
+#include "../ajs.h"
+#include "../ajs_target.h"
+#include "../ajs_cmdline.h"
 
 
 int main(int argc, char* argv[])

@@ -19,7 +19,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include "ajs_duk.h"
+#include "../ajs_duk.h"
 
 /*
  * Force alignment for testing

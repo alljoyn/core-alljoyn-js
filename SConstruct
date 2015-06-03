@@ -61,8 +61,8 @@ def CheckAJCLib(context, ajlib, ajheader, sconsvarname, ajdistpath):
 #######################################################
 # Initialize our build environment
 #######################################################
-env = Environment(tools = ['default', 'jsdoc3'],
-                  toolpath = ['tools'])
+env = Environment(tools = ['default', 'JSDoc'],
+                  toolpath = ['tools/scons'])
 Export('env', 'CheckAJLib')
 
 #######################################################
@@ -257,8 +257,7 @@ if not jsenv.GetOption('help') and not all(dep_libs):
     print 'Missing required external libraries'
     Exit(1)
 jsenv.SConscript('src/SConscript', variant_dir='#build/src/$VARIANT', duplicate = 0)
-if jsenv['build_console']:
-    jsenv.SConscript('console/SConscript', variant_dir='#build/console/$VARIANT', duplicate = 0)
+jsenv.SConscript('console/SConscript', variant_dir='#build/console/$VARIANT', duplicate = 0)
 
 
 #######################################################

@@ -17,9 +17,9 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include <alljoyn.h>
-#include <alljoyn/onboarding/OnboardingService.h>
-#include <alljoyn/onboarding/OnboardingManager.h>
+#include <ajtcl/alljoyn.h>
+#include <ajtcl/services/OnboardingService.h>
+#include <ajtcl/services/OnboardingManager.h>
 
 int8_t AJOBS_GetState()
 {

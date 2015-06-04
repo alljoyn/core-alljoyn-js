@@ -378,6 +378,11 @@ AJ_Status AJS_Main(const char* deviceName)
         duk_put_prop_string(ctx, -2, "act");
         duk_push_undefined(ctx);
         duk_put_prop_string(ctx, -2, "info");
+        /*
+         * Disable the "eval" function
+         */
+        duk_push_c_function(ctx, NativeOverrideEval, DUK_VARARGS);
+        duk_put_global_string(ctx, "eval");
 #if !defined(AJS_CONSOLE_LOCKDOWN)
         if (lockdown == AJS_CONSOLE_UNLOCKED) {
             /*

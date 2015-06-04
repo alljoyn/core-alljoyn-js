@@ -92,6 +92,8 @@ int AJS_IncrementProperty(duk_context* ctx, const char* intProp, duk_idx_t objId
  */
 void AJS_SetPropertyAccessors(duk_context* ctx, duk_idx_t objIdx, const char* prop, duk_c_function setter, duk_c_function getter)
 {
+    duk_uint_t flags = 0;
+
     /*
      * Must have a least one of these
      */
@@ -102,25 +104,16 @@ void AJS_SetPropertyAccessors(duk_context* ctx, duk_idx_t objIdx, const char* pr
      * In case the object index is relative
      */
     objIdx = duk_normalize_index(ctx, objIdx);
-
-    duk_get_global_string(ctx, "Object");
-    duk_get_prop_string(ctx, -1, "defineProperty");
-    duk_dup(ctx, objIdx);
     duk_push_string(ctx, prop);
-    /*
-     * Create the set/get object
-     */
-    duk_push_object(ctx);
-    if (setter) {
-        duk_push_c_function(ctx, setter, 1);
-        duk_put_prop_string(ctx, -2, "set");
-    }
     if (getter) {
+        flags |= DUK_DEFPROP_HAVE_GETTER;
         duk_push_c_function(ctx, getter, 0);
-        duk_put_prop_string(ctx, -2, "get");
     }
-    duk_call(ctx, 3);
-    duk_pop_2(ctx);
+    if (setter) {
+        flags |= DUK_DEFPROP_HAVE_SETTER;
+        duk_push_c_function(ctx, setter, 1);
+    }
+    duk_def_prop(ctx, objIdx, flags);
 }
 
 const char* AJS_GetStringProp(duk_context* ctx, duk_idx_t idx, const char* prop)

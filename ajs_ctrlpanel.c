@@ -59,13 +59,13 @@ static AJS_Widget* CreateWidget(duk_context* ctx, uint8_t type)
     duk_swap_top(ctx, -3);
     duk_pop_2(ctx);
     /*
-     * Allocate a buffer for the CPS widget and set it
+     * Allocate a buffer for the CPS widget set it and make it read-only
      */
+    duk_push_string(ctx,  AJS_HIDDEN_PROP("wbuf"));
     widget = (AJS_Widget*)duk_push_fixed_buffer(ctx, sizeof(AJS_Widget));
     widget->type = type;
     widget->dukCtx = ctx;
-    duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("wbuf"));
-    duk_compact(ctx, -1);
+    duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_HAVE_WRITABLE);
     return widget;
 }
 
@@ -339,10 +339,11 @@ static int NativeValueSetter(duk_context* ctx)
         widget->property.val.s = duk_require_string(ctx, 0);
         AJ_InfoPrintf(("Value = \"%s\"\n", widget->property.val.s));
         /*
-         * String needs to be stabilized so we need to set a property
+         * String needs to be stabilized so we need to set a (read-only) property
          */
+        duk_push_string(ctx, AJS_HIDDEN_PROP("value"));
         duk_dup(ctx, 0);
-        duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("value"));
+        duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_HAVE_WRITABLE);
         break;
     }
     duk_pop(ctx);
@@ -416,9 +417,10 @@ AJ_Status AJS_CPS_OnValueChanged(AJS_Widget* ajsWidget)
      * Strings need to be stabilized - other property values are held in the AJS_Widget itself.
      */
     if (ajsWidget->property.wdt.signature[0] == 's') {
+        duk_push_string(ctx, AJS_HIDDEN_PROP("value"));
         duk_push_string(ctx, ajsWidget->property.val.s);
         ajsWidget->property.val.s = duk_get_string(ctx, -1);
-        duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("value"));
+        duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_HAVE_WRITABLE);
     }
     duk_get_prop_string(ctx, -1, "onValueChanged");
     if (duk_is_callable(ctx, -1)) {
@@ -507,10 +509,11 @@ static int NativeChoicesSetter(duk_context* ctx)
         duk_pop(ctx);
     }
     /*
-     * Set enumeration as a property on the widget object
+     * Set enumeration as a read-only hidden property on the widget object
      */
+    duk_push_string(ctx, AJS_HIDDEN_PROP("choices"));
     duk_dup(ctx, 0);
-    duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("choices"));
+    duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_HAVE_WRITABLE);
 
     widget->property.wdt.optParams.numConstraints = (uint16_t)numChoices;
     widget->property.wdt.optParams.getConstraint = GetChoice;
@@ -527,6 +530,7 @@ static int NativeRangeSetter(duk_context* ctx)
     if (!duk_is_object(ctx, 0)) {
         duk_error(ctx, DUK_ERR_TYPE_ERROR, "Requires a range object");
     }
+    duk_push_string(ctx, AJS_HIDDEN_PROP("range"));
     range = duk_push_fixed_buffer(ctx, 3 * sizeof(AJS_WidgetVal));
     duk_get_prop_string(ctx, 0, "min");
     duk_get_prop_string(ctx, 0, "max");
@@ -555,7 +559,7 @@ static int NativeRangeSetter(duk_context* ctx)
     widget->property.wdt.optParams.constraintRange.maxValue = &range[1];
     widget->property.wdt.optParams.constraintRange.increment = &range[2];
     widget->property.wdt.optParams.constraintRangeDefined = TRUE;
-    duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("range"));
+    duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_HAVE_WRITABLE);
 
     if (duk_has_prop_string(ctx, 0, "units")) {
         duk_get_prop_string(ctx, 0, "units");
@@ -745,8 +749,9 @@ static int NativeButtonsSetter(duk_context* ctx)
         }
         duk_pop_2(ctx);
     }
+    duk_push_string(ctx, AJS_HIDDEN_PROP("buttons"));
     duk_dup(ctx, 0);
-    duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("buttons"));
+    duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_HAVE_WRITABLE);
     duk_pop(ctx);
     return 0;
 
@@ -1005,8 +1010,9 @@ static int NativeOptLabelSetter(duk_context* ctx)
     AJS_Widget* widget = GetWidgetFromThis(ctx);
     AJ_InfoPrintf(("Native label setter called\n"));
     widget->base.optParams.getLabel = GetLabel;
+    duk_push_string(ctx, AJS_HIDDEN_PROP("label"));
     duk_dup(ctx, 0);
-    duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("label"));
+    duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_HAVE_WRITABLE);
     duk_pop(ctx);
     AJS_CPS_SignalMetadataChanged(AJS_GetBusAttachment(), widget);
     return 0;

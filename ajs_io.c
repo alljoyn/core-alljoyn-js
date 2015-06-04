@@ -43,8 +43,9 @@ static int NewIOObject(duk_context* ctx, void* pinCtx, duk_c_function finalizer)
 
     duk_dup(ctx, 0);
     duk_put_prop_string(ctx, idx, "pin");
+    duk_push_string(ctx, AJS_HIDDEN_PROP("ctx"));
     duk_push_pointer(ctx, pinCtx);
-    duk_put_prop_string(ctx, idx, AJS_HIDDEN_PROP("ctx"));
+    duk_def_prop(ctx, idx, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_HAVE_WRITABLE);
     /*
      * Callback from when the pin object is garbage collected.
      */
@@ -788,8 +789,10 @@ AJ_Status AJS_RegisterIO(duk_context* ctx, duk_idx_t ioIdx)
     /*
      * A hidden property for keeping track of triggers
      */
+    duk_push_string(ctx, AJS_HIDDEN_PROP("trigs"));
     duk_push_array(ctx);
-    duk_put_prop_string(ctx, ioIdx, AJS_HIDDEN_PROP("trigs"));
+    duk_def_prop(ctx, ioIdx, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_HAVE_WRITABLE);
+
     /*
      * Compact the IO object and set it on the global object
      */

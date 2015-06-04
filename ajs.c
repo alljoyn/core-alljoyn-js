@@ -256,6 +256,12 @@ static const uint8_t icon[] = {
 #include "icon.inc"
 };
 
+static duk_ret_t NativeOverrideEval(duk_context* ctx)
+{
+    AJ_ErrPrintf(("Eval is not allowed\n"));
+    return 0;
+}
+
 #if !defined(AJS_CONSOLE_LOCKDOWN)
 static duk_ret_t NativeOverrideAlert(duk_context* ctx)
 {
@@ -329,11 +335,13 @@ AJ_Status AJS_Main(const char* deviceName)
     duk_context* ctx;
     duk_int_t ret;
 
-    /* Get the current lockdown bit */
-    status = AJS_GetLockdownState(&lockdown);
 #if defined(AJS_CONSOLE_LOCKDOWN)
     /* If lockdown is compiled in then set the bit */
     AJS_SetLockdownState(AJS_CONSOLE_LOCKED);
+    lockdown = AJS_CONSOLE_LOCKED;
+#else
+    /* Get the current lockdown bit */
+    status = AJS_GetLockdownState(&lockdown);
 #endif
 
     AJ_AboutSetIcon(icon, sizeof(icon), "image/jpeg", NULL);
@@ -363,13 +371,19 @@ AJ_Status AJS_Main(const char* deviceName)
         duk_get_global_string(ctx, "Duktape");
         duk_push_c_function(ctx, NativeModuleLoader, 4);
         duk_put_prop_string(ctx, -2, "modSearch");
-        duk_pop(ctx);
         /*
-         * Override the builtin alert and print functions so we can redirect output to debug output
-         * or the console if one is attached.
+         * The Duktape.act() and Duktape.info() functions may unsafe so we disable them.
          */
+        duk_push_undefined(ctx);
+        duk_put_prop_string(ctx, -2, "act");
+        duk_push_undefined(ctx);
+        duk_put_prop_string(ctx, -2, "info");
 #if !defined(AJS_CONSOLE_LOCKDOWN)
         if (lockdown == AJS_CONSOLE_UNLOCKED) {
+            /*
+             * Override the builtin alert and print functions so we can redirect output to debug output
+             * or the console if one is attached.
+             */
             duk_push_c_function(ctx, NativeOverridePrint, DUK_VARARGS);
             duk_put_global_string(ctx, "print");
             duk_push_c_function(ctx, NativeOverrideAlert, DUK_VARARGS);
@@ -463,4 +477,3 @@ AJ_Status AJS_Main(const char* deviceName)
     }
     return status;
 }
-

@@ -41,3 +41,4 @@ else:
 
 if found_aj and found_ajrouter:
     cenv.Program('#dist/bin/ajs_console', ['ajs_console.cc', 'ajs_textconsole.cc'])
+    cenv.Program('#dist/bin/ajs_console_c', ['ajs_console.cc', 'ajs_textconsole_c.c', 'ajs_console_c.cc', 'ajs_debug_c.cc'])

@@ -188,6 +188,40 @@ int main(int argc, char** argv)
                     AJS_Debug_StopDebugger(ctx);
                     continue;
                 }
+                if (strncmp(input, "$install", 8) == 0) {
+                    char* fname;
+                    uint8_t* newscript;
+                    size_t newlen;
+
+                    if (strlen(input) <= 9) {
+                        QCC_SyncPrintf("$install requires a script as a parameter\n");
+                        continue;
+                    }
+                    input[strlen(input)] = '\0';
+                    fname = malloc(strlen(input) - 9 + 1);
+                    if (!fname) {
+                        printf("Error allocating resources\n");
+                        FatalError();
+                    }
+                    memcpy(fname, input + 9, strlen(input) - 9);
+                    fname[strlen(input) - 9] = '\0';
+                    newscript = NULL;
+                    newlen = 0;
+                    status = ReadScriptFile(fname, &newscript, &newlen);
+                    if (status != 1 || newlen == 0) {
+                        printf("Failed to load script file %s\n", fname);
+                    } else {
+                        AJS_Debug_Detach(ctx);
+                        status = AJS_ConsoleInstall(ctx, fname, newscript, newlen);
+                        free(newscript);
+                        if (status != 1) {
+                            printf("Failed to install script %s\n", fname);
+                        }
+                        AJS_Debug_StartDebugger(ctx);
+                    }
+                    free(fname);
+                    continue;
+                }
                 /* Command line debug commands (only if debugging was enabled at start, and connected)*/
                 if (AJS_Debug_GetActiveDebug(ctx)) {
                     if (strcmp(input, "$attach") == 0) {

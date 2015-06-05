@@ -171,6 +171,32 @@ int main(int argc, char** argv)
                     ajsConsole->StopDebugger();
                     continue;
                 }
+                if (strncmp(input.c_str(), "$install", 8) == 0) {
+                    const char* fname;
+                    uint8_t* newscript;
+                    size_t newlen;
+
+                    if (strlen(input.c_str()) <= 9) {
+                        QCC_SyncPrintf("$install requires a script as a parameter\n");
+                        continue;
+                    }
+                    fname = input.c_str() + 9;
+                    newscript = NULL;
+                    newlen = 0;
+                    status = ReadScriptFile(fname, &newscript, &newlen);
+                    if (status != ER_OK || newlen == 0) {
+                        QCC_LogError(status, ("Failed to load script file %s\n", fname));
+                    } else {
+                        ajsConsole->Detach();
+                        status = ajsConsole->Install(fname, newscript, newlen);
+                        free(newscript);
+                        if (status != ER_OK) {
+                            QCC_LogError(status, ("Failed to install script %s\n", fname));
+                        }
+                        ajsConsole->StartDebugger();
+                    }
+                    continue;
+                }
                 /* Command line debug commands (only if debugging was enabled at start, and connected)*/
                 if (ajsConsole->activeDebug) {
                     if (input == "$attach") {

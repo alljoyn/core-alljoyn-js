@@ -140,7 +140,6 @@ int main(int argc, char** argv)
                 AJS_ConsoleSetVerbose(ctx, 1);
             } else if (strcmp(argv[i], "--name") == 0) {
                 if (++i == argc) {
-                    AJS_ConsoleDeinit(ctx);
                     goto Usage;
                 }
                 deviceName = argv[i];
@@ -149,7 +148,6 @@ int main(int argc, char** argv)
             } else if (strcmp(argv[i], "--quiet") == 0) {
                 AJS_Debug_SetQuiet(ctx, 1);
             } else {
-                AJS_ConsoleDeinit(ctx);
                 goto Usage;
             }
         } else {

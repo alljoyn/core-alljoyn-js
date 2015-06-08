@@ -1008,7 +1008,7 @@ bool AJS_Console::GetScript(uint8_t** script, uint32_t* length)
     }
     entries = reply->GetArg(0);
     entries->Get("ay", length, &s);
-    (*script) = (uint8_t*)malloc(sizeof(char) * (*length) + 1);
+    (*script) = (uint8_t*)malloc(sizeof(char) * (*length) + 5);
     if (!*script) {
         FatalError();
     }

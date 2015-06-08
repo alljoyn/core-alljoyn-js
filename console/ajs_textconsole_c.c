@@ -124,6 +124,10 @@ int main(int argc, char** argv)
     SignalRegistration handlers;
     int i;
     AJS_ConsoleCtx* ctx = AJS_ConsoleInit();
+    if (!ctx) {
+        printf("Error: Could not allocate console context\n");
+        return -1;
+    }
     /* Install SIGINT handler */
     signal(SIGINT, SigIntHandler);
     handlers.notification = &Notification;

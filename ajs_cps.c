@@ -121,6 +121,8 @@ static AJ_Status SetWidgetProp(AJ_Message* msg)
             }
             break;
         }
+    } else {
+        return AJ_ERR_RESOURCES;
     }
     /*
      * Need to make a clone of the message and close the original

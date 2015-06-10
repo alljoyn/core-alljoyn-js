@@ -31,6 +31,10 @@ AJS_ConsoleCtx* AJS_ConsoleInit(void)
             ctx->console = (void*)console;
             ctx->version = NULL;
             console->handlers = (SignalRegistration*)malloc(sizeof(SignalRegistration));
+            if (!console->handlers) {
+                free(ctx);
+                return NULL;
+            }
             memset(console->handlers, 0, sizeof(SignalRegistration));
         } else {
             free(ctx);

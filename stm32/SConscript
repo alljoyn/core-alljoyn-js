@@ -71,7 +71,8 @@ env.Append(CFLAGS = ['-mthumb', '-fdata-sections', '-ffunction-sections', '-mlon
                  '-Wuninitialized', '-Wfloat-equal', '-Wundef', '-Wshadow', '-Wbad-function-cast',
                  '-Wwrite-strings', '-Wsign-compare', '-Waggregate-return', '-Wmissing-declarations',
                  '-Wformat', '-Wmissing-format-attribute', '-Wno-deprecated-declarations', 
-                 '-Wpacked', '-Wlong-long', '-Wunreachable-code', '-Wcast-align', '-MD', '-MP'])
+                 '-Wpacked', '-Wlong-long', '-Wunreachable-code', '-Wcast-align', '-MD', '-MP',
+                 '-Wformat-security', '-Werror=format-security'])
 
 # FreeRTOS source files + shim layers
 rtos_src = [Glob('RTOS/FreeRTOS/*.c') + 
@@ -130,7 +131,7 @@ env.Append(CPPPATH = [env['ajtcl_root'] + '/bsp',
                   '../../external/duktape/dist/src'])
 # Add platform dependent defines
 env.Append(CPPDEFINES = ['STM32F407xx', 'USE_STDPERIPH_DRIVER','HAL_UART_MODULE_ENABLED', 'HAL_RCC_MODULE_ENABLED', 'AJ_HEAP4',
-                         'HAL_GPIO_MODULE_ENABLED', 'HAL_USART_MODULE_ENABLED', 'HAL_FLASH_MODULE_ENABLED', 'DUK_F_BCC'])
+                         'HAL_GPIO_MODULE_ENABLED', 'HAL_USART_MODULE_ENABLED', 'HAL_FLASH_MODULE_ENABLED', 'DUK_F_BCC', '-D_FORTIFY_SOURCE=1'])
 
 env.Append(LINKFLAGS = ['-mthumb', '-Wl,--start-group', '-lm', '-lc',
                         '-Wl,--end-group', '-Wl,--gc-sections', '-Wl,-Map,${TARGET.base}.map',

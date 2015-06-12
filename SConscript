@@ -65,7 +65,7 @@ ajs_sources = [
 if os.environ.get('YUN_BUILD', '0') == '1':
     io_sources = [Glob(env['os'] + '/lininoio/*.c')]
 else:
-    io_sources = [env['os'] + '/io/io_info.c', env['os'] + '/io/io_simulation.c', env['os'] + '/io/io_stubs.c']
+    io_sources = [Glob('simio/*.c')]
 
 
 sources = []

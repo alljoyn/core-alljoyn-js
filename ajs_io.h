@@ -36,19 +36,24 @@ extern "C" {
 
 #define AJS_IO_FUNCTION_UART_TX     0x00000100
 #define AJS_IO_FUNCTION_UART_RX     0x00000200
+#define AJS_IO_FUNCTION_UART        0x00000300
 
 #define AJS_IO_FUNCTION_I2C_SDA     0x00001000
 #define AJS_IO_FUNCTION_I2C_SCL     0x00002000
+#define AJS_IO_FUNCTION_I2C_SLAVE   0x00003000
+#define AJS_IO_FUNCTION_I2C_MASTER  0x00007000
 
 #define AJS_IO_FUNCTION_SPI_SCK     0x00010000
 #define AJS_IO_FUNCTION_SPI_SS      0x00020000
 #define AJS_IO_FUNCTION_SPI_MOSI    0x00040000
 #define AJS_IO_FUNCTION_SPI_MISO    0x00080000
+#define AJS_IO_FUNCTION_SPI         0x000F0000
 
 #define AJS_IO_FUNCTION_I2S_CLK     0x00100000
 #define AJS_IO_FUNCTION_I2S_WS      0x00200000
 #define AJS_IO_FUNCTION_I2S_SDO     0x00400000
 #define AJS_IO_FUNCTION_I2S_SDI     0x00800000
+#define AJS_IO_FUNCTION_I2S         0x00F00000
 
 /*
  * Compile time options for knowing whether or not the platform has a system
@@ -93,17 +98,19 @@ typedef enum {
 } AJS_IO_PinConfig;
 
 /**
- * Trigger modes for digital input pins
+ * Trigger modes for I/O pins
  */
 typedef enum {
-    AJS_IO_PIN_TRIGGER_DISABLE = 0,
-    AJS_IO_PIN_TRIGGER_ON_RISE = 1,
-    AJS_IO_PIN_TRIGGER_ON_FALL = 2,
-    AJS_IO_PIN_TRIGGER_ON_BOTH = 3
-} AJS_IO_PinTriggerMode;
+    AJS_IO_PIN_TRIGGER_DISABLE     = 0x00,
+    AJS_IO_PIN_TRIGGER_ON_RISE     = 0x01,
+    AJS_IO_PIN_TRIGGER_ON_FALL     = 0x02,
+    AJS_IO_PIN_TRIGGER_ON_BOTH     = 0x03,
+    AJS_IO_PIN_TRIGGER_ON_RX_READY = 0x10,
+    AJS_IO_PIN_TRIGGER_ON_TX_READY = 0x20
+} AJS_IO_PinTriggerCondition;
 
 /**
- * Indicates no trigger set on a digital input pin
+ * Indicates no trigger set on an I/O pin
  */
 #define AJS_IO_PIN_NO_TRIGGER (-1)
 
@@ -184,21 +191,32 @@ uint32_t AJS_TargetIO_PinGet(void* pinCtx);
  * Returns the trigger id for the GPIO pin that was triggered. If called repeatedly it will return each
  * of the trigger indices in order.
  *
- * @param level  Returns a 0 ot indicate the trigger was on falling edge or 1 for a rising edge.
+ * @param condition  Returns condition that caused the trigger to fire
  *
  * @return  A trigger index or -1 if no GPIO pins are currently triggered.
  */
-int32_t AJS_TargetIO_PinTrigId(uint32_t* level);
+int32_t AJS_TargetIO_PinTrigId(AJS_IO_PinTriggerCondition* condition);
 
 /**
- * Enable (or disable) trigger mode for a GPIO pin
+ * Enable trigger mode for an IO function
  *
- * @param pinCtx   The target-specific identifier for the GPIO pin
- * @param trigger  The trigger mode that is being enabled
- * @param trigId   Returns an integer index for the trigger
- * @param debounce Debounce time in milliseconds
+ * @param pinCtx      The target-specific identifier for the GPIO pin
+ * @param pinFunction Function pin is configured for
+ * @param condition   The condition that is being enabled
+ * @param trigId      Returns an integer index for the trigger
+ * @param debounce    Debounce time in milliseconds (ignored if not applicable)
  */
-AJ_Status AJS_TargetIO_PinEnableTrigger(void* pinCtx, AJS_IO_PinTriggerMode trigger, int32_t* trigId, uint8_t debounce);
+AJ_Status AJS_TargetIO_PinEnableTrigger(void* pinCtx, int pinFunction, AJS_IO_PinTriggerCondition condition, int32_t* trigId, uint8_t debounce);
+
+/**
+ * Disable trigger mode for an IO function
+ *
+ * @param pinCtx      The target-specific identifier for the GPIO pin
+ * @param pinFunction Function pin is configured for
+ * @param condition   The condition that is being disabled
+ * @param trigId      Returns index for the disabled trigger or AJS_IO_PIN_NO_TRIGGER if not set
+ */
+AJ_Status AJS_TargetIO_PinDisableTrigger(void* pinCtx, int pinFunction, AJS_IO_PinTriggerCondition condition, int32_t* trigId);
 
 /**
  * Open and configure an ADC pin
@@ -318,12 +336,12 @@ AJ_Status AJS_TargetIO_SpiClose(void* spiCtx);
  * Read from the UART peripheral
  *
  * @param uartCtx   Pointer to an opaque target specific data structure for the UART channel
- * @param buf       Buffer to be read into
+ * @param buffer    Buffer to read into - must be at least length bytes long
  * @param length    Number of bytes requesting to be read
  *
  * @return          Number of bytes actually read
  */
-uint32_t AJS_TargetIO_UartRead(void* uartCtx, uint8_t* buf, uint32_t length);
+uint32_t AJS_TargetIO_UartRead(void* uartCtx, uint8_t* buffer, uint32_t length);
 
 /**
  * Write data to the UART peripheral
@@ -343,8 +361,9 @@ AJ_Status AJS_TargetIO_UartWrite(void* uartCtx, uint8_t* data, uint32_t length);
  * @param rxPin     Pin number for the pin designated as receive
  * @param baud      Desired baud rate for the UART peripheral
  * @param uartCtx   Returns a pointer to an opaque target specific data structure the UART device
+ * @param rxTrigId  Returns trigger id for data ready condition
  */
-AJ_Status AJS_TargetIO_UartOpen(uint8_t txPin, uint8_t rxPin, uint32_t baud, void** uartCtx);
+AJ_Status AJS_TargetIO_UartOpen(uint8_t txPin, uint8_t rxPin, uint32_t baud, void** uartCtx, int32_t* rxTrigId);
 
 /**
  * Close a UART device

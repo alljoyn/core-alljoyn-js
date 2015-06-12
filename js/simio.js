@@ -30,6 +30,8 @@ var pb2=IO.digitalIn(IO.pin[9], IO.pullUp);
 var pb3=IO.digitalIn(IO.pin[10], IO.pullUp);
 var pb4=IO.digitalIn(IO.pin[11], IO.pullUp);
 
+var uart=IO.uart(IO.pin[12], IO.pin[13], 9600);
+
 setInterval(function() {
     if (in1.level == 1) { led1.toggle() }
     if (in2.level == 1) { led2.toggle() }
@@ -37,10 +39,18 @@ setInterval(function() {
     if (in4.level == 1) { led4.pwm(Math.round(saw()*100)/100, 1)  }
 }, 500);
 
-pb1.setTrigger(IO.fallingEdge, function(){ print(pb1.pin.info.description); led1.toggle()});
-pb2.setTrigger(IO.fallingEdge, function(){ print(pb2.pin.info.description); led2.toggle()});
-pb3.setTrigger(IO.risingEdge, function(){ print(pb3.pin.info.description); led3.toggle()});
-pb4.setTrigger(IO.risingEdge, function(){ print(pb4.pin.info.description); led4.toggle()});
+pb1.setTrigger(IO.fallingEdge | IO.risingEdge, function(){ uart.write(this.pin.info.description + this.level); led1.toggle()});
+pb2.setTrigger(IO.fallingEdge, function(){ uart.write(this.pin.info.description + this.level); led2.toggle()});
+pb3.setTrigger(IO.risingEdge, function(){ uart.write(this.pin.info.description + this.level); led3.toggle()});
+pb4.setTrigger(IO.risingEdge, function(){ uart.write(this.pin.info.description + this.level); led4.toggle()});
+
+function uartOnRxReady(data)
+{
+    data = uart.read(16);
+    uart.write("->" + data + "<-");
+}
+
+uart.setTrigger(IO.rxReady, uartOnRxReady);
 
 var saw = sawTooth(1.0, 0.1);
 function sawTooth(peak, step) {

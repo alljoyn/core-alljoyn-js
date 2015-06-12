@@ -7,6 +7,7 @@ default_msvc_version = os.environ.get('AJ_MSVC_VERSION', '12.0')
 supported_msvc_versions = [ '8.0', '9.0', '10.0', '11.0', '11.0Exp', '12.0', '12.0Exp' ]
 vars = Variables()
 vars.Add(EnumVariable('MSVC_VERSION', 'MSVC compiler version - Windows', default_msvc_version, allowed_values = supported_msvc_versions))
+vars.Add(BoolVariable('FORCE32',      'Force building 32 bit on 64 bit architecture',           os.environ.get('AJ_FORCE32', False)))
 vars.Update(env)
 Help(vars.GenerateHelpText(env))
 
@@ -17,6 +18,8 @@ env.Append(LIBS = ['advapi32'])
 env.Append(CFLAGS = [ '/MD', '/J', '/W3', '/nologo' ])
 env.Append(CPPDEFINES = [ '_CRT_SECURE_NO_WARNINGS',
                           ('snprintf', '_snprintf')])
+if env['FORCE32']:
+    env['TARGET_ARCH'] = 'x86'
 
 # Debug/Release Variants
 if env['VARIANT'] == 'debug':

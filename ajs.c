@@ -222,19 +222,6 @@ static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx)
      */
     AJS_CP_Terminate();
     /*
-     * A RESTART_APP status indicates that the script engine must be restarted but we can keep our
-     * existing BusAttachment.
-     */
-    if (status != AJ_ERR_RESTART_APP) {
-#if !defined(AJS_CONSOLE_LOCKDOWN)
-        if (lockdown == AJS_CONSOLE_UNLOCKED) {
-            AJS_ConsoleTerminate();
-        }
-#endif
-        AJS_DetachAllJoyn(aj, status);
-        busAttached = FALSE;
-    }
-    /*
      * If we told JavaScript we are attached now indicate we are detached
      */
     if (ajRunning) {
@@ -248,6 +235,20 @@ static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx)
         duk_pop(ctx);
         ajRunning = FALSE;
     }
+    /*
+     * A RESTART_APP status indicates that the script engine must be restarted but we can keep our
+     * existing BusAttachment.
+     */
+    if (status != AJ_ERR_RESTART_APP) {
+#if !defined(AJS_CONSOLE_LOCKDOWN)
+        if (lockdown == AJS_CONSOLE_UNLOCKED) {
+            AJS_ConsoleTerminate();
+        }
+#endif
+        AJS_DetachAllJoyn(aj, status);
+        busAttached = FALSE;
+    }
+
     duk_pop(ctx);
     return status;
 }

@@ -46,7 +46,7 @@ void AJS_TargetIO_SpiWrite(void* ctx, uint8_t* data, uint32_t length)
     return;
 }
 
-AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t clk, uint32_t prescaler,
+AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t clk, uint32_t clock,
                                uint8_t master, uint8_t cpol, uint8_t cpha, uint8_t data, void** spiCtx)
 {
     return AJ_ERR_UNEXPECTED;

@@ -39,12 +39,47 @@ AJ.interfaceDefinition['org.alljoyn.unit_test'] =
     sessionless_sig8:{ type:AJ.SIGNAL, args:["ab"] },
 };
 
-AJ.objectDefinition['/org/alljoyn/unit_test'] =
+AJ.objectDefinition['/org/alljoyn/unit_test1'] =
 {
     interfaces:['org.alljoyn.unit_test']
 };
 
-var MAX_SIG_ITERATIONS = 5;
+AJ.objectDefinition['/org/alljoyn/unit_test2'] =
+{
+    interfaces:['org.alljoyn.unit_test']
+};
+
+AJ.objectDefinition['/org/alljoyn/unit_test3'] =
+{
+    interfaces:['org.alljoyn.unit_test']
+};
+
+AJ.objectDefinition['/org/alljoyn/unit_test4'] =
+{
+    interfaces:['org.alljoyn.unit_test']
+};
+
+AJ.objectDefinition['/org/alljoyn/unit_test5'] =
+{
+    interfaces:['org.alljoyn.unit_test']
+};
+
+AJ.objectDefinition['/org/alljoyn/unit_test6'] =
+{
+    interfaces:['org.alljoyn.unit_test']
+};
+
+AJ.objectDefinition['/org/alljoyn/unit_test7'] =
+{
+    interfaces:['org.alljoyn.unit_test']
+};
+
+AJ.objectDefinition['/org/alljoyn/unit_test8'] =
+{
+    interfaces:['org.alljoyn.unit_test']
+};
+
+var MAX_SIG_ITERATIONS = 1000;
 var self_sls_count = 0;
 var sls_count = 0;
 
@@ -137,14 +172,14 @@ function sendSLS(iter)
         print('PASS: sessionless_sig - count: ' + sls_count);
         return;
     }
-    AJ.signal('/org/alljoyn/unit_test', {sessionless_sig1:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig1);
-    AJ.signal('/org/alljoyn/unit_test', {sessionless_sig2:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig2);
-    AJ.signal('/org/alljoyn/unit_test', {sessionless_sig3:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig3);
-    AJ.signal('/org/alljoyn/unit_test', {sessionless_sig4:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig4);
-    AJ.signal('/org/alljoyn/unit_test', {sessionless_sig5:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig5);
-    AJ.signal('/org/alljoyn/unit_test', {sessionless_sig6:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig6);
-    AJ.signal('/org/alljoyn/unit_test', {sessionless_sig7:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig7);
-    AJ.signal('/org/alljoyn/unit_test', {sessionless_sig8:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig8);
+    AJ.signal('/org/alljoyn/unit_test1', {sessionless_sig1:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig1);
+    AJ.signal('/org/alljoyn/unit_test2', {sessionless_sig2:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig2);
+    AJ.signal('/org/alljoyn/unit_test3', {sessionless_sig3:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig3);
+    AJ.signal('/org/alljoyn/unit_test4', {sessionless_sig4:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig4);
+    AJ.signal('/org/alljoyn/unit_test5', {sessionless_sig5:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig5);
+    AJ.signal('/org/alljoyn/unit_test6', {sessionless_sig6:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig6);
+    AJ.signal('/org/alljoyn/unit_test7', {sessionless_sig7:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig7);
+    AJ.signal('/org/alljoyn/unit_test8', {sessionless_sig8:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig8);
     sls_count++;
     sendSLS(iter + 1);
 }

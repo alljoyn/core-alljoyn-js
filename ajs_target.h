@@ -52,7 +52,7 @@ uint8_t AJS_IsScriptInstalled();
  *
  * @param mode  Indicates if the script is being opened to read it or write it.
  */
-void* AJS_OpenScript(uint8_t mode);
+void* AJS_OpenScriptFile(uint8_t mode);
 
 /**
  * Writes data to a script file.
@@ -64,12 +64,12 @@ void* AJS_OpenScript(uint8_t mode);
  * @return  - AJ_OK if the data was succesfully appended to the script file.
  *          - AJ_ERR_RESOURCES if attempting to write more that AJS_MaxScriptLen() bytes
  */
-AJ_Status AJS_WriteScript(void* scriptf, const uint8_t* data, size_t len);
+AJ_Status AJS_WriteScriptFile(void* scriptf, const uint8_t* data, size_t len);
 
 /**
  * Reads a script returning a pointer the entire contiguous script file.
  */
-AJ_Status AJS_ReadScript(void* scriptf, const uint8_t** data, size_t* len);
+AJ_Status AJS_ReadScriptFile(void* scriptf, const uint8_t** data, size_t* len);
 
 /**
  * Close an open script freeing any resources.
@@ -79,7 +79,7 @@ AJ_Status AJS_ReadScript(void* scriptf, const uint8_t** data, size_t* len);
  * @return - AJ_OK if the script was closed
  *         - AJ_ERR_UNEXPECTED if the script was not open
  */
-AJ_Status AJS_CloseScript(void* scriptf);
+AJ_Status AJS_CloseScriptFile(void* scriptf);
 
 #ifdef __cplusplus
 }

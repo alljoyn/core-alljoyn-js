@@ -186,6 +186,7 @@ ajs_sources = [
      '../../ajs_translations.c',
      '../../ajs_util.c',
      '../../ajs_unmarshal.c',
+     '../../ajs_storage_default.c',
      'ajs_main.c',
      'ajs_malloc.c',
      'io/io_info.c',

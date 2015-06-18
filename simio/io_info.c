@@ -22,18 +22,20 @@
 
 
 static const AJS_IO_Info info[] = {
-    {  AJS_IO_FUNCTION_DIGITAL_OUT, 1,  "LED_1",   "",  "Red LED" },
-    {  AJS_IO_FUNCTION_DIGITAL_OUT, 2,  "LED_2",   "",  "Green LED" },
+    {  AJS_IO_FUNCTION_DIGITAL_OUT, 0,  "LED_1",   "",  "Red LED" },
+    {  AJS_IO_FUNCTION_DIGITAL_OUT, 1,  "LED_2",   "",  "Green LED" },
     {  AJS_IO_FUNCTION_DIGITAL_OUT, 3,  "LED_3",   "",  "Yellow LED" },
-    {  AJS_IO_FUNCTION_DIGITAL_OUT, 4,  "LED_4",   "",  "Blue LED" },
-    {  AJS_IO_FUNCTION_DIGITAL_IN,  5,  "GPIO_1",  "",  "Digital input 1" },
-    {  AJS_IO_FUNCTION_DIGITAL_IN,  6,  "GPIO_2",  "",  "Digital input 2" },
-    {  AJS_IO_FUNCTION_DIGITAL_IN,  7,  "GPIO_3",  "",  "Digital input 3" },
-    {  AJS_IO_FUNCTION_DIGITAL_IN,  8,  "GPIO_4",  "",  "Digital input 4" },
-    {  AJS_IO_FUNCTION_DIGITAL_IN,  9,  "PB_A",    "",  "Push button A" },
-    {  AJS_IO_FUNCTION_DIGITAL_IN, 10,  "PB_B",    "",  "Push button B" },
-    {  AJS_IO_FUNCTION_DIGITAL_IN, 11,  "PB_C",    "",  "Push button C" },
-    {  AJS_IO_FUNCTION_DIGITAL_IN, 12,  "PB_D",    "",  "Push button D" }
+    {  AJS_IO_FUNCTION_DIGITAL_OUT, 3,  "LED_4",   "",  "Blue LED" },
+    {  AJS_IO_FUNCTION_DIGITAL_IN,  4,  "GPIO_1",  "",  "Digital input 1" },
+    {  AJS_IO_FUNCTION_DIGITAL_IN,  5,  "GPIO_2",  "",  "Digital input 2" },
+    {  AJS_IO_FUNCTION_DIGITAL_IN,  6,  "GPIO_3",  "",  "Digital input 3" },
+    {  AJS_IO_FUNCTION_DIGITAL_IN,  7,  "GPIO_4",  "",  "Digital input 4" },
+    {  AJS_IO_FUNCTION_DIGITAL_IN,  8,  "PB_A",    "",  "Push button A" },
+    {  AJS_IO_FUNCTION_DIGITAL_IN,  9,  "PB_B",    "",  "Push button B" },
+    {  AJS_IO_FUNCTION_DIGITAL_IN, 19,  "PB_C",    "",  "Push button C" },
+    {  AJS_IO_FUNCTION_DIGITAL_IN, 11,  "PB_D",    "",  "Push button D" },
+    {  AJS_IO_FUNCTION_UART_TX,    12,  "UART_TX", "",  "UART transmit" },
+    {  AJS_IO_FUNCTION_UART_RX,    13,  "UART_RX", "",  "UART receive" }
 };
 
 uint16_t AJS_TargetIO_GetNumPins()

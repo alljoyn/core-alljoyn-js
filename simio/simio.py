@@ -15,10 +15,17 @@
 #     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 # *****************************************************************************
 
-import Tkinter as Tk
 import socket
 import os
 import sys
+major_version = sys.version_info[0]
+
+if major_version < 3:
+    import Tkinter as Tk
+    import Queue
+else:
+    import tkinter as Tk
+    import queue as Queue
 
 try:
     import win32pipe
@@ -28,32 +35,35 @@ try:
     import pywintypes
     import winerror
     import threading
-    import Queue
 except ImportError:
     if sys.platform == 'win32':
-        print "Could not find win32 modules"
+        print("Could not find win32 modules")
         sys.exit(-1)
+
 
 class Pin(object):
     """Pin abstraction - common functionality across input and output pins"""
-    trigger_rising = 1
-    trigger_falling = 2
+    trigger_rising   = 0x01
+    trigger_falling  = 0x02
+    trigger_both     = 0x03
+    trigger_rx_ready = 0x10
+    trigger_tx_ready = 0x20
 
     def __init__(self, val=0, pwm=0):
-        #print "val: %s" % val
+        #print("val: %s" % val)
         self.val = val
         self.pwm = pwm;
-        self.trigger = self.trigger_falling
+        self.trigger = Pin.trigger_falling
 
     def setVal(self, val):
-        #print "val: %s" % val
+        #print("val: %s" % val)
         self.val = val
 
     def getVal(self):
         return self.val
 
     def setPWM(self, pwm):
-        #print "PWM: %s" % pwm
+        #print("PWM: %s" % pwm)
         self.pwm = pwm
 
     def getPWM(self):
@@ -66,7 +76,7 @@ class Pin(object):
             self.setVal(1)
 
     def setTrigger(self, trigger):
-        #print "trigger: %s" % trigger
+        #print("trigger: %s" % trigger)
         self.trigger = trigger
 
     def getTrigger(self):
@@ -113,7 +123,7 @@ class InputPin(Pin, Tk.Checkbutton):
         self.setVal(self.tkint.get())
 
     def tkint_cb(self, *args):
-        #print "%s: %s->%s" % (self.text, self.getVal(), self.tkint.get())
+        #print("%s: %s->%s" % (self.text, self.getVal(), self.tkint.get()))
         self.setVal(self.tkint.get())
 
 class InputButton(Pin, Tk.Button):
@@ -127,13 +137,15 @@ class InputButton(Pin, Tk.Button):
         self.bind('<ButtonRelease-1>', self.up_cb)
 
     def down_cb(self, event):
-        if self.getTrigger() == Pin.trigger_falling:
-            #print "Falling"
+        if (self.getTrigger() & Pin.trigger_falling) != 0:
+            #print("Falling")
+            self.setVal(1)
             self.server.send_interrupt(self, Pin.trigger_falling)
 
     def up_cb(self, event):
-        if self.getTrigger() == Pin.trigger_rising:
-            #print "Rising"
+        if (self.getTrigger() & Pin.trigger_rising) != 0:
+            #print("Rising")
+            self.setVal(0)
             self.server.send_interrupt(self, Pin.trigger_rising)
 
 def do_pipe_connect(handle, queue):
@@ -147,6 +159,37 @@ def do_pipe_connect(handle, queue):
         queue.put("connected", False)
     else:
         queue.put("disconnected", False)
+
+class InputText(Pin, Tk.Text):
+    def __init__(self, master, server, height, width):
+        Pin.__init__(self, 0, 0)
+        Tk.Text.__init__(self, master, height=height, width=width)
+        self.server = server
+        self.bind('<Return>', self.send_cb)
+
+    def send_cb(self, event):
+        data = self.get(0.0, Tk.END).strip('\n')
+        print("Send ", data)
+        self.server.send_data_interrupt(self, data)
+        self.delete(0.0, Tk.END)
+
+class OutputText(Pin, Tk.Text):
+    def __init__(self, master, server, height, width):
+        Pin.__init__(self, 0, 0)
+        Tk.Text.__init__(self, master, height=height, width=width)
+        self.server = server
+        self.eol = 0
+
+    def setVal(self, val):
+        if (chr(val) == '\n'):
+            self.eol = 1
+            return
+
+        if (self.eol):
+            self.eol = 0
+            self.delete(0.0, Tk.END)
+
+        self.insert(Tk.END, chr(val))
 
 class Simio(object):
     """
@@ -194,10 +237,24 @@ class Simio(object):
                      InputButton(f, self, text='D')]
 
         for i, pin in enumerate(self.pins):
-            pin.grid(row=i/self.columns, column=i%self.columns, padx=20, pady=20)
+            pin.grid(row=int(i/self.columns), column=int(i%self.columns), padx=20, pady=20)
+
+        lrx = Tk.Label(frame, text="UART RX")
+        lrx.grid(row=5, column=0, columnspan=1, padx=10, pady=20)
+        self.uartRx = OutputText(f, self, height=1, width=20);
+        self.uartRx.grid(row=5, column=1, columnspan=self.columns - 1, padx=0, pady=20)
+        self.uartRx.server = self.server
+        self.pins.append(self.uartRx)
+
+        ltx = Tk.Label(frame, text="UART TX")
+        ltx.grid(row=4, column=0, columnspan=1, padx=10, pady=20)
+        self.uartTx = InputText(f, self, height=1, width=20)
+        self.uartTx.grid(row=4, column=1,columnspan=self.columns - 1, padx=0, pady=20)
+        self.pins.append(self.uartTx)
 
         self.button = Tk.Button(frame, text="Quit", command=frame.quit)
-        self.button.grid(columnspan=self.columns, padx=20, pady=20)
+        self.button.grid(row=6, columnspan=self.columns, padx=20, pady=20)
+
 
     def pipe_connect(self):
         if self.pipe_status == "connected":
@@ -215,7 +272,7 @@ class Simio(object):
             self.pipe_connect_thread.start()
 
     def pipe_setup(self):
-        #print "Create pipe: %s" % name
+        #print("Create pipe: %s" % name)
         self.connectq = Queue.Queue()
         self.poll_id = None
 
@@ -228,7 +285,7 @@ class Simio(object):
                                               win32pipe.PIPE_ACCESS_DUPLEX,
                                               win32pipe.PIPE_TYPE_MESSAGE | win32pipe.PIPE_WAIT,
                                               maxinstances, bufsize, bufsize, timeout, security)
-        #print "Pipe created: %s" % self.pipe
+        print("Pipe created: %s" % self.pipe, " ", pipename)
 
         self.pipe_connect()
         # Poll for incoming data
@@ -267,18 +324,18 @@ class Simio(object):
         self.sock, address = self.server.accept()
         self.sock.setblocking(0)
 
-        print "Accepted"
+        print("Accepted")
 
         self.master.createfilehandler(self.sock, Tk.tkinter.READABLE, self.sock_cb)
 
     def sock_recv(self):
         """Handle incoming data and hand off to command processor"""
         data = self.sock.recv(self.command_len)
-        #print "sock read: %s" % repr(data)
+        #print("sock read: %s" % repr(data))
 
         if len(data) == 0:
             self.sock_shutdown()
-            print "socket closed"
+            print("socket closed")
 
         self.readbuf += data
         while len(self.readbuf) >= self.command_len:
@@ -301,22 +358,36 @@ class Simio(object):
 
         self.send_command('i', self.pins.index(pin)+1, edge)
 
-    def send_command(self, command, pin, val):
+    def send_data_interrupt(self, pin, data):
+        """Pack and send serial data to the client"""
+
+        self.send_command('i', self.pins.index(pin)+1, Pin.trigger_rx_ready, chr(len(data)))
+        print("Send: %s" % repr(data))
+        if self.sock:
+            self.sock.send(data)
+        elif self.pipe and self.pipe_status == "connected":
+            try:
+                win32file.WriteFile(self.pipe, data.encode('utf8', 'ignore'), None)
+            except:
+                print("Write failed, reconnecting")
+                self.pipe_connect()
+
+    def send_command(self, command, pin, val, arg4 = None):
         """Pack and send a command to the client"""
-        data = command + chr(pin) + chr(val)
-        print "Send: %s" % repr(data)
+        data = command + chr(pin) + chr(val) + (arg4 or "")
+        print("Send: %s" % repr(data))
         if self.sock:
             self.sock.send(data)
         elif self.pipe and self.pipe_status == "connected":
             try:
                 win32file.WriteFile(self.pipe, data, None)
             except:
-                print "Write failed, reconnecting"
+                print("Write failed, reconnecting")
                 self.pipe_connect()
 
     def process_command(self, command):
         """Parse and perform a single command"""
-        print "Command: %s" % repr(command)
+        print("Command: %s" % repr(command))
         op = command[0]
         pin = ord(command[1])
         val = ord(command[2])
@@ -360,7 +431,7 @@ class Simio(object):
             try:
                 data, size, result = win32pipe.PeekNamedPipe(self.pipe, 1024)
             except:
-                print "Pipe error, reconnecting"
+                print("Pipe error, reconnecting")
                 self.pipe_connect()
                 break
 
@@ -370,7 +441,7 @@ class Simio(object):
                     self.readbuf += data
                     nextpoll = self.pipe_quick_poll_ms
                 except:
-                    print "Read failed, reconnecting"
+                    print("Read failed, reconnecting")
                     self.pipe_connect()
                     size = 0
 

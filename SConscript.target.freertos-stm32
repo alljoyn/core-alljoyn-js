@@ -57,6 +57,7 @@ env.Append(CFLAGS = [
     '-Wcast-align',
     '-Wfloat-equal',
     '-Wformat=2',
+    '-Wformat-security',
     '-Wlong-long',
     '-Wmissing-declarations',
     '-Wmissing-format-attribute',
@@ -66,19 +67,21 @@ env.Append(CFLAGS = [
     '-Wpointer-arith',
     '-Wshadow',
     '-Wundef',
-    '-Wwrite-strings'
+    '-Wwrite-strings',
+    '-Werror=format-security'
 ])
 
-env.Append(CPPDEFINES = [
-    'STM32F407xx',
-    'USE_STDPERIPH_DRIVER',
-    'HAL_UART_MODULE_ENABLED',
-    'HAL_RCC_MODULE_ENABLED',
-    'HAL_GPIO_MODULE_ENABLED',
-    'HAL_USART_MODULE_ENABLED',
-    'HAL_FLASH_MODULE_ENABLED',
-    'AJ_HEAP4',
-    'DUK_F_BCC'
+env.Append(CPPDEFINES = {
+    'STM32F407xx' :              None,
+    'USE_STDPERIPH_DRIVER' :     None,
+    'HAL_UART_MODULE_ENABLED' :  None,
+    'HAL_RCC_MODULE_ENABLED' :   None,
+    'HAL_GPIO_MODULE_ENABLED' :  None,
+    'HAL_USART_MODULE_ENABLED' : None,
+    'HAL_FLASH_MODULE_ENABLED' : None,
+    'AJ_HEAP4' :                 None,
+    'DUK_F_BCC' :                None,
+    '_FORTIFY_SOURCE' :          '1'
 ])
 
 # Linker flags

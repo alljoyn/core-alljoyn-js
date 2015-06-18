@@ -1008,7 +1008,7 @@ bool AJS_Console::GetScript(uint8_t** script, uint32_t* length)
     }
     entries = reply->GetArg(0);
     entries->Get("ay", length, &s);
-    (*script) = (uint8_t*)malloc(sizeof(char) * (*length) + 1);
+    (*script) = (uint8_t*)malloc(sizeof(char) * (*length) + 5);
     if (!*script) {
         FatalError();
     }
@@ -1127,6 +1127,7 @@ void AJS_Console::JoinSessionCB(QStatus status, SessionId sid, const SessionOpts
 QStatus AJS_Console::Connect(const char* deviceName, volatile sig_atomic_t* interrupt)
 {
     QStatus status;
+    qcc::String matchRule;
     /*
      * The device we wil be looking for
      */
@@ -1156,24 +1157,27 @@ QStatus AJS_Console::Connect(const char* deviceName, volatile sig_atomic_t* inte
     aj->UnregisterAboutListener(*this);
 
     if (status == ER_OK) {
-        qcc::String matchRule = "type='signal',sessionless='t',interface='org.alljoyn.Notification',member='notify'";
+        /*
+         * Create the proxy object from the XML
+         */
+        proxy = new ProxyBusObject(*aj, connectedBusName, "/ScriptConsole", sessionId, false);
+        status = proxy->ParseXml(consoleXML);
+
+        RegisterHandlers(aj);
+
+        matchRule = "type='signal',sessionless='t',interface='org.alljoyn.Notification',member='notify'";
         /*
          * Add a match rule to receive notifications from the script service
          */
         matchRule += "sender='" + qcc::String(connectedBusName) + "'";
         aj->AddMatch(matchRule.c_str());
 
-        /*
-         * Create the proxy object from the XML
-         */
-        proxy = new ProxyBusObject(*aj, connectedBusName, "/ScriptConsole", sessionId, false);
-        status = proxy->ParseXml(consoleXML);
         assert(status == ER_OK);
-        RegisterHandlers(aj);
     } else {
         delete aj;
         aj = NULL;
     }
+
     return status;
 }
 

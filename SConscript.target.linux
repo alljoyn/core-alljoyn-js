@@ -39,6 +39,7 @@ env.Append(CFLAGS = [
     '-Wcast-align',
     '-Wfloat-equal',
     '-Wformat=2',
+    '-Wformat-security',
     '-Wlong-long',
     '-Wmissing-declarations',
     '-Wmissing-format-attribute',
@@ -48,7 +49,8 @@ env.Append(CFLAGS = [
     '-Wpointer-arith',
     '-Wshadow',
     '-Wundef',
-    '-Wwrite-strings'
+    '-Wwrite-strings',
+    '-Werror=format-security'
 ])
 
 if env['FORCE32']:

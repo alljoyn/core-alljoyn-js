@@ -41,16 +41,18 @@ duk_idx_t AJS_UnmarshalMessage(duk_context* ctx, AJ_Message* msg, uint8_t access
         duk_put_prop_string(ctx, objIndex, "fromSelf");
 
         if (msg->hdr->msgType == AJ_MSG_METHOD_CALL) {
+            AJS_ReplyInternal* msgReply;
             /*
-             * Private information needed for composing the reply
+             * Private read-only information needed for composing the reply
              */
-            AJS_ReplyInternal* msgReply = duk_push_fixed_buffer(ctx, sizeof(AJS_ReplyInternal));
+            duk_push_string(ctx, AJS_HIDDEN_PROP("reply"));
+            msgReply = duk_push_fixed_buffer(ctx, sizeof(AJS_ReplyInternal));
             msgReply->msgId = msg->msgId;
             msgReply->flags = msg->hdr->flags;
             msgReply->serialNum = msg->hdr->serialNum;
             msgReply->sessionId = msg->sessionId;
             msgReply->accessor = accessor;
-            duk_put_prop_string(ctx, objIndex, AJS_HIDDEN_PROP("reply"));
+            duk_def_prop(ctx, objIndex, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_HAVE_WRITABLE);
             /*
              * Register the reply functions
              */
@@ -261,10 +263,11 @@ AJ_Status AJS_UnmarshalPropArgs(duk_context* ctx, AJ_Message* msg, uint8_t acces
         if (status == AJ_OK) {
             duk_push_string(ctx, iface);
             /*
-             * Save interface so we know how to marshal the reply values
+             * Save interface (read-only) so we know how to marshal the reply values
              */
-            duk_dup(ctx, -1);
-            duk_put_prop_string(ctx, msgIdx, AJS_HIDDEN_PROP("propIface"));
+            duk_push_string(ctx, AJS_HIDDEN_PROP("propIface"));
+            duk_dup(ctx, -2);
+            duk_def_prop(ctx, msgIdx, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_HAVE_WRITABLE);
         }
         /*
          * This call always returns an error status because the interface name we are passing in is
@@ -283,8 +286,9 @@ AJ_Status AJS_UnmarshalPropArgs(duk_context* ctx, AJ_Message* msg, uint8_t acces
                      * If we are getting a property save the signature so we know how to marshal the
                      * value in the reply.
                      */
+                    duk_push_string(ctx, AJS_HIDDEN_PROP("propSig"));
                     duk_push_string(ctx, signature);
-                    duk_put_prop_string(ctx, msgIdx, AJS_HIDDEN_PROP("propSig"));
+                    duk_def_prop(ctx, msgIdx, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_HAVE_WRITABLE);
                 } else {
                     /*
                      * Push the value to set

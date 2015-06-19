@@ -8,9 +8,6 @@ jsenv['srcs'].extend(File([
 
 if jsenv['ENV'].get('YUN_BUILD', '0') == '1':
     jsenv['srcs'].extend(Glob('lininoio/*.c'))
+    jsenv['use_simio'] = False
 else:
-    jsenv['srcs'].extend(File([
-        'io/io_simulation.c',
-        'io/io_info.c',
-        'io/io_stubs.c'
-    ]))
+    jsenv['use_simio'] = True

@@ -17,8 +17,8 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include "../../ajs.h"
-#include "../../ajs_io.h"
+#include "../ajs.h"
+#include "../ajs_io.h"
 
 AJ_Status AJS_TargetIO_AdcOpen(uint16_t channel, void** adcCtx)
 {
@@ -57,7 +57,7 @@ AJ_Status AJS_TargetIO_SpiRead(void* ctx, uint32_t length, uint8_t* buffer)
 
 void AJS_TargetIO_SpiWrite(void* ctx, uint8_t* data, uint32_t length)
 {
-    AJ_InfoPrintf(("AJS_TargetIO_SpiWrite(): Wrote %d\n", length));
+    AJ_InfoPrintf(("AJS_TargetIO_SpiWrite(): Wrote %i\n", data));
     return;
 }
 
@@ -68,27 +68,6 @@ AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t c
 }
 
 AJ_Status AJS_TargetIO_SpiClose(void* spiCtx)
-{
-    return AJ_ERR_UNEXPECTED;
-}
-
-uint32_t AJS_TargetIO_UartRead(void* uartCtx, uint8_t* buf, uint32_t length)
-{
-    AJ_InfoPrintf(("AJS_TargetIO_UartRead()"));
-    return 0;
-}
-
-AJ_Status AJS_TargetIO_UartWrite(void* uartCtx, uint8_t* data, uint32_t length)
-{
-    return 0;
-}
-
-AJ_Status AJS_TargetIO_UartOpen(uint8_t txPin, uint8_t rxPin, uint32_t baud, void** uartCtx)
-{
-    return 0;
-}
-
-AJ_Status AJS_TargetIO_UartClose(void* uartCtx)
 {
     return AJ_ERR_UNEXPECTED;
 }

@@ -22,6 +22,14 @@
 #include "../ajs_cmdline.h"
 #include <ajtcl/aj_nvram.h>
 
+#include <unistd.h>
+#include <errno.h>
+
+/*
+ * Approximate limit on number of bytes to accumulate in the log file.
+ */
+#define MAX_LOG_FILE_SIZE 8192
+#define DEFAULT_LOG_FILE  "/tmp/AJS.log"
 
 int main(int argc, char* argv[])
 {
@@ -31,12 +39,23 @@ int main(int argc, char* argv[])
     if (AJS_CmdlineOptions(argc, argv, &options)) {
         goto Usage;
     }
-    if (options.daemonize || options.logFile) {
-        goto Usage;
-    }
 
     AJ_SetNVRAM_FilePath(options.nvramFile);
     AJ_Initialize();
+
+    if (options.daemonize) {
+        int ret = daemon(1, 0);
+        if (ret < 0) {
+            AJ_Printf("Failed to launch daemon errno=%d\n", errno);
+            exit(1);
+        }
+        if (!options.logFile) {
+            options.logFile = DEFAULT_LOG_FILE;
+        }
+    }
+    if (options.logFile) {
+        AJ_SetLogFile(options.logFile, MAX_LOG_FILE_SIZE);
+    }
 
     if (options.scriptName) {
         status = AJS_InstallScript(options.scriptName);
@@ -45,19 +64,21 @@ int main(int argc, char* argv[])
             exit(1);
         }
     }
-
+    /*
+     * If running as a daemon keep restarting
+     */
     do {
         status = AJS_Main(options.deviceName);
-    } while (status == AJ_ERR_RESTART);
+    } while (options.daemonize || (status == AJ_ERR_RESTART));
 
     return (int)status;
 
 Usage:
 
 #ifndef NDEBUG
-    AJ_Printf("Usage: %s [--debug] [--name <device-name>] [--nvram-file <nvram-file>] [script_file]\n", argv[0]);
+    AJ_Printf("Usage: %s [--debug] [--daemon] [--log-file <log_file>] [--nvram-file <nvram_file>] [--name <device_name>] [script_file]\n", argv[0]);
 #else
-    AJ_Printf("Usage: %s [--name <device-name>] [--nvram-file <nvram-file>] [script_file]\n", argv[0]);
+    AJ_Printf("Usage: %s [--daemon] [--log-file <log_file>] [--nvram-file <nvram_file>] [--name <device_name>] [script_file]\n", argv[0]);
 #endif
     exit(1);
 }

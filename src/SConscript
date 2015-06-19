@@ -1,5 +1,7 @@
 Import('jsenv')
 
+jsenv['use_simio'] = False
+
 jsenv['srcs'] = []
 
 jsenv.Prepend(CPPPATH = [ '$TARG' ])
@@ -7,6 +9,9 @@ jsenv.Prepend(CPPPATH = [ '$TARG' ])
 jsenv.SConscript('$TARG/SConscript')
 
 jsenv['srcs'].extend(Glob('*.c'))
+if jsenv['use_simio']:
+    jsenv['srcs'].extend(Glob('simio/*.c'))
+
 jsenv['srcs'].append(jsenv['duktape_src'])
 
 jsenv.Program('#dist/bin/alljoynjs', jsenv['srcs'])

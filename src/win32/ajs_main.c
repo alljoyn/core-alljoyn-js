@@ -38,20 +38,6 @@ int main(int argc, char* argv[])
     AJ_SetNVRAM_FilePath(options.nvramFile);
     AJ_Initialize();
 
-    if (options.daemonize) {
-        int ret = daemon(1, 0);
-        if (ret < 0) {
-            AJ_Printf("Failed to launch daemon errno=%d\n", errno);
-            exit(1);
-        }
-        if (!options.logFile) {
-            options.logFile = DEFAULT_LOG_FILE;
-        }
-    }
-    if (options.logFile) {
-        AJ_SetLogFile(options.logFile, MAX_LOG_FILE_SIZE);
-    }
-
     if (options.scriptName) {
         status = AJS_InstallScript(options.scriptName);
         if (status != AJ_OK) {

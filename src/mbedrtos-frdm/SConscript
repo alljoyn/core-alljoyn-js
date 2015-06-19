@@ -3,3 +3,5 @@ Import('jsenv')
 jsenv['srcs'].extend(Glob('*.c'))
 jsenv['srcs'].extend(Glob('io/*.cpp'))
 jsenv['srcs'].extend(Glob('io/*.c'))
+
+jsenv['use_simio'] = False

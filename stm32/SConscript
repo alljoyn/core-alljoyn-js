@@ -131,7 +131,7 @@ env.Append(CPPPATH = [env['ajtcl_root'] + '/bsp',
                   '../../external/duktape/dist/src'])
 # Add platform dependent defines
 env.Append(CPPDEFINES = ['STM32F407xx', 'USE_STDPERIPH_DRIVER','HAL_UART_MODULE_ENABLED', 'HAL_RCC_MODULE_ENABLED', 'AJ_HEAP4',
-                         'HAL_GPIO_MODULE_ENABLED', 'HAL_USART_MODULE_ENABLED', 'HAL_FLASH_MODULE_ENABLED', 'DUK_F_BCC', '-D_FORTIFY_SOURCE=1'])
+                         'HAL_GPIO_MODULE_ENABLED', 'HAL_USART_MODULE_ENABLED', 'HAL_FLASH_MODULE_ENABLED', 'DUK_F_BCC', '_FORTIFY_SOURCE=1'])
 
 env.Append(LINKFLAGS = ['-mthumb', '-Wl,--start-group', '-lm', '-lc',
                         '-Wl,--end-group', '-Wl,--gc-sections', '-Wl,-Map,${TARGET.base}.map',

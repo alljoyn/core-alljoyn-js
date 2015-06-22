@@ -111,7 +111,7 @@ env.Append(CPPDEFINES = ['TARGET_K64F',
                          'CPU_MK64FN1M0VMD12',
                          'FSL_RTOS_MBED',
                          'TARGET_FF_ARDUINO',
-                         '-D_FORTIFY_SOURCE=1'
+                         '_FORTIFY_SOURCE=1'
                          ])
 
 env['objects']        = [env['MBED_DIR'] + '/mbed/TARGET_K64F/TOOLCHAIN_GCC_ARM/startup_MK64F12.o',

@@ -113,15 +113,16 @@ var IO = {
      * @param {Pin} miso                    - MISO pin
      * @param {Pin} cs                      - Chip select pin
      * @param {Pin} clk                     - Clock pin
-     * @param {number} prescaler            - Divisor of the CPU clock that will run the SPI peripheral
-     * @param {boolean} master              - Configure as master or slave
-     * @param {number} polarity             - Clock polarity (0=low, 1=high)
-     * @param {number} phase                - Clock phase (0 = 1 edge, 1 = 2 Edge)
-     * @param {number} databits             - Number of data bits per SPI transfer (platform dependent)
+     * @param {Object} config               - Configuration parameters of the SPI peripheral
+     * @param {number} config.clock         - Clock that will run the SPI peripheral
+     * @param {boolean} config.master       - Configure as master or slave
+     * @param {number} config.cpol          - Clock polarity (0=low, 1=high)
+     * @param {number} config.cpha          - Clock phase (0 = 1 edge, 1 = 2 Edge)
+     * @param {number} config.data          - Number of data bits per SPI transfer (platform dependent)
      * @return {Spi}                        - A SPI object
      *
      * @example
-     * var s = IO.spi(IO.pin4, IO.pin5, IO.pin6, IO.pin7, 4, true, 0, 1, 8);
+     * var s = IO.spi(IO.pin[4], IO.pin[5], IO.pin[6], IO.pin[7], {clock:100000, master:true, cpol:0, cpha:1, data:8});
      *
      * s.write("Write to SPI");
      *
@@ -593,9 +594,12 @@ var AJ = {
      *
      * AJ.findServiceByName('org.alljoyn.myname', nameObj, foundService);
      *
-     * @param {String} name                 Service name to find
-     * @param {NameObject} nameObject       Object containing interfaces, path, and port number
-     * @param {ServiceCallback} callback    Callback function called when the service is found
+     * @param {String} name                     Service name to find
+     * @param {Object} nameObject               Object containing interfaces, path, and port number
+     * @param {string[]} nameObject.interfaces  Array of interfaces of interest
+     * @param {string} nameObject.path          Object path for this service
+     * @param {number} nameObject.port          Port number for this service
+     * @param {ServiceCallback} callback        Callback function called when the service is found
      */
     findServiceByName: function(name, nameObject, callback) {},
     /**
@@ -878,32 +882,6 @@ var Service = {
  * @param {Service} svc             Service object
  */
 var ServiceCallback = function(svc) {}
-/**
- * Object used for finding a service by name.
- *
- * @namespace
- * @property {string[]} interfaces      - Array of interfaces of interest
- * @property {string} path              - Object path for this service
- * @property {number} port              - Port number for this service
- *
- * @example
- * var nameObj = {
- *     interfaces:['org.alljoyn.sample'],
- *     path:'/path/to/object',
- *     port:1234
- * }
- *
- * var service;
- *
- * function foundService(svc) {
- *     // Save the service to make calls on it later
- *     service = svc;
- *     print('service was found');
- * }
- *
- * AJ.findServiceByName('org.alljoyn.myname', nameObj, foundService);
- */
-var NameObject = {}
 /**
  * Callback from a getAllProps call
  *

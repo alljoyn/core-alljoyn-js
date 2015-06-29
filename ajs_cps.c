@@ -115,6 +115,10 @@ static AJ_Status SetWidgetProp(AJ_Message* msg)
                 } else {
                     status = AJ_UnmarshalArgs(msg, "(qqq)", &widget->property.val.date.mDay, &widget->property.val.date.month, &widget->property.val.date.fullYear);
                 }
+                /*
+                 * Signal that the value has been changed
+                 */
+                AJS_CPS_SignalValueChanged(AJS_GetBusAttachment(), widget);
                 if (status == AJ_OK) {
                     status = AJ_UnmarshalCloseContainer(msg, &st);
                 }

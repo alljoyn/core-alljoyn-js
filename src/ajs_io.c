@@ -513,7 +513,7 @@ static int NativeSpiWrite(duk_context* ctx)
 
 static int NativeIoSpi(duk_context* ctx)
 {
-    uint32_t mosi, miso, cs, clk, prescaler;
+    uint32_t mosi, miso, cs, clk, clock;
     uint8_t master;
     uint8_t cpol, cpha, data;
     void* spiCtx;
@@ -525,8 +525,8 @@ static int NativeIoSpi(duk_context* ctx)
     cs = GetPinId(ctx, 2, AJS_IO_FUNCTION_SPI_SS);
     clk = GetPinId(ctx, 3, AJS_IO_FUNCTION_SPI_SCK);
 
-    duk_get_prop_string(ctx, 4, "prescaler");
-    prescaler = duk_require_int(ctx, -1);
+    duk_get_prop_string(ctx, 4, "clock");
+    clock = duk_require_int(ctx, -1);
     duk_get_prop_string(ctx, 4, "master");
     if (duk_get_boolean(ctx, -1)) {
         master = TRUE;
@@ -545,21 +545,16 @@ static int NativeIoSpi(duk_context* ctx)
     if (cpol != 0 && cpol != 1) {
         duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "cpol must be 0 or 1; you gave %u", cpol);
     }
-    // Clock edge phase must be one edge (1) or two edge (2)
-    if (cpha != 1 && cpha != 2) {
-        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "cpha must be 1 or 2; you gave %u", cpha);
+    // Clock edge phase must be one edge (0) or two edge (1)
+    if (cpha != 0 && cpha != 1) {
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "cpha must be 0 or 1; you gave %u", cpha);
     }
     // Data bits must be 8, 16, or 32
-    if (data != 8 && data != 16) {
-        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "data must be 8 or 16; you gave %u", data);
-    }
-    if (prescaler != 2 && prescaler != 4 && prescaler != 8 &&
-        prescaler != 16 && prescaler != 32 && prescaler != 64 &&
-        prescaler != 128 && prescaler != 256) {
-        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "prescaler must be 2, 4, 8, 16, 32, 64, 128 or 256; you gave %u", prescaler);
+    if (data != 8 && data != 16 && data != 32) {
+        duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "data bits must be 8, 16 or 32; you gave %u", data);
     }
 
-    status = AJS_TargetIO_SpiOpen(mosi, miso, cs, clk, prescaler, master, cpol, cpha, data, &spiCtx);
+    status = AJS_TargetIO_SpiOpen(mosi, miso, cs, clk, clock, master, cpol, cpha, data, &spiCtx);
     if (status != AJ_OK) {
         duk_error(ctx, DUK_ERR_INTERNAL_ERROR, "Failed to open SPI device");
     }

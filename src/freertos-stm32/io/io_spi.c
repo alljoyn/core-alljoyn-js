@@ -29,6 +29,7 @@
  *******************************************************************************/
 
 #include "io_common.h"
+#include "FreeRTOSConfig.h"
 
 AJ_Status AJS_TargetIO_SpiRead(void* ctx, uint32_t length, uint8_t* buffer)
 {
@@ -63,7 +64,7 @@ void AJS_TargetIO_SpiWrite(void* ctx, uint8_t* data, uint32_t length)
     GPIO_SetBits(spi->SS_GPIO, spi->SS_Pin);
     AJ_LeaveCriticalRegion();
 }
-AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t clk, uint32_t prescaler,
+AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t clk, uint32_t clock,
                                uint8_t master, uint8_t cpol, uint8_t cpha, uint8_t data, void** spiCtx)
 {
     SPI_InitTypeDef spi_config;
@@ -152,21 +153,21 @@ AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t c
         } else if (data == 16) {
             spi_config.SPI_DataSize = SPI_DataSize_16b;
         }
-        if (prescaler == 2) {
+        if (clock >= (configCPU_CLOCK_HZ / 2)) {
             spi_config.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
-        } else if (prescaler == 4) {
+        } else if (clock >= (configCPU_CLOCK_HZ / 4)) {
             spi_config.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_4;
-        } else if (prescaler == 8) {
+        } else if (clock >= (configCPU_CLOCK_HZ / 8)) {
             spi_config.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
-        } else if (prescaler == 16) {
+        } else if (clock >= (configCPU_CLOCK_HZ / 16)) {
             spi_config.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_16;
-        } else if (prescaler == 32) {
+        } else if (clock >= (configCPU_CLOCK_HZ / 32)) {
             spi_config.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_32;
-        } else if (prescaler == 64) {
+        } else if (clock >= (configCPU_CLOCK_HZ / 64)) {
             spi_config.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_64;
-        } else if (prescaler == 128) {
+        } else if (clock >= (configCPU_CLOCK_HZ / 128)) {
             spi_config.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_128;
-        } else if (prescaler == 256) {
+        } else {
             spi_config.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256;
         }
         spi_config.SPI_CRCPolynomial = 7;

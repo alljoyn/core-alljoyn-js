@@ -64,7 +64,7 @@ void AJS_TargetIO_SpiWrite(void* ctx, uint8_t* data, uint32_t length)
 
 extern uint32_t SystemCoreClock;
 
-AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t clk, uint32_t prescaler,
+AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t clk, uint32_t clock,
                                uint8_t master, uint8_t cpol, uint8_t cpha, uint8_t data, void** spiCtx)
 {
     SPI_Pin* spi;
@@ -102,7 +102,7 @@ AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t c
     spi = (SPI_Pin*)AJ_Malloc(sizeof(SPI_Pin));
     spi->object = new SPI((PinName)spiInfo[indexMosi].pinId, (PinName)spiInfo[indexMiso].pinId, (PinName)spiInfo[indexClk].pinId);
     spi->cs = new DigitalOut((PinName)spiInfo[indexCs].pinId);
-    spi->object->frequency(SystemCoreClock / prescaler);
+    spi->object->frequency(clock);
     /*
      * Mode     cpol    cpha
      * 0        0       0

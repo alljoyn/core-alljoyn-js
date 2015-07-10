@@ -311,7 +311,7 @@ void AJS_TargetIO_SpiWrite(void* ctx, uint8_t* data, uint32_t length);
  * @param miso      Pin number of the MISO (Master In Slave Out) SPI pin
  * @param cs        Pin number of the Chip Select SPI pin
  * @param clk       Pin number of the Clock SPI pin
- * @param prescaler A divisor value for the SPI clock speed (SPI Clock = CPU Clock / prescaler)
+ * @param clock     Value for the SPI clock speed
  * @param master    Flag configuring the SPI device as master or slave
  * @param cpol      Clock polarity for the SPI device (High or Low)
  * @param cpha      Clock phase for the SPI device (1 Edge or 2 Edge)
@@ -320,7 +320,7 @@ void AJS_TargetIO_SpiWrite(void* ctx, uint8_t* data, uint32_t length);
  *
  * @return          AJ_OK if the device was configured successfully
  */
-AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t clk, uint32_t prescaler,
+AJ_Status AJS_TargetIO_SpiOpen(uint8_t mosi, uint8_t miso, uint8_t cs, uint8_t clk, uint32_t clock,
                                uint8_t master, uint8_t cpol, uint8_t cpha, uint8_t data, void** spiCtx);
 
 /**

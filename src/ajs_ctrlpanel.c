@@ -341,9 +341,8 @@ static int NativeValueSetter(duk_context* ctx)
         /*
          * String needs to be stabilized so we need to set a (read-only) property
          */
-        duk_push_string(ctx, AJS_HIDDEN_PROP("value"));
         duk_dup(ctx, 0);
-        duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_HAVE_WRITABLE);
+        duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("value"));
         break;
     }
     duk_pop(ctx);
@@ -417,10 +416,9 @@ AJ_Status AJS_CPS_OnValueChanged(AJS_Widget* ajsWidget)
      * Strings need to be stabilized - other property values are held in the AJS_Widget itself.
      */
     if (ajsWidget->property.wdt.signature[0] == 's') {
-        duk_push_string(ctx, AJS_HIDDEN_PROP("value"));
         duk_push_string(ctx, ajsWidget->property.val.s);
         ajsWidget->property.val.s = duk_get_string(ctx, -1);
-        duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_HAVE_WRITABLE);
+        duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("value"));
     }
     duk_get_prop_string(ctx, -1, "onValueChanged");
     if (duk_is_callable(ctx, -1)) {
@@ -1010,9 +1008,8 @@ static int NativeOptLabelSetter(duk_context* ctx)
     AJS_Widget* widget = GetWidgetFromThis(ctx);
     AJ_InfoPrintf(("Native label setter called\n"));
     widget->base.optParams.getLabel = GetLabel;
-    duk_push_string(ctx, AJS_HIDDEN_PROP("label"));
     duk_dup(ctx, 0);
-    duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_HAVE_WRITABLE);
+    duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("label"));
     duk_pop(ctx);
     AJS_CPS_SignalMetadataChanged(AJS_GetBusAttachment(), widget);
     return 0;

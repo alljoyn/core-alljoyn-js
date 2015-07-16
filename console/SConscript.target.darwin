@@ -1,0 +1,43 @@
+Import('cenv')
+
+if cenv['PLATFORM'] == 'darwin' and cenv['CPU'] == 'x86_64':
+    cenv['CPU'] = 'x86'
+
+cenv.Append(LIBS = ['crypto'])
+cenv.Append(CPPDEFINES = ['QCC_OS_GROUP_POSIX',
+                         'QCC_OS_DARWIN',
+                         '_GLIBCXX_USE_C99_FP_MACROS_DYNAMIC'])
+
+cenv['PATH'] = '$IPHONE_OS_PLATFORM_DIR/Developer/usr/bin:$SYSTEM_DEVELOPER_DIR/usr/bin:$PATH'
+
+cenv['CC'] = '$DT_TOOLCHAIN_DIR/usr/bin/clang'
+cenv['CXX'] = '$DT_TOOLCHAIN_DIR/usr/bin/clang++'
+
+# Compiler flags
+cenv.Append(CFLAGS=[
+    '-fdiagnostics-show-category=id',
+    '-fdiagnostics-parseable-fixits',
+    '-fpascal-strings',
+    '-Wreturn-type',
+    '-Wparentheses',
+    '-Wswitch',
+    '-Wno-unused-parameter',
+    '-Wunused-variable', 
+    '-Wunused-value'])
+cenv.Append(CXXFLAGS=[
+    '-fno-rtti',
+    '-fno-exceptions',
+    '-Wc++11-extensions',
+    '-std=gnu++11'])
+
+ccld = ['-arch', 'i386', '-arch', 'x86_64', '-mmacosx-version-min=10.9']
+
+cenv.Append(CXXFLAGS=ccld)
+cenv.Append(CFLAGS=ccld)
+cenv.Append(LINKFLAGS=ccld)
+
+# Debug/Release Variants
+if cenv['VARIANT'] == 'debug':
+    cenv.Append(CXXFLAGS = '-g')
+else:
+    cenv.Append(CXXFLAGS = '-Os')

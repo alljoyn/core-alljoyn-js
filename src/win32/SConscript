@@ -1,0 +1,9 @@
+Import('jsenv')
+
+jsenv['srcs'].extend(File([
+    'ajs_main.c',
+    'ajs_malloc.c',
+    'ajs_obs_stubs.c'
+]))
+
+jsenv['use_simio'] = True

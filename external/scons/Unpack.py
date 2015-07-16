@@ -35,6 +35,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             #
 ############################################################################
 
+# Copyright AllSeen Alliance. All rights reserved.
 
 
 # The Unpack Builder can be used for unpacking archives (eg Zip, TGZ, BZ, ... ).
@@ -98,6 +99,17 @@ def __fileextractor_nix_tar( env, count, no, i ) :
 # @param no number of the output line
 # @param i line content
 def __fileextractor_nix_gzip( env, count, no, i ) :
+    if no == 0 :
+        return None
+    return i.split()[-1]
+
+# extractor function for xz output,
+# ignore the first line
+# @param env environment object
+# @param count number of returning lines
+# @param no number of the output line
+# @param i line content
+def __fileextractor_nix_xz( env, count, no, i ) :
     if no == 0 :
         return None
     return i.split()[-1]
@@ -169,8 +181,11 @@ def __getExtractor( source, env ) :
 # @param target target name
 # @param source source name
 # @param env environment object
-def __message( s, target, source, env ) :
-    print "extract [%s] ..." % (source[0])
+def __message( s, target, source, env ) : 
+    if s.startswith("__action"):
+        print env.subst(env["UNPACKCOMSTR"], 1, target, source)
+    else:
+        print s
 
 
 # action function for extracting of the data
@@ -296,6 +311,19 @@ def generate( env ) :
                 "LISTEXTRACTOR"  : None
             },
 
+            "TARXZ" : {
+                "PRIORITY"       : 0,
+                "SUFFIX"         : [".tar.xz", ".txz"],
+                "EXTRACTSUFFIX"  : "",
+                "EXTRACTFLAGS"   : "",
+                "EXTRACTCMD"     : "${UNPACK['EXTRACTOR']['TARXZ']['RUN']} ${UNPACK['EXTRACTOR']['TARXZ']['EXTRACTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['TARXZ']['EXTRACTSUFFIX']}",
+                "RUN"            : "",
+                "LISTCMD"        : "${UNPACK['EXTRACTOR']['TARXZ']['RUN']} ${UNPACK['EXTRACTOR']['TARXZ']['LISTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['TARXZ']['LISTSUFFIX']}",
+                "LISTSUFFIX"     : "",
+                "LISTFLAGS"      : "",
+                "LISTEXTRACTOR"  : None
+            },
+
             "BZIP" : {
                 "PRIORITY"       : 1,
                 "SUFFIX"         : [".bz", "bzip", ".bz2", ".bzip2"],
@@ -317,6 +345,19 @@ def generate( env ) :
                 "EXTRACTCMD"     : "${UNPACK['EXTRACTOR']['GZIP']['RUN']} ${UNPACK['EXTRACTOR']['GZIP']['EXTRACTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['GZIP']['EXTRACTSUFFIX']}",
                 "RUN"            : "",
                 "LISTCMD"        : "${UNPACK['EXTRACTOR']['GZIP']['RUN']} ${UNPACK['EXTRACTOR']['GZIP']['LISTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['GZIP']['LISTSUFFIX']}",
+                "LISTSUFFIX"     : "",
+                "LISTFLAGS"      : "",
+                "LISTEXTRACTOR"  : None
+            },
+
+            "XZ" : {
+                "PRIORITY"       : 1,
+                "SUFFIX"         : [".xz"],
+                "EXTRACTSUFFIX"  : "",
+                "EXTRACTFLAGS"   : "",
+                "EXTRACTCMD"     : "${UNPACK['EXTRACTOR']['XZ']['RUN']} ${UNPACK['EXTRACTOR']['XZ']['EXTRACTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['XZ']['EXTRACTSUFFIX']}",
+                "RUN"            : "",
+                "LISTCMD"        : "${UNPACK['EXTRACTOR']['XZ']['RUN']} ${UNPACK['EXTRACTOR']['XZ']['LISTFLAGS']} $SOURCE ${UNPACK['EXTRACTOR']['XZ']['LISTSUFFIX']}",
                 "LISTSUFFIX"     : "",
                 "LISTFLAGS"      : "",
                 "LISTEXTRACTOR"  : None
@@ -368,6 +409,13 @@ def generate( env ) :
             toolset["EXTRACTOR"]["TARBZ"]["EXTRACTFLAGS"]  = "x"
             toolset["EXTRACTOR"]["TARBZ"]["EXTRACTSUFFIX"] = "-so -y | ${UNPACK['EXTRACTOR']['TARGZ']['RUN']} x -sii -ttar -y -oc:${UNPACK['EXTRACTDIR']}"
 
+            toolset["EXTRACTOR"]["TARXZ"]["RUN"]           = "7z"
+            toolset["EXTRACTOR"]["TARXZ"]["LISTEXTRACTOR"] = __fileextractor_win_7zip
+            toolset["EXTRACTOR"]["TARXZ"]["LISTFLAGS"]     = "x"
+            toolset["EXTRACTOR"]["TARXZ"]["LISTSUFFIX"]    = "-so -y | ${UNPACK['EXTRACTOR']['TARXZ']['RUN']} l -sii -ttar -y -so"
+            toolset["EXTRACTOR"]["TARXZ"]["EXTRACTFLAGS"]  = "x"
+            toolset["EXTRACTOR"]["TARXZ"]["EXTRACTSUFFIX"] = "-so -y | ${UNPACK['EXTRACTOR']['TARXZ']['RUN']} x -sii -ttar -y -oc:${UNPACK['EXTRACTDIR']}"
+
             toolset["EXTRACTOR"]["BZIP"]["RUN"]            = "7z"
             toolset["EXTRACTOR"]["BZIP"]["LISTEXTRACTOR"]  = __fileextractor_win_7zip
             toolset["EXTRACTOR"]["BZIP"]["LISTFLAGS"]      = "l"
@@ -381,6 +429,13 @@ def generate( env ) :
             toolset["EXTRACTOR"]["GZIP"]["LISTSUFFIX"]     = "-y -so"
             toolset["EXTRACTOR"]["GZIP"]["EXTRACTFLAGS"]   = "x"
             toolset["EXTRACTOR"]["GZIP"]["EXTRACTSUFFIX"]  = "-y -oc:${UNPACK['EXTRACTDIR']}"
+
+            toolset["EXTRACTOR"]["XZ"]["RUN"]            = "7z"
+            toolset["EXTRACTOR"]["XZ"]["LISTEXTRACTOR"]  = __fileextractor_win_7zip
+            toolset["EXTRACTOR"]["XZ"]["LISTFLAGS"]      = "l"
+            toolset["EXTRACTOR"]["XZ"]["LISTSUFFIX"]     = "-y -so"
+            toolset["EXTRACTOR"]["XZ"]["EXTRACTFLAGS"]   = "x"
+            toolset["EXTRACTOR"]["XZ"]["EXTRACTSUFFIX"]  = "-y -oc:${UNPACK['EXTRACTDIR']}"
 
             toolset["EXTRACTOR"]["ZIP"]["RUN"]             = "7z"
             toolset["EXTRACTOR"]["ZIP"]["LISTEXTRACTOR"]   = __fileextractor_win_7zip
@@ -430,6 +485,12 @@ def generate( env ) :
             toolset["EXTRACTOR"]["TARBZ"]["LISTFLAGS"]     = "tvfj"
             toolset["EXTRACTOR"]["TARBZ"]["EXTRACTSUFFIX"] = "-C ${UNPACK['EXTRACTDIR']}"
 
+            toolset["EXTRACTOR"]["TARXZ"]["RUN"]           = "tar"
+            toolset["EXTRACTOR"]["TARXZ"]["LISTEXTRACTOR"] = __fileextractor_nix_tar
+            toolset["EXTRACTOR"]["TARXZ"]["EXTRACTFLAGS"]  = "xfJ"
+            toolset["EXTRACTOR"]["TARXZ"]["LISTFLAGS"]     = "tvfJ"
+            toolset["EXTRACTOR"]["TARXZ"]["EXTRACTSUFFIX"] = "-C ${UNPACK['EXTRACTDIR']}"
+
         if env.WhereIs("bzip2") :
             toolset["EXTRACTOR"]["BZIP"]["RUN"]            = "bzip2"
             toolset["EXTRACTOR"]["BZIP"]["EXTRACTFLAGS"]   = "-df"
@@ -440,11 +501,18 @@ def generate( env ) :
             toolset["EXTRACTOR"]["GZIP"]["LISTFLAGS"]      = "-l"
             toolset["EXTRACTOR"]["GZIP"]["EXTRACTFLAGS"]   = "-df"
 
+        if env.WhereIs("xz") :
+            toolset["EXTRACTOR"]["XZ"]["RUN"]            = "xz"
+            toolset["EXTRACTOR"]["XZ"]["LISTEXTRACTOR"]  = __fileextractor_nix_xz
+            toolset["EXTRACTOR"]["XZ"]["LISTFLAGS"]      = "-l"
+            toolset["EXTRACTOR"]["XZ"]["EXTRACTFLAGS"]   = "-df"
+
     else :
         raise SCons.Errors.StopError("Unpack tool detection on this platform [%s] unkown" % (env["PLATFORM"]))
 
     # the target_factory must be a "Entry", because the target list can be files and dirs, so we can not specified the targetfactory explicite
     env.Replace(UNPACK = toolset)
+    env["UNPACKCOMSTR"] = "extract $SOURCE"
     env["BUILDERS"]["Unpack"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.Entry,  source_factory = SCons.Node.FS.File,  single_source = True,  PRINT_CMD_LINE_FUNC = __message )
 
 

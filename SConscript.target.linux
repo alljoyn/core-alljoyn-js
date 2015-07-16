@@ -13,11 +13,15 @@ env.Append(LIBS = ['rt', 'pthread', 'm'])
 
 # Cross compile setup
 if os.environ.has_key('CROSS_PREFIX'):
-    env.Replace(CC = os.environ['CROSS_PREFIX'] + 'gcc')
-    env.Replace(CXX = os.environ['CROSS_PREFIX'] + 'g++')
-    env.Replace(LINK = os.environ['CROSS_PREFIX'] + 'gcc')
-    env.Replace(AR = os.environ['CROSS_PREFIX'] + 'ar')
-    env.Replace(RANLIB = os.environ['CROSS_PREFIX'] + 'ranlib')
+    cc = env['CC']
+    cxx = env['CXX']
+    ar = env['AR']
+    ranlib = env['RANLIB']
+    env.Replace(CC = os.environ['CROSS_PREFIX'] + cc)
+    env.Replace(CXX = os.environ['CROSS_PREFIX'] + cxx)
+    env.Replace(LINK = os.environ['CROSS_PREFIX'] + cc)
+    env.Replace(AR = os.environ['CROSS_PREFIX'] + ar)
+    env.Replace(RANLIB = os.environ['CROSS_PREFIX'] + ranlib)
     env['ENV']['STAGING_DIR'] = os.environ.get('STAGING_DIR', '')
 if os.environ.has_key('CROSS_PATH'):
     env['ENV']['PATH'] = ':'.join([ os.environ['CROSS_PATH'], env['ENV']['PATH'] ] )

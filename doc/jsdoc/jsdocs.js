@@ -29,12 +29,12 @@
  * @name IO
  * @class
  *
- * @property {enum} pullDown                - Enum type to configure a pin as pull down
- * @property {enum} pullUp                  - Enum type to configure a pin as pull up
- * @property {enum} openDrain               - Enum type to configure a pin as open drain
- * @property {enum} fallingEdge             - Enum type to configure an input pin trigger as falling edge
- * @property {enum} risingEdge              - Enum type to configure an input pin trigger as rising edge
- * @property {enum} diable                  - Enum type to disable the trigger mode on an input pin
+ * @property {constant} pullDown                - Constant type to configure a pin as pull down
+ * @property {constant} pullUp                  - Constant type to configure a pin as pull up
+ * @property {constant} openDrain               - Constant type to configure a pin as open drain
+ * @property {constant} fallingEdge             - Constant type to configure an input pin trigger as falling edge
+ * @property {constant} risingEdge              - Constant type to configure an input pin trigger as rising edge
+ * @property {constant} diable                  - Constant type to disable the trigger mode on an input pin
  */
 var IO = {
     /**
@@ -49,7 +49,7 @@ var IO = {
      * Create a digital input pin object
      *
      * @param {Pin} pin                     - Pin to configure
-     * @param {enum} config                 - Configuration option for this input: IO.fallingEdge, IO.risingEdge or IO.disable
+     * @param {constant} config             - Configuration option for this input: IO.fallingEdge, IO.risingEdge or IO.disable
      * @return {DigitalIn}                  - Digital input object
      *
      * @example
@@ -60,7 +60,7 @@ var IO = {
      * Create a digital output pin object
      *
      * @param {Pin} pin                     - Pin to configure
-     * @param {enum} [value]                - Initial value of the pin. If not supplied the pin will start low
+     * @param {constant} [value]            - Initial value of the pin. If not supplied the pin will start low
      * @return {DigitalOut}                 - Digital out object
      *
      * @example
@@ -99,11 +99,12 @@ var IO = {
      * @example
      * var u = IO.uart(IO.pin[4], IO.pin[5], 115200);
      *
-     * u.write("Hello World");
-     * u.write(["this", "is", "an", "array", "of", "strings"]);
+     * function RxReadyCB(data) {
+     *     data = u.read(16);
+     *     u.write(data);
+     * }
      *
-     * // Read 10 bytes
-     * var r = IO.read(10);
+     * u.setTrigger(IO.rxReady, RxReadyCB);
      */
     uart: function(tx, rx, baud) {},
     /**
@@ -247,6 +248,17 @@ var Spi = {
  * Uart object. This can only be created by calling IO.uart()
  *
  * @namespace
+ *
+ * @example
+ * var u = IO.uart(IO.pin[4], IO.pin[5], 115200);
+ *
+ * function RxReadyCB(data) {
+ *     data = u.read(16);
+ *     u.write(data);
+ * }
+ *
+ * u.setTrigger(IO.rxReady, RxReadyCB);
+ * 
  */
 var Uart = {
     /**
@@ -257,11 +269,19 @@ var Uart = {
      */
     read: function(num) {},
     /**
-     * Write data to the UART peripheral
+     * Write data to the UART peripheral. You can write most kinds of data types: 
+     * Strings, Numbers, Booleans, Arrays of numbers, and Duktape buffers.
      *
-     * @param {Buffer} data                 - Data to write
+     * @param {string|number|boolean|number[]|Duktape.Buffer} data      - Data to write
      */
     write: function(data) {},
+    /**
+     * Set a trigger function callback for RX data available
+     * 
+     * @param {constant} type               - Type of trigger. Should always be IO.rxReady for UART
+     * @param {TriggerCallback} callback    - Callback function to be called when data is ready
+     */
+    setTrigger: function(type, callback) {}
 }
 /**
  * Analog input object. This can only be created by calling IO.analogIn()
@@ -306,11 +326,22 @@ var DigitalIn = {
     /**
      * Set the trigger type and callback function
      *
-     * @param {enum} mode                   - Trigger mode
-     * @param {DInCallback} callback        - Callback function for when the pin has been triggered
+     * @param {constant} mode               - Trigger mode
+     * @param {TriggerCallback} callback    - Callback function for when the pin has been triggered
      */
     setTrigger: function(mode, callback) {}
 }
+
+/**
+ * Callback function for peripheral triggers. This is used for digial inputs
+ * and UART inputs.
+ * 
+ * @namespace
+ * @param val       - Received trigger value. In the case of digital inputs this is the value of
+ *                    the level of the pin that was triggered.
+ */
+var TriggerCallback = function(val) {};
+
 /**
  * Pin info object. Pin info objects are members of the IO.pin[] array.
  *
@@ -325,7 +356,7 @@ var PinInfo = {}
  * AllJoyn interface definition
  * @typedef InterfaceDefinition
  * @type {object}
- * @property {enum} type                    - Type designation (AJ.SIGNAL, AJ.METHOD or AJ.PROPERTY)
+ * @property {constant} type                - Type designation (AJ.SIGNAL, AJ.METHOD or AJ.PROPERTY)
  * @property {string[]} args                - Signature arguments (singnals and methods only)
  * @property {string[]} returns             - Reply signature (methods only)
  * @property {string} signature             - Signature for properties only
@@ -344,12 +375,12 @@ var PinInfo = {}
  *
  * @class
  *
- * @property {enum} METHOD                  - Enum type to designate a method
- * @property {enum} SIGNAL                  - Enum type to designate a property
- * @property {enum} PROPERTY                - Enum type to designate a property
- * @property {enum} notification.Info       - Enum type to designate an informational notification
- * @property {enum} notification.Warning    - Enum type to designate a warning notification
- * @property {enum} notification.Emergency  - Enum type to designate an emergency notification
+ * @property {constant} METHOD                  - Constant type to designate a method
+ * @property {constant} SIGNAL                  - Constant type to designate a property
+ * @property {constant} PROPERTY                - Constant type to designate a property
+ * @property {constant} notification.Info       - Constant type to designate an informational notification
+ * @property {constant} notification.Warning    - Constant type to designate a warning notification
+ * @property {constant} notification.Emergency  - Constant type to designate an emergency notification
  *
  * @example
  * var AJ = require('AllJoyn');
@@ -431,9 +462,12 @@ var AJ = {
      */
     onDetach: function() {},
     /**
-     * Callback when a peer connects to an announced/advertised service
+     * Callback when a peer connects to an announced/advertised service. Return true or
+     * false to accept or deny the connection.
      *
-     * @param {Service} svc      Service object
+     * @param {Service} svc     Service object
+     * @return {boolean}        true: to accept the connection to the peer
+     *                          false: to deny the conenction to the peer
      *
      * @example
      * var service;
@@ -442,6 +476,7 @@ var AJ = {
      *     // Save this service otherwise you will not be able to make calls upon return
      *     service = svc;
      *     print('Peer has connected');
+     *     return true;
      * }
      */
     onPeerConnected: function(svc) {},
@@ -772,6 +807,7 @@ function clearTimeout(timeoutCtx) {}
  * the 'method' function of the Service object.
  *
  * @namespace
+ * @property {number} timeout   - Timeout for this method
  *
  * @example
  * var method = svc.method('my_method');
@@ -899,7 +935,7 @@ var GetAllPropsObject = {
  *
  * @namespace
  * @property {string} text      - Text that the notification contains.
- * @property {enum} type        - Type of the notification. Emergency, Warning or Info
+ * @property {constant} type        - Type of the notification. Emergency, Warning or Info
  * @property {string} audioUrls - Attach a URL to an audio recording to be played when the notification is received
  * @property {string} iconUrls  - Attach an icon URL to the notification that is displayed upon arrival.
  * @property {string} iconPath  - Attach an icon path to be displayed when the notification is received
@@ -950,7 +986,7 @@ var ContainerWidget = {
     /**
      * Creates a property widget which is some kind of input widget based on a chosen layout
      *
-     * @param {enum} layout             - Type of container widget
+     * @param {constant} layout             - Type of container widget
      * @return {PropertyWidget}         - A property widget object
      */
     propertyWidget: function(layout) {},
@@ -1056,21 +1092,21 @@ var ButtonObject = {
  * Control panel object. This can only be created with a call to AJ.controlPanel()
  *
  * @namespace
- * @property {enum} SWITCH          - Two-state buttons allowing the end-user to toggle the state of a single settings option
- * @property {enum} CHECK_BOX       - Widget for multi-select. It allows the end user to select multiple options from a list.
- * @property {enum} SPINNER         - Widget for single-select. It allows the end user to select a single option from a list.
- * @property {enum} RADIO_BUTTON    - Widget for single-select. It allows the end user to select a single option from a list.
- * @property {enum} SLIDER          - Allows the end user to select a value from a continuous or discrete range. The appearance is linear, either horizontal or vertical.
- * @property {enum} TIME_PICKER     - Allows the end user to specify a time value
- * @property {enum} DATE_PICKER     - Allows the end user to specify a date value
- * @property {enum} NUMBER_PICKER   - Allows the end user to specify a numeric value
- * @property {enum} KEYPAD          - Provides the end user with a numeric entry field and buttons for 0-9 digits, to enter a numeric value. Max digit is 32767
- * @property {enum} ROTARY_KNOB     - An alternate way to represent a slider
- * @property {enum} TEXT_VIEW       - Read-only text label
- * @property {enum} NUMERIC_VIEW    - Provides a read-only, numeric field with an optional label and numbers
- * @property {enum} EDIT_TEXT       - Provides the end user with a text entry field and keyboard. Max characters is 64 per word
- * @property {enum} VERTICAL        - Used to create a vertical container widget
- * @property {enum} HORIZONTAL      - Used to create a horizontal container widget
+ * @property {constant} SWITCH          - Two-state buttons allowing the end-user to toggle the state of a single settings option
+ * @property {constant} CHECK_BOX       - Widget for multi-select. It allows the end user to select multiple options from a list.
+ * @property {constant} SPINNER         - Widget for single-select. It allows the end user to select a single option from a list.
+ * @property {constant} RADIO_BUTTON    - Widget for single-select. It allows the end user to select a single option from a list.
+ * @property {constant} SLIDER          - Allows the end user to select a value from a continuous or discrete range. The appearance is linear, either horizontal or vertical.
+ * @property {constant} TIME_PICKER     - Allows the end user to specify a time value
+ * @property {constant} DATE_PICKER     - Allows the end user to specify a date value
+ * @property {constant} NUMBER_PICKER   - Allows the end user to specify a numeric value
+ * @property {constant} KEYPAD          - Provides the end user with a numeric entry field and buttons for 0-9 digits, to enter a numeric value. Max digit is 32767
+ * @property {constant} ROTARY_KNOB     - An alternate way to represent a slider
+ * @property {constant} TEXT_VIEW       - Read-only text label
+ * @property {constant} NUMERIC_VIEW    - Provides a read-only, numeric field with an optional label and numbers
+ * @property {constant} EDIT_TEXT       - Provides the end user with a text entry field and keyboard. Max characters is 64 per word
+ * @property {constant} VERTICAL        - Used to create a vertical container widget
+ * @property {constant} HORIZONTAL      - Used to create a horizontal container widget
  * @property {string} path          - File path to the control panel
  *
  * @example
@@ -1086,8 +1122,8 @@ var ControlPanel = {
     /**
      * Create a container widget to hold widgets
      *
-     * @param {enum} direction1      - Direction for the container widget. Either cp.VERTICAL or cp.HORIZONTAL
-     * @param {enum} [direction2]    - Optional parameter for specifying a second direction
+     * @param {constant} direction1      - Direction for the container widget. Either cp.VERTICAL or cp.HORIZONTAL
+     * @param {constant} [direction2]    - Optional parameter for specifying a second direction
      * @return {ContainerWidget}     - A container widget to create widgets from
      */
     containerWidget: function(direction1, direction2) {}

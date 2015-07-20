@@ -916,9 +916,11 @@ AJ_Status AJS_HandleAcceptSession(duk_context* ctx, AJ_Message* msg, uint16_t po
         /* Empty interface array */
         duk_push_array(ctx);
         AddServiceObject(ctx, sessionInfo, "/", joiner);
+#if !defined(AJS_CONSOLE_LOCKDOWN)
         if (AJS_DebuggerIsAttached()) {
             msg = AJS_CloneAndCloseMessage(ctx, msg);
         }
+#endif
         if (duk_pcall(ctx, 1) != DUK_EXEC_SUCCESS) {
             AJS_ConsoleSignalError(ctx);
             accept = FALSE;

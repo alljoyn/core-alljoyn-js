@@ -147,9 +147,11 @@ extern uint8_t dbgAJS;
 extern uint8_t dbgHEAP;
 extern uint8_t dbgNET;
 extern uint8_t dbgHEAPDUMP;
+#if !defined(AJS_CONSOLE_LOCKDOWN)
 extern uint8_t dbgCONSOLE;
-extern uint8_t dbgGPIO;
 extern uint8_t dbgDEBUGGER;
+#endif
+extern uint8_t dbgGPIO;
 #endif
 
 int AJS_CmdlineOptions(int argc, char* argv[], AJS_CmdOptions* options)
@@ -168,9 +170,11 @@ int AJS_CmdlineOptions(int argc, char* argv[], AJS_CmdOptions* options)
     dbgHEAP = 0;
     dbgNET = 0;
     dbgHEAPDUMP = 0;
-    dbgCONSOLE = 0;
     dbgGPIO = 0;
+#if !defined(AJS_CONSOLE_LOCKDOWN)
+    dbgCONSOLE = 0;
     dbgDEBUGGER = 0;
+#endif
 #endif
 
     memset(options, 0, sizeof(*options));
@@ -180,8 +184,10 @@ int AJS_CmdlineOptions(int argc, char* argv[], AJS_CmdOptions* options)
 #ifndef NDEBUG
             AJ_DbgLevel = 4;
             dbgAJS = 1;
+#if !defined(AJS_CONSOLE_LOCKDOWN)
             dbgCONSOLE = 4;
             dbgDEBUGGER = 4;
+#endif
             ++argn;
             continue;
 #else

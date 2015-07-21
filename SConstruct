@@ -1,351 +1,326 @@
-# *****************************************************************************
-#  Copyright AllSeen Alliance. All rights reserved.
-#
-#     Permission to use, copy, modify, and/or distribute this software for any
-#     purpose with or without fee is hereby granted, provided that the above
-#     copyright notice and this permission notice appear in all copies.
-#
-#     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-#     WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-#     MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-#     ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-#     WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-#     ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-#     OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-# *****************************************************************************
-
-import platform
 import os
-import string
-#
+import platform
+import re
+import urlparse
+
+#######################################################
+# Default Duktape version
+#######################################################
+duktape_version = '1.2.1'
+duktape_md5sum = '86362304a347fd88bcbcdfc00ff3663c'
+
+duktape_tarball = 'duktape-%s.tar.xz' % duktape_version
+duktape_urlbase = 'http://duktape.org/'
+duktape_default_url = duktape_urlbase + duktape_tarball
+
+#######################################################
+# Custom Configure functions
+#######################################################
+def CheckCommand(context, cmd):
+    context.Message('Checking for %s command...' % cmd)
+    r = WhereIs(cmd)
+    context.Result(r is not None)
+    return r
+
+def CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath, subdist, incpath, ext):
+    prog = "#include <%s>\nint main(void) { return 0; }" % ajheader
+    context.Message('Checking for AllJoyn library %s...' % ajlib)
+    distpath = os.path.join(ajdistpath, subdist)
+    prevLIBS = list(context.env.get('LIBS', []))
+    prevLIBPATH = list(context.env.get('LIBPATH', []))
+    prevCPPPATH = list(context.env.get('CPPPATH', []))
+
+    # Check if library is in standard system locations
+    context.env.Append(LIBS = [ajlib])
+    defpath = ''  # default path is a system directory
+    if not context.TryLink(prog, ext):
+        # Check if library is in project default location
+        context.env.Append(LIBPATH = os.path.join(distpath, 'lib'),
+                           CPPPATH = os.path.join(distpath, incpath))
+        if context.TryLink(prog, ext):
+            defpath = str(Dir(ajdistpath))  # default path is the dist directory
+        # Remove project default location from LIBPATH and CPPPATH
+        context.env.Replace(LIBPATH = prevLIBPATH, CPPPATH = prevCPPPATH)
+
+    vars = Variables()
+    vars.Add(PathVariable(sconsvarname,
+                          'Path to %s dist directory' % ajlib,
+                          os.environ.get('AJ_%s' % sconsvarname, defpath),
+                          lambda k, v, e : v == '' or PathVariable.PathIsDir(k, v, e)))
+    vars.Update(context.env)
+    Help(vars.GenerateHelpText(context.env))
+
+    # Get the actual library path to use ('' == system path, may be same as distpath)
+    libpath = context.env.get(sconsvarname, '')
+
+    if libpath is not '':
+        libpath = str(context.env.Dir(libpath))
+        # Add the user specified (or distpath) to LIBPATH and CPPPATH
+        context.env.Append(LIBPATH = os.path.join(libpath, subdist, 'lib'),
+                           CPPPATH = os.path.join(libpath, subdist, incpath))
+
+    # The real test for the library
+    r = context.TryLink(prog, ext)
+    if not r:
+        context.env.Replace(LIBS = prevLIBS, LIBPATH = prevLIBPATH, CPPPATH = prevCPPPATH)
+    context.Result(r)
+    return r
+
+def CheckAJCLib(context, ajlib, ajheader, sconsvarname, ajdistpath):
+    return CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath, '', 'include', '.c')
+
+#######################################################
 # Initialize our build environment
-#
+#######################################################
+env = Environment(tools = ['default', 'JSDoc', 'URLDownload', 'Unpack'],
+                  toolpath = ['tools/scons', 'external/scons'],
+                  URLDOWNLOAD_USEURLFILENAME = False)
+Export('env', 'CheckAJLib')
+
+#######################################################
+# Default target platform
+#######################################################
 if platform.system() == 'Linux':
     default_target = 'linux'
-    default_msvc_version = None
 elif platform.system() == 'Windows':
     default_target = 'win32'
-    default_msvc_version = '11.0'
 elif platform.system() == 'Darwin':
-    default_target = ' darwin'
-    default_msvc_version = None
+    default_target = 'darwin'
+
+#######################################################
+# Build variables
+#######################################################
+target_options = [ t.split('.')[-1] for t in os.listdir('.') if re.match('^SConscript\.target\.[-_0-9A-Za-z]+$', t) ]
 
 vars = Variables()
-
-# Common build variables
-vars.Add(EnumVariable('TARG', 'Target platform variant', default_target, allowed_values=('win32', 'linux', 'stm32', 'darwin', 'frdm')))
-vars.Add(EnumVariable('VARIANT', 'Build variant', 'debug', allowed_values=('debug', 'release')))
-vars.Add(PathVariable('GTEST_DIR', 'The path to googletest sources', os.environ.get('GTEST_DIR'), PathVariable.PathIsDir))
-vars.Add(EnumVariable('WS', 'Whitespace Policy Checker', 'off', allowed_values=('check', 'detail', 'fix', 'off')))
-vars.Add(EnumVariable('FORCE32', 'Force building 32 bit on 64 bit architecture', 'false', allowed_values=('false', 'true')))
-vars.Add(EnumVariable('POOL_MALLOC', 'Use pool based memory allocation - default is native malloc', 'false', allowed_values=('false', 'true')))
-vars.Add(EnumVariable('SHORT_SIZES', 'Use 16 bit sizes and pointers - only applies is using pool malloc', 'true', allowed_values=('false', 'true')))
-vars.Add(EnumVariable('EXT_STRINGS', 'Enable external string support', 'false', allowed_values=('false', 'true')))
-vars.Add(EnumVariable('DUKTAPE_SEPARATE', 'Use seperate rather than combined duktape source files', 'false', allowed_values=('false', 'true')))
-vars.Add(PathVariable('ARM_TOOLCHAIN_DIR', 'Path to the GNU ARM toolchain bin folder', os.environ.get('ARM_TOOLCHAIN_DIR'), PathVariable.PathIsDir))
-vars.Add(PathVariable('STM_SRC_DIR', 'Path to the source code for the STM32 microcontroller', os.environ.get('STM_SRC_DIR'), PathVariable.PathIsDir))
-vars.Add(PathVariable('FREE_RTOS_DIR','Directory to FreeRTOS source code', os.environ.get('FREE_RTOS_DIR'), PathVariable.PathIsDir))
-vars.Add(EnumVariable('DUK_DEBUG', 'Turn on duktape logging and print debug messages', 'off', allowed_values=('on', 'off')))
-vars.Add(PathVariable('MBED_DIR', 'Path to the mbed source code repository', os.environ.get('MBED_DIR'), PathVariable))
-vars.Add(EnumVariable('CONSOLE_LOCKDOWN', 'Removes all debugger and console code', 'off', allowed_values=('on', 'off')))
-vars.Add(EnumVariable('JSDOCS', 'Generate documentation', 'false', allowed_values=('false', 'true')))
-vars.Add(PathVariable('JSDOC_DIR', 'Path to the JSDoc toolkit', os.environ.get('JSDOC_DIR'), PathVariable.PathIsDir))
-
-if default_msvc_version:
-    vars.Add(EnumVariable('MSVC_VERSION', 'MSVC compiler version - Windows', default_msvc_version, allowed_values=('8.0', '9.0', '10.0', '11.0', '11.0Exp', '12.0', '12.0Exp')))
-
-if ARGUMENTS.get('TARG', default_target) == 'win32':
-    msvc_version = ARGUMENTS.get('MSVC_VERSION')
-    env = Environment(variables = vars, MSVC_VERSION=msvc_version, TARGET_ARCH='x86')
-else:
-    env = Environment(variables = vars)
-
+vars.Add(BoolVariable('V',                  'Build verbosity',                     False))
+vars.Add(EnumVariable('TARG',               'Target platform variant',             os.environ.get('AJ_TARG',               default_target), allowed_values = target_options))
+vars.Add(EnumVariable('VARIANT',            'Build variant',                       os.environ.get('AJ_VARIANT',            'debug'),        allowed_values = ('debug', 'release')))
+vars.Add(BoolVariable('EXT_STRINGS',        'Enable external string support',      os.environ.get('AJ_EXT_STRINGS',        False)))
+vars.Add(BoolVariable('POOL_MALLOC',        'Use pool based memory allocation',    os.environ.get('AJ_POOL_MALLOC',        False)))
+vars.Add(BoolVariable('SHORT_SIZES',        'Use 16 bit sizes and pointers - only when POOL_MALLOC == True', os.environ.get('AJ_SHORT_SIZES', True)))
+vars.Add(BoolVariable('DUK_DEBUG',          'Turn on duktape logging and print debug messages', os.environ.get('AJ_DUK_DEBUG',   False)))
+vars.Add(BoolVariable('CONSOLE_LOCKDOWN',   'Removes all debugger and console code', os.environ.get('AJ_CONSOLE_LOCKDOWN', False)))
+vars.Add('DUKTAPE_SRC', 'URL/Path to Duktape generated source', os.environ.get('AJ_DUCTAPE_SRC', duktape_default_url))
+vars.Add('CC',  'C Compiler override')
+vars.Add('CXX', 'C++ Compiler override')
+vars.Update(env)
 Help(vars.GenerateHelpText(env))
 
-# Allows preprocessor defines on the command line
-#
-# define="FOO=1" define="BAR=2"
-#
-cppdefines = []
-for key, value in ARGLIST:
-   if key == 'define':
-       cppdefines.append(value)
+#######################################################
+# Setup non-verbose output
+#######################################################
+if not env['V']:
+    env.Replace( CCCOMSTR =          '\t[CC]       $SOURCE',
+                 SHCCCOMSTR =        '\t[CC-SH]    $SOURCE',
+                 CXXCOMSTR =         '\t[CXX]      $SOURCE',
+                 SHCXXCOMSTR =       '\t[CXX-SH]   $SOURCE',
+                 LINKCOMSTR =        '\t[LINK]     $TARGET',
+                 SHLINKCOMSTR =      '\t[LINK-SH]  $TARGET',
+                 JAVACCOMSTR =       '\t[JAVAC]    $SOURCE',
+                 JARCOMSTR =         '\t[JAR]      $TARGET',
+                 ARCOMSTR =          '\t[AR]       $TARGET',
+                 ASCOMSTR =          '\t[AS]       $TARGET',
+                 RANLIBCOMSTR =      '\t[RANLIB]   $TARGET',
+                 INSTALLSTR =        '\t[INSTALL]  $TARGET',
+                 JSDOCCOMSTR =       '\t[JSDOC]    $TARGET.dir',
+                 UNPACKCOMSTR =      '\t[UNPACK]   $SOURCE',
+                 URLDOWNLOADCOMSTR = '\t[DOWNLOAD] $SOURCE',
+                 WSCOMSTR =          '\t[WS]       $WS' )
 
-env.Append(CPPDEFINES=cppdefines)
+#######################################################
+# Load target setup
+#######################################################
+env['build'] = True
+env['build_shared'] = False
+env['build_unit_tests'] = True
 
-#
-# Where to find stuff
-#
+env.SConscript('SConscript.target.$TARG')
 
-if ((os.environ.has_key('AJTCL_ROOT'))):
-    env['ajtcl_root'] = os.environ.get('AJTCL_ROOT')
-else:
-    env['ajtcl_root'] = Dir('../ajtcl').abspath
+jsenv = env.Clone()
+Export('jsenv')
 
-if ((os.environ.has_key('SVCS_ROOT'))):
-    env['svcs_root'] = os.environ.get('SVCS_ROOT')
-else:
-    env['svcs_root'] = Dir('../../services/base_tcl').abspath
+#######################################################
+# Check dependencies
+#######################################################
+config = Configure(jsenv, custom_tests = { 'CheckCommand' : CheckCommand,
+                                           'CheckAJLib' : CheckAJCLib })
+found_ws = config.CheckCommand('uncrustify')
+found_jsdoc = config.CheckCommand('jsdoc')
 
-if ARGUMENTS.get('DUKTAPE_DIST', '') != '':
-    env['duktape_dist'] = ARGUMENTS.get('DUKTAPE_DIST');
-else:
-    if ((os.environ.has_key('DUKTAPE_DIST'))):
-        env['duktape_dist'] = os.environ.get('DUKTAPE_DIST')
+dep_libs = [
+    config.CheckAJLib('ajtcl',          'ajtcl/aj_bus.h',                 'AJTCL_DIST', '../ajtcl/dist'),
+    config.CheckAJLib('ajtcl_services', 'ajtcl/services/ConfigService.h', 'SVCS_DIST',  '../../services/base_tcl/dist')
+]
+
+config_check_svc_stub = """
+int AJSVC_PropertyStore_LoadAll() { return 0; }
+int AJSVC_PropertyStore_GetValueForLang() { return 0; }
+int AJSVC_PropertyStore_GetFieldIndex() { return 0; }
+int AJSVC_PropertyStore_Reset() { return 0; }
+int AJSVC_PropertyStore_GetValue() { return 0; }
+int AJSVC_PropertyStore_ReadAll() { return 0; }
+int AJSVC_PropertyStore_GetLanguageIndex() { return 0; }
+int AJSVC_PropertyStore_GetFieldName() { return 0; }
+int AJSVC_PropertyStore_SaveAll() { return 0; }
+int AJSVC_PropertyStore_GetMaxValueLength() { return 0; }
+int AJSVC_PropertyStore_Update() { return 0; }
+"""
+include_onboarding = config.CheckFunc('AJOBS_ClearInfo', config_check_svc_stub)
+
+jsenv = config.Finish()
+
+#######################################################
+# Find Duktape source
+#######################################################
+tarball = None
+tarball_match = re.match('.*/(?P<basename>.*)(?P<suffix>\.(tar(\.(gz|gzip|bz2?|bzip2?|xz))?|tgz|tbz|txz|zip))$',
+                         jsenv['DUKTAPE_SRC'])
+
+if tarball_match:
+    if bool(urlparse.urlparse(jsenv['DUKTAPE_SRC']).netloc):
+        # Download a tarball from a URL
+        tarball = jsenv.URLDownload('#external/dl/' + duktape_tarball, jsenv['DUKTAPE_SRC'])
     else:
-        env['duktape_dist'] = Dir('./external/duktape/dist').abspath
+        # Use an existing tarball on the local filesystem
+        tarball = [jsenv.File(jsenv['DUKTAPE_SRC'])]
 
-if not(os.path.isdir(env['duktape_dist'])):
-    print "Duktape distribution dir (DUKTAPE_DIST) not set or invalid"
+    duktape_srcdir = '#external/%s/src' % tarball_match.groupdict()['basename']
+    jsenv.Append(UNPACK = {'EXTRACTDIR': jsenv.Dir('#external') })
+    jsenv['duktape_src'], hfile = jsenv.Unpack(tarball, UNPACKLIST = [ os.path.join(duktape_srcdir, 'duktape.c'),
+                                                                       os.path.join(duktape_srcdir, 'duktape.h') ])
+    if os.path.basename(str(tarball[0])) == duktape_tarball:
+        # Using default tarball -- verify MD5SUM of file
+        def md5sum_check(target, source, env):
+            if source[0].get_content_hash() != duktape_md5sum:
+                return 'MD5SUM mismatch for %s (%s vs %s)' % (source[0], source[0].get_content_hash(), duktape_md5sum)
+            return None
+        jsenv.AddPreAction([jsenv['duktape_src'], hfile], Action(md5sum_check, '\t[MD5SUM]   $SOURCE') )
+
+    # Tell SCons to include the extracted tarball code when cleaning.
+    duktape_dir = jsenv.Dir(os.path.dirname(duktape_srcdir))
+    jsenv.Clean(os.path.dirname(str(duktape_dir)), duktape_dir)
+else:
+    duktape_srcdir = jsenv['DUKTAPE_SRC']
+    jsenv['duktape_src'] = jsenv.File(os.path.join(duktape_srcdir, 'duktape.c'))
+
+jsenv.Append(CPPPATH = jsenv.Dir(duktape_srcdir))
+
+
+#######################################################
+# Compilation defines
+#######################################################
+jsenv.Append(CPPDEFINES = [
+    # Base Services defines
+    'CONFIG_SERVICE',
+    'CONTROLPANEL_SERVICE',
+    'NOTIFICATION_SERVICE_CONSUMER',
+    'NOTIFICATION_SERVICE_PRODUCER',
+    # Duktape defines
+    'DUK_FORCE_ALIGNED_ACCESS',
+    ( 'DUK_OPT_DEBUG_BUFSIZE', '256' ),
+    'DUK_OPT_DPRINT_COLORS',
+    ( 'DUK_OPT_FORCE_ALIGN', '4' ),
+    'DDUK_OPT_LIGHTFUNC_BUILTINS',
+    'DDUK_OPT_FASTINT',
+    'DUK_OPT_HAVE_CUSTOM_H',
+    'DUK_OPT_NO_FILE_IO',
+    'DUK_OPT_SEGFAULT_ON_PANIC',
+    'DUK_OPT_SHORT_LENGTHS',
+    'DUK_OPT_DEBUGGER_SUPPORT',
+    'DUK_OPT_INTERRUPT_COUNTER',
+    'DUK_CMDLINE_DEBUGGER_SUPPORT',
+    ( '"DUK_OPT_EXEC_TIMEOUT_CHECK(u)"', '"AJS_ExecTimeoutCheck(u)"'),
+    # AllJoyn-JS defines
+    'ALLJOYN_JS',
+    'BIG_HEAP' ])
+
+if include_onboarding:
+    jsenv.Append(CPPDEFINES = 'ONBOARDING_SERVICE')
+if jsenv['VARIANT'] == 'release':
+    jsenv.Append(CPPDEFINES = [ 'NDEBUG' ])
+else:
+    jsenv.Append(CPPDEFINES = [ 'DUK_OPT_ASSERTIONS',
+                              ( 'AJ_DEBUG_RESTRICT', '5' ),
+                              'DBGAll' ])
+if jsenv['DUK_DEBUG']:
+    jsenv.Append(CPPDEFINES = [ 'DBG_PRINT_CHUNKS',
+                              'DUK_OPT_DEBUG',
+                              'DUK_OPT_DPRINT' ])
+
+if not jsenv['POOL_MALLOC']:
+    jsenv.Append(CPPDEFINES=['AJS_USE_NATIVE_MALLOC'])
+elif jsenv['SHORT_SIZES']:
+    jsenv.Append(CPPDEFINES = [ 'DUK_OPT_REFCOUNT16',
+                              'DUK_OPT_STRHASH16',
+                              'DUK_OPT_STRLEN16',
+                              'DUK_OPT_BUFLEN16',
+                              'DUK_OPT_OBJSIZES16',
+                              'DUK_OPT_HEAPPTR16',
+                              ('"DUK_OPT_HEAPPTR_ENC16(u,p)"', '"AJS_EncodePtr16(u,p)"'),
+                              ('"DUK_OPT_HEAPPTR_DEC16(u,x)"', '"AJS_DecodePtr16(u,x)"') ])
+
+if jsenv['EXT_STRINGS']:
+    jsenv.Append(CPPDEFINES = [ 'DUK_OPT_EXTERNAL_STRINGS',
+                              ('"DUK_OPT_EXTSTR_INTERN_CHECK(u,p,l)"', '"AJS_ExternalStringCheck(u,p,l)"'),
+                              ('"DUK_OPT_EXTSTR_FREE(u,p)"', '"AJS_ExternalStringFree(u,p)"'),
+                              'DUK_OPT_STRTAB_CHAIN',
+                              'DUK_OPT_STRTAB_CHAIN_SIZE=128' ])
+
+if jsenv['CONSOLE_LOCKDOWN'] :
+    jsenv.Append(CPPDEFINES = [ 'AJS_CONSOLE_LOCKDOWN' ])
+
+#######################################################
+# Include path
+#######################################################
+
+#######################################################
+# Process commandline defines
+#######################################################
+jsenv.Append(CPPDEFINES = [ v for k, v in ARGLIST if k.lower() == 'define' ])
+
+#######################################################
+# Setup target specific options and build AllJoyn portion of aj_duk
+#######################################################
+if not jsenv.GetOption('help') and not all(dep_libs):
+    print '*** Missing required external libraries'
     Exit(1)
 
-#
-# Documentation setup
-#
-if env['JSDOCS'] == 'true':
-    env.Tool('jsdoc3', toolpath=['tools/'])
-    if env.has_key('JSDOC_DIR'):
-        env.PrependENVPath('PATH', env.get('JSDOC_DIR'))
-
-    if env.has_key('JSDOC_DIR'):
-        env['JSDOC_TEMPLATE'] = env.Dir('$JSDOC_DIR/templates/default')
-        doc_out = env.jsdoc3(target=[env.Dir('doc/jsdoc')], source=['doc/jsdoc/jsdocs'])
-
-####################################
-# 
-# Platform and target setup
-#
-####################################
-
-CPU=platform.machine()
-
-if env['TARG'] == 'win32':
-    env.Append(LIBS=['wsock32', 'advapi32'])
-    # Compiler flags
-    env.Append(CFLAGS=['/nologo'])
-    env.Append(CPPDEFINES=['_CRT_SECURE_NO_WARNINGS', 'snprintf=_snprintf'])
-    # Linker flags
-    env.Append(LINKFLAGS=['/NODEFAULTLIB:libcmt.lib'])
-    # Target variable
-    env['os'] = 'win32'
-    # Debug/Release variants
-    if env['VARIANT'] == 'debug':
-       # Compiler flags for DEBUG builds
-       env.Append(CPPDEFINES=['_DEBUG', ('_ITERATOR_DEBUG_LEVEL', 2)])
-       # Linker flags for DEBUG builds
-       env.Append(CFLAGS=['/J', '/W3', '/LD', '/MD', '/Z7', '/Od'])
-       env.Append(LINKFLAGS=['/debug'])
-    else:
-       # Compiler flags for RELEASE builds
-       env.Append(CPPDEFINES=['NDEBUG'])
-       env.Append(CPPDEFINES=[('_ITERATOR_DEBUG_LEVEL', 0)])
-       env.Append(CFLAGS=['/MD', '/Gy', '/O1', '/Ob2', '/W3'])
-       # Linker flags for RELEASE builds
-       env.Append(LINKFLAGS=['/opt:ref'])
- 
-if env['TARG'] == 'linux':
-    if os.environ.has_key('CROSS_PREFIX'):
-        env.Replace(CC = os.environ['CROSS_PREFIX'] + 'gcc')
-        env.Replace(CXX = os.environ['CROSS_PREFIX'] + 'g++')
-        env.Replace(LINK = os.environ['CROSS_PREFIX'] + 'gcc')
-        env.Replace(AR = os.environ['CROSS_PREFIX'] + 'ar')
-        env.Replace(RANLIB = os.environ['CROSS_PREFIX'] + 'ranlib')
-        env['ENV']['STAGING_DIR'] = os.environ.get('STAGING_DIR', '')
-
-    if os.environ.has_key('CROSS_PATH'):
-        env['ENV']['PATH'] = ':'.join([ os.environ['CROSS_PATH'], env['ENV']['PATH'] ] )
-
-    if os.environ.has_key('CROSS_CFLAGS'):
-        env.Append(CFLAGS=os.environ['CROSS_CFLAGS'].split())
-
-    if os.environ.has_key('CROSS_LINKFLAGS'):
-        env.Append(LINKFLAGS=os.environ['CROSS_LINKFLAGS'].split())
-
-    # Platform libraries
-    env.Append(LIBS = ['libm', 'libcrypto', 'libpthread', 'librt'])
-    # Compiler flags
-    env.Append(CFLAGS = [
-               '-std=gnu99',
-               '-Wall',
-               '-Wformat=0',
-               '-fstrict-aliasing'])
-
-    if env['FORCE32'] == 'true':
-        env.Append(CFLAGS = ['-m32'])
-        env.Append(LINKFLAGS=['-m32'])
-
-    # Target variable
-    env['os'] = 'linux'
-    # Debug/Release Variants
-    if env['VARIANT'] == 'debug':
-        env.Append(CFLAGS=['-g'])
-        env.Append(CFLAGS=['-ggdb'])
-        env.Append(CFLAGS=['-O0'])
-        env.Append(CPPDEFINES=['AJ_DEBUG_RESTRICT=5'])
-        env.Append(CPPDEFINES=['DBGAll'])
-        env.Append(CPPDEFINES=['DUK_OPT_DEBUGGER_SUPPORT'])
-        env.Append(CPPDEFINES=['DUK_OPT_INTERRUPT_COUNTER'])
-        env.Append(CPPDEFINES=['DUK_CMDLINE_DEBUGGER_SUPPORT'])
-    else:
-        env.Append(CPPDEFINES=['DUK_OPT_DEBUGGER_SUPPORT'])
-        env.Append(CPPDEFINES=['DUK_OPT_INTERRUPT_COUNTER'])
-        env.Append(CPPDEFINES=['DUK_CMDLINE_DEBUGGER_SUPPORT'])
-        env.Append(CPPDEFINES=['NDEBUG'])
-        env.Append(CFLAGS=['-Os'])
-        env.Append(LINKFLAGS=['-s'])
-
-if env['TARG'] == 'stm32':
-    env['os'] = 'stm32'
-
-if env['TARG'] == 'frdm':
-    env['os'] = 'frdm'
-    env['PLATFORM'] = 'frdm'
-    
-if env['TARG'] == 'darwin':
-    if os.environ.has_key('CROSS_PREFIX'):
-        env.Replace(CC = os.environ['CROSS_PREFIX'] + 'gcc')
-        env.Replace(CXX = os.environ['CROSS_PREFIX'] + 'g++')
-        env.Replace(LINK = os.environ['CROSS_PREFIX'] + 'gcc')
-        env.Replace(AR = os.environ['CROSS_PREFIX'] + 'ar')
-        env.Replace(RANLIB = os.environ['CROSS_PREFIX'] + 'ranlib')
-        env['ENV']['STAGING_DIR'] = os.environ.get('STAGING_DIR', '')
-
-    if os.environ.has_key('CROSS_PATH'):
-        env['ENV']['PATH'] = ':'.join([ os.environ['CROSS_PATH'], env['ENV']['PATH'] ] )
-
-    if os.environ.has_key('CROSS_PATH'):
-        env['ENV']['PATH'] = ':'.join([ os.environ['CROSS_PATH'], env['ENV']['PATH'] ] )
-
-    if os.environ.has_key('CROSS_CFLAGS'):
-        env.Append(CFLAGS=os.environ['CROSS_CFLAGS'].split())
-
-    if os.environ.has_key('CROSS_LINKFLAGS'):
-        env.Append(LINKFLAGS=os.environ['CROSS_LINKFLAGS'].split())
-
-    # Platform libraries
-    env.Append(LIBS = ['libm', 'libcrypto', 'libpthread'])
-    # Compiler flags
-    env.Append(CFLAGS=['-Wall',
-                '-pipe',
-                '-static',
-                '-funsigned-char',
-                '-Wpointer-sign',
-                '-Wimplicit-function-declaration',
-                '-fno-strict-aliasing'])
-    if env['FORCE32'] == 'true':
-        env.Append(CFLAGS = ['-m32'])
-        env.Append(LINKFLAGS=['-m32'])
-
-    # Target variable
-    env['os'] = 'darwin'
-    # Debug/Release Variants
-    if env['VARIANT'] == 'debug':
-        env.Append(CFLAGS=['-g'])
-        env.Append(CFLAGS=['-ggdb'])
-        env.Append(CFLAGS=['-O0'])
-        env.Append(CPPDEFINES=['AJ_DEBUG_RESTRICT=5'])
-        env.Append(CPPDEFINES=['DBGAll'])
-    else:
-        env.Append(CPPDEFINES=['NDEBUG'])
-        env.Append(CFLAGS=['-Os'])
-        env.Append(LINKFLAGS=['-s'])
+jsenv.SConscript('src/SConscript', variant_dir='#build/src/$VARIANT', duplicate = 0)
+jsenv.SConscript('console/SConscript', variant_dir='#build/console/$VARIANT', duplicate = 0)
 
 #######################################################
-# Compile time options for duktape
+# Distclean target
 #######################################################
-env.Append(CPPDEFINES=['DUK_OPT_DPRINT_COLORS'])
-env.Append(CPPDEFINES=['DUK_OPT_DEBUG_BUFSIZE=256'])
-env.Append(CPPDEFINES=['DUK_OPT_HAVE_CUSTOM_H'])
-env.Append(CPPDEFINES=['DUK_OPT_NO_FILE_IO'])
-env.Append(CPPDEFINES=['DUK_OPT_FORCE_ALIGN=4'])
-env.Append(CPPDEFINES=['DDUK_OPT_LIGHTFUNC_BUILTINS'])
-env.Append(CPPDEFINES=['DDUK_OPT_FASTINT'])
-if env['DUK_DEBUG'] == 'on':
-    env.Append(CPPDEFINES=['DUK_OPT_DEBUG'])
-    env.Append(CPPDEFINES=['DUK_OPT_DPRINT'])
-
-# Additional duktape options when building for debug mode
-if env['VARIANT'] == 'debug':
-    env.Append(CPPDEFINES=['DUK_OPT_ASSERTIONS'])
-    #env.Append(CPPDEFINES=['DUK_OPT_DEBUG'])
-
-# Only use short (16 bit) sizes and pointers if using pool-based allocator
-if env['POOL_MALLOC'] == 'false':
-    env.Append(CPPDEFINES=['AJS_USE_NATIVE_MALLOC'])
-elif env['SHORT_SIZES'] == 'true':
-    env.Append(CPPDEFINES=['DUK_OPT_REFCOUNT16'])
-    env.Append(CPPDEFINES=['DUK_OPT_STRHASH16'])
-    env.Append(CPPDEFINES=['DUK_OPT_STRLEN16'])
-    env.Append(CPPDEFINES=['DUK_OPT_BUFLEN16'])
-    env.Append(CPPDEFINES=['DUK_OPT_OBJSIZES16'])
-    env.Append(CPPDEFINES=['DUK_OPT_HEAPPTR16'])
-    env.Append(CPPDEFINES=['\"DUK_OPT_HEAPPTR_ENC16(u,p)=AJS_EncodePtr16(u,p)\"'])
-    env.Append(CPPDEFINES=['\"DUK_OPT_HEAPPTR_DEC16(u,x)=AJS_DecodePtr16(u,x)\"'])
-
-if env['EXT_STRINGS'] == 'true':
-    env.Append(CPPDEFINES=['DUK_OPT_EXTERNAL_STRINGS'])
-    env.Append(CPPDEFINES=['\"DUK_OPT_EXTSTR_INTERN_CHECK(u,p,l)=AJS_ExternalStringCheck(u,p,l)\"'])
-    env.Append(CPPDEFINES=['\"DUK_OPT_EXTSTR_FREE(u,p)=AJS_ExternalStringFree(u,p)\"'])
-    env.Append(CPPDEFINES=['DUK_OPT_STRTAB_CHAIN'])
-    env.Append(CPPDEFINES=['DUK_OPT_STRTAB_CHAIN_SIZE=128'])
-
-# Enable timeout checks
-env.Append(CPPDEFINES=['DUK_OPT_INTERRUPT_COUNTER'])
-env.Append(CPPDEFINES=['\"DUK_OPT_EXEC_TIMEOUT_CHECK(u)=AJS_ExecTimeoutCheck(u)\"'])
+Clean('distclean',
+          [ 'dist',
+            'build',
+            'config.log',
+            #'.sconsign.dblite',  # Can't delete .sconsign.dblite because it doesn't exist until SCons completes
+            '.sconf_temp',
+            '.whitespace.db'
+        ])
 
 #######################################################
-# Services defines
+# Run the whitespace checker
 #######################################################
-env.Append(CPPDEFINES=['CONFIG_SERVICE'])
-env.Append(CPPDEFINES=['NOTIFICATION_SERVICE_PRODUCER'])
-env.Append(CPPDEFINES=['CONTROLPANEL_SERVICE'])
-env.Append(CPPDEFINES=['ONBOARDING_SERVICE'])
+# Set the location of the uncrustify config file
+if found_ws:
+    import sys
+    sys.path.append(os.getcwd() + '/tools')
+    import whitespace
 
-#######################################################
-# AJS defines
-#######################################################
-env.Append(CPPDEFINES=['ALLJOYN_JS'])
-env.Append(CPPDEFINES=['BIG_HEAP'])
+    def wsbuild(target, source, env):
+        return whitespace.main([ env['WS'], os.getcwd() + '/tools/ajuncrustify.cfg' ])
 
-#######################################################
-# Include paths
-#######################################################
-env.Append(CPPPATH=['.'])
-env.Append(CPPPATH=[env['os']])
-env.Append(CPPPATH=[env['ajtcl_root'] + '/inc'])
-env.Append(CPPPATH=[env['ajtcl_root'] + '/target/' + env['os']])
-env.Append(CPPPATH=[env['svcs_root'] + '/config/inc'])
-env.Append(CPPPATH=[env['svcs_root'] + '/services_common/inc'])
-env.Append(CPPPATH=[env['svcs_root'] + '/notification/inc'])
-env.Append(CPPPATH=[env['svcs_root'] + '/controlpanel/inc'])
-env.Append(CPPPATH=[env['svcs_root'] + '/onboarding/inc'])
-env.Append(CPPPATH=[env['svcs_root'] + '/sample_apps/AppsCommon/inc'])
+    vars = Variables()
+    vars.Add(EnumVariable('WS', 'Whitespace Policy Checker', os.environ.get('AJ_WS', 'check'), allowed_values = ('check', 'detail', 'fix', 'off')))
 
-if env['DUKTAPE_SEPARATE'] == 'true':
-    env.Append(CPPPATH=[env['duktape_dist'] + '/src-separate'])
-else:
-    env.Append(CPPPATH=[env['duktape_dist'] + '/src'])
+    vars.Update(jsenv)
+    Help(vars.GenerateHelpText(jsenv))
 
-if env['CONSOLE_LOCKDOWN'] == 'on':
-    env.Append(CPPDEFINES=['AJS_CONSOLE_LOCKDOWN'])
+    if jsenv.get('WS', 'off') != 'off':
+        jsenv.Command('#ws_ajtcl', '#dist', Action(wsbuild, '$WSCOMSTR'))
 
-#
-# Libraries
-# 
-env.Append(LIBPATH = env['ajtcl_root'])
-
-if env['TARG'] != 'frdm' and env['TARG'] != 'stm32':
-    if env['PLATFORM'] == 'win32':
-        env.Append(LIBS = ['ajtcl_st'])
-
-    if env['PLATFORM'] == 'posix':
-        env.Append(LIBS = ['libajtcl'])
-
-    if env['PLATFORM'] == 'darwin':
-        env.Append(LIBS = ['libajtcl_st'])
-
-    progs = env.SConscript('SConscript', 'env', variant_dir='build/$VARIANT', duplicate=0)
-else:
-    progs = env.SConscript(env['os'] + '/SConscript', 'env', variant_dir='build/$VARIANT', duplicate=0)
-
-env.Install('.', progs)
+if found_jsdoc:
+    doc_out = jsenv.JSDoc(jsenv.Dir('#dist/doc/jsdoc'), 'doc/jsdoc/jsdocs')

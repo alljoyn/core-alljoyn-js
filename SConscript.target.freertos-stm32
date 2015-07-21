@@ -1,0 +1,116 @@
+import os
+
+Import('env')
+
+# Target specific SCons command line variables
+vars = Variables()
+vars.Add(PathVariable('STM_SRC_DIR',       'Path to the source code for the STM32 microcontroller',  os.environ.get('AJ_STM_SRC_DIR'),       PathVariable.PathIsDir))
+vars.Add(PathVariable('ARM_TOOLCHAIN_DIR', 'Path to the ARM Toolchain',                              os.environ.get('AJ_ARM_TOOLCHAIN_DIR'), PathVariable.PathIsDir))
+vars.Add(PathVariable('FREE_RTOS_DIR',     'Directory to FreeRTOS source code',                      os.environ.get('AJ_FREE_RTOS_DIR'),        PathVariable.PathIsDir))
+vars.Update(env)
+Help(vars.GenerateHelpText(env))
+
+# Update environment
+if env.has_key('ARM_TOOLCHAIN_DIR'):
+    env['ENV']['PATH'] = ';'.join([ env['ENV']['PATH'], env['ARM_TOOLCHAIN_DIR'] ])
+
+# Cross compile setup
+cross_prefix = 'arm-none-eabi-'
+env.Replace(CC = cross_prefix + 'gcc')
+env.Replace(CXX = cross_prefix + 'g++')
+env.Replace(LINK = cross_prefix + 'gcc')
+env.Replace(AR = cross_prefix + 'ar')
+env.Replace(RANLIB = cross_prefix + 'ranlib')
+
+env.Replace(CCCOM           = '$CC -o $TARGET -c $CFLAGS $CCFLAGS $_CCCOMCOM $SOURCES')
+env.Replace(CPPDEFPREFIX    = '-D')
+env.Replace(OBJSUFFIX       = '.o')
+env.Replace(INCPREFIX       = '-I')
+env.Replace(LIBDIRPREFIX    = '-L')
+env.Replace(LIBPREFIX       = 'lib')
+env.Replace(LIBSUFFIX       = '.a')
+env.Replace(PROGPREFIX      = '')
+env.Replace(PROGSUFFIX      = '.elf')
+env.Replace(LIBDIRSUFFIX    = '')
+env.Replace(LIBLINKPREFIX   = '-l')
+env.Replace(LIBLINKSUFFIX   = '')
+env.Replace(LINKCOM         = '$LINK -o $TARGET $LINKFLAGS $__RPATH $SOURCES $_LIBDIRFLAGS $_LIBFLAGS')
+env.Replace(LINKFLAGS       = '')
+env.Replace(CCFLAGS         = '')
+env.Replace(ARFLAGS         = 'rc')
+env.Replace(ARCOM           = '$AR $ARFLAGS $TARGET $SOURCES')
+env.Replace(ASCOM           = '$CC -o $TARGET -c $CFLAGS $CCFLAGS $_CCCOMCOM $SOURCES')
+
+# Compiler flags
+env.Append(CFLAGS = [
+    '-std=gnu99',
+    '-pipe',
+    '-mcpu=cortex-m3',
+    '-mthumb',
+    '-mlong-calls',
+    '-fdata-sections',
+    '-ffunction-sections',
+    '-fno-strict-aliasing',
+    '-Wall',
+    '-Waggregate-return',
+    '-Wbad-function-cast',
+    '-Wcast-align',
+    '-Wfloat-equal',
+    '-Wformat=2',
+    '-Wformat-security',
+    '-Wlong-long',
+    '-Wmissing-declarations',
+    '-Wmissing-format-attribute',
+    '-Wmissing-prototypes',
+    '-Wno-deprecated-declarations',
+    '-Wpacked',
+    '-Wpointer-arith',
+    '-Wshadow',
+    '-Wundef',
+    '-Wwrite-strings',
+    '-Werror=format-security'
+])
+
+env.Append(CPPDEFINES = {
+    'STM32F407xx' :              None,
+    'USE_STDPERIPH_DRIVER' :     None,
+    'HAL_UART_MODULE_ENABLED' :  None,
+    'HAL_RCC_MODULE_ENABLED' :   None,
+    'HAL_GPIO_MODULE_ENABLED' :  None,
+    'HAL_USART_MODULE_ENABLED' : None,
+    'HAL_FLASH_MODULE_ENABLED' : None,
+    'AJ_HEAP4' :                 None,
+    'DUK_F_BCC' :                None,
+    '_FORTIFY_SOURCE' :          '1'
+])
+
+# Linker flags
+env.Append(LINKFLAGS = [
+    '-mthumb',
+    '-Wl,--start-group',
+    '-lm',
+    '-lc',
+    '-Wl,--end-group',
+    '-Wl,--gc-sections',
+    '-Wl,-Map,${TARGET.base}.map',
+    '-mcpu=cortex-m3',
+    '-T${STM_SRC_DIR}/Project/Peripheral_Examples/SysTick/TrueSTUDIO/SysTick/stm32_flash.ld',
+    '-Wl,--entry=Reset_Handler'
+])
+
+# STM32 software pack requires a user header file be present.  We will use the
+# one provided by core/ajtcl under it's dist/include directory.
+
+env.Append(CPPPATH = Dir([env['FREE_RTOS_DIR'] + '/Source/include',
+                          env['FREE_RTOS_DIR'] + '/Source/portable/GCC/ARM_CM3',
+                          env['STM_SRC_DIR'] + 'Utilities/STM32F4-Discovery',
+                          env['STM_SRC_DIR'] + 'Libraries/CMSIS/ST/STM32F4xx/Include',
+                          env['STM_SRC_DIR'] + 'Libraries/CMSIS/Include',
+                          env['STM_SRC_DIR'] + 'Libraries/STM32F4xx_StdPeriph_Driver/inc']))
+
+# Debug/Release Variants
+if env['VARIANT'] == 'debug':
+    env.Append(CFLAGS = '-g3')
+else:
+    env.Append(CFLAGS = '-Os')
+    env.Append(LINKFLAGS = '-s')

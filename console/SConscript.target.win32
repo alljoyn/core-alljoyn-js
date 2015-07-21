@@ -1,0 +1,25 @@
+Import('cenv')
+
+cenv.Append(LIBS=['setupapi','user32','winmm','ws2_32','iphlpapi','secur32','Advapi32','crypt32','bcrypt','ncrypt'])
+# Compiler flags
+cenv.Append(CPPDEFINES=['QCC_OS_GROUP_WINDOWS'])
+cenv.Append(CXXFLAGS=['/nologo', '/vmm', '/vmg'])
+cenv.Append(CXXFLAGS=['/EHsc'])
+cenv.Append(CXXFLAGS=['/wd4355'])
+# Linker flags
+cenv.Append(LFLAGS=['/NODEFAULTLIB:libcmt.lib'])
+cenv.Append(LINKFLAGS=['/NODEFAULTLIB:libcmt.lib'])
+# Debug/Release variants
+if cenv['VARIANT'] == 'debug':
+    # Compiler flags for DEBUG builds
+    cenv['CCPDBFLAGS'] = '/Z7'
+    cenv.Append(CPPDEFINES=['_DEBUG', ('_ITERATOR_DEBUG_LEVEL', 2)])
+    # Linker flags for DEBUG builds
+    cenv.Append(CXXFLAGS=['/MDd', '/Od', '/Gd', '/Ob1', '/W3'])
+    cenv.Append(LINKFLAGS=['/debug'])
+else:
+    # Compiler flags for RELEASE builds
+    cenv.Append(CPPDEFINES=[('_ITERATOR_DEBUG_LEVEL', 0)])
+    cenv.Append(CXXFLAGS=['/MD', '/Gy', '/O1', '/Ob2', '/W3'])
+    # Linker flags for RELEASE builds
+    cenv.Append(LINKFLAGS=['/opt:ref'])

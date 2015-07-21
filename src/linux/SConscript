@@ -1,0 +1,13 @@
+Import('jsenv')
+
+jsenv['srcs'].extend(File([
+    'ajs_main.c',
+    'ajs_malloc.c',
+    'ajs_obs_stubs.c'
+]))
+
+if jsenv['ENV'].get('YUN_BUILD', '0') == '1':
+    jsenv['srcs'].extend(Glob('lininoio/*.c'))
+    jsenv['use_simio'] = False
+else:
+    jsenv['use_simio'] = True

@@ -1,0 +1,56 @@
+import os
+
+Import('env')
+
+# Target specific SCons command line variables
+
+# Platform libraries
+env.Append(LIBS = ['crypto', 'pthread', 'm'])
+
+# Cross compile setup
+if os.environ.has_key('CROSS_PREFIX'):
+    env.Replace(CC = os.environ['CROSS_PREFIX'] + 'clang')
+    env.Replace(CXX = os.environ['CROSS_PREFIX'] + 'clang++')
+    env.Replace(LINK = os.environ['CROSS_PREFIX'] + 'clang')
+    env.Replace(AR = os.environ['CROSS_PREFIX'] + 'ar')
+    env.Replace(RANLIB = os.environ['CROSS_PREFIX'] + 'ranlib')
+    env['ENV']['STAGING_DIR'] = os.environ.get('STAGING_DIR', '')
+if os.environ.has_key('CROSS_PATH'):
+    env['ENV']['PATH'] = ':'.join([ os.environ['CROSS_PATH'], env['ENV']['PATH'] ] )
+if os.environ.has_key('CROSS_CFLAGS'):
+    env.Append(CFLAGS=os.environ['CROSS_CFLAGS'].split())
+if os.environ.has_key('CROSS_LINKFLAGS'):
+    env.Append(LINKFLAGS=os.environ['CROSS_LINKFLAGS'].split())
+if os.environ.has_key('STAGING_DIR') and not env.has_key('DUKTAPE_SRC'):
+    env['duktape_src'] = os.environ.get('STAGING_DIR') + env['duktape_src']
+
+# Compiler flags
+env.Append(CFLAGS = [
+    '-pipe',
+    '-funsigned-char',
+    '-fno-strict-aliasing',
+    '-Wall',
+    '-Waggregate-return',
+    '-Wbad-function-cast',
+    '-Wcast-align',
+    '-Wfloat-equal',
+    '-Wformat=2',
+    '-Wformat-security',
+    '-Wlong-long',
+    '-Wmissing-declarations',
+    '-Wmissing-format-attribute',
+    '-Wmissing-prototypes',
+    '-Wno-deprecated-declarations',
+    '-Wpacked',
+    '-Wpointer-arith',
+    '-Wshadow',
+    '-Wundef',
+    '-Wwrite-strings',
+    '-Werror=format-security'
+])
+
+# Debug/Release Variants
+if env['VARIANT'] == 'debug':
+    env.Append(CFLAGS = '-g')
+else:
+    env.Append(CFLAGS = '-Os')

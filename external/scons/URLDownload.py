@@ -35,6 +35,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             #
 ############################################################################
 
+# Copyright AllSeen Alliance. All rights reserved.
 
 
 # the URLDownload-Builder can be download any data from an URL into a target file
@@ -83,7 +84,10 @@ class URLNode(SCons.Node.Python.Value) :
 # @param source source name
 # @param env environment object
 def __message( s, target, source, env ) :
-    print "downloading [%s] to [%s] ..." % (source[0], target[0])
+    if s.startswith("__action"):
+        print env.subst(env["URLDOWNLOADCOMSTR"], 1, target, source)
+    else:
+        print s
 
 
 # the download function, which reads the data from the URL
@@ -107,10 +111,6 @@ def __action( target, source, env ) :
 # @param source URL for download
 # @param env environment object
 def __emitter( target, source, env ) :
-    # we need a temporary file, because the dependency graph
-    # of Scons need a physical existing file - so we prepare it
-    target[0].prepare()
-
     if not env.get("URLDOWNLOAD_USEURLFILENAME", False) :
         return target, source
 
@@ -129,6 +129,7 @@ def __emitter( target, source, env ) :
 # the filename of the URL
 # @param env environment object
 def generate( env ) :
+    env["URLDOWNLOADCOMSTR"] = "downloading $SOURCE to $TARGET"
     env["BUILDERS"]["URLDownload"] = SCons.Builder.Builder( action = __action,  emitter = __emitter,  target_factory = SCons.Node.FS.File,  source_factory = URLNode,  single_source = True,  PRINT_CMD_LINE_FUNC = __message )
     env.Replace(URLDOWNLOAD_USEURLFILENAME =  True )
 

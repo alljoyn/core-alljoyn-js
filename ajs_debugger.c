@@ -249,7 +249,7 @@ static uint8_t IntDecode(uint8_t* in, uint32_t* out)
         *out = *in - DBG_TYPE_INTSMLOW;
         return 1;
         /* 2 byte integer */
-    } else if (((uint8_t)*in >= DBG_TYPE_INTLGLOW) && ((uint8_t)*in <= DBG_TYPE_INTLGHIGH)) {
+    } else if ((uint8_t)*in >= (uint8_t)DBG_TYPE_INTLGLOW) {
         /*
          * To decode(from debugger.rst):
          * ((IB - 0xc0) << 8) + followup_byte
@@ -1484,7 +1484,7 @@ static duk_size_t DebuggerWrite(void* udata, const char* buffer, duk_size_t leng
                 pos++;
                 advance++;
                 continue;
-            } else if (((*pos >= DBG_TYPE_INTLGLOW) && (*pos <= DBG_TYPE_INTLGHIGH)) || state->lastType == DBG_TYPE_INTLGLOW) {
+            } else if (((uint8_t)*pos >= (uint8_t)DBG_TYPE_INTLGLOW)  || state->lastType == (uint8_t)DBG_TYPE_INTLGLOW) {
                 /* Large integer data type */
 #ifdef DBG_PRINT_CHUNKS
                 AJ_AlwaysPrintf(("<INT LARGE>, "));

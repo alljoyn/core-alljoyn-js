@@ -23,6 +23,7 @@
 #include "ajs_ctrlpanel.h"
 #include "ajs_heap.h"
 #include <ajtcl/aj_util.h>
+#include "ajs_storage.h"
 
 /**
  * Turn on per-module debug printing by setting this variable to non-zero value
@@ -407,8 +408,9 @@ AJ_Status AJS_Main(const char* deviceName)
         /*
          * Evaluate the installed script
          */
-        if (AJ_NVRAM_Exist(AJS_SCRIPT_NVRAM_ID)) {
+        if (AJ_NVRAM_Exist(AJS_SCRIPT_NAME_NVRAM_ID)) {
             AJ_NV_DATASET* ds;
+            void* sctx = NULL;
             /*
              * Read the script name if there is one
              */
@@ -425,15 +427,29 @@ AJ_Status AJS_Main(const char* deviceName)
             /*
              * Now load the script
              */
-            ds = AJ_NVRAM_Open(AJS_SCRIPT_NVRAM_ID, "r", 0);
-            if (ds) {
+            status = AJS_OpenScript(0, &sctx);
+            if (status != AJ_OK) {
+                AJ_WarnPrintf(("AJS_Main(): Script does not exist\n"));
+                /*
+                 * We want to go into Run() which requires the status to be AJ_OK
+                 */
+                status = AJ_OK;
+                goto Run;
+            } else {
                 uint32_t len;
                 const char* js;
-
-                AJ_NVRAM_Read(&len, sizeof(len), ds);
-                js = AJ_NVRAM_Peek(ds);
+                status = AJS_ReadScript((uint8_t**)&js, &len, sctx);
+                if (status != AJ_OK) {
+                    AJ_ErrPrintf(("AJS_Main(): Error reading script, status = %s\n", AJ_StatusText(status)));
+                    AJS_CloseScript(sctx);
+                    /*
+                     * At this point we should restart
+                     */
+                    status = AJ_ERR_RESTART;
+                    goto Run;
+                }
+                AJS_CloseScript(sctx);
                 ret = duk_pcompile_lstring_filename(ctx, 0, (const char*)js, len);
-                AJ_NVRAM_Close(ds);
                 if (ret == DUK_EXEC_SUCCESS) {
                     AJS_SetWatchdogTimer(AJS_DEFAULT_WATCHDOG_TIMEOUT);
                     ret = duk_pcall(ctx, 0);
@@ -451,15 +467,18 @@ AJ_Status AJS_Main(const char* deviceName)
                     /*
                      * We don't want to repeatedly attempt to install a broken script
                      */
-                    AJ_NVRAM_Delete(AJS_SCRIPT_NVRAM_ID);
+                    AJS_DeleteScript();
+                    /*
+                     * Delete the name entry so after restart we will go into Run()
+                     */
+                    AJ_NVRAM_Delete(AJS_SCRIPT_NAME_NVRAM_ID);
                     status = AJ_ERR_RESTART_APP;
                 }
                 duk_gc(ctx, 0);
                 AJS_HeapDump();
-            } else {
-                AJ_ErrPrintf(("Failed to read script from NVRAM\n"));
             }
         }
+    Run:
         if (status == AJ_OK) {
             status = Run(&ajBus, ctx);
         }

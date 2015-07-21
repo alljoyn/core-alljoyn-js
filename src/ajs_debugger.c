@@ -24,6 +24,7 @@
 
 #include "ajs_debugger.h"
 #include "ajs_util.h"
+#include "ajs_storage.h"
 
 /**
  * Controls debug output for this module
@@ -2057,45 +2058,55 @@ AJ_Status AJS_DebuggerGetScript(duk_context* ctx, AJ_Message* msg)
     AJ_Status status;
     AJ_Message reply;
     AJ_NV_DATASET* ds = NULL;
-    AJ_NV_DATASET* dsize = NULL;
-    uint32_t sz = AJS_GetScriptSize();
+    const char* script;
+    uint32_t sz;
+    void* sctx;
 
     AJ_InfoPrintf(("DebuggerGetScript()\n"));
 
     /* If the script was previously installed on another boot the size will be zero */
     if (!sz) {
-        dsize = AJ_NVRAM_Open(AJS_SCRIPT_SIZE_ID, "r", 0);
-        if (dsize) {
-            AJ_NVRAM_Read(&sz, sizeof(sz), dsize);
-            AJ_NVRAM_Close(dsize);
+        ds = AJ_NVRAM_Open(AJS_SCRIPT_SIZE_ID, "r", 0);
+        if (ds) {
+            AJ_NVRAM_Read(&sz, sizeof(sz), ds);
+            AJ_NVRAM_Close(ds);
         }
     }
-    ds = AJ_NVRAM_Open(AJS_SCRIPT_NVRAM_ID, "r", 0);
-    if (ds) {
-        const char* script = (const char*)AJ_NVRAM_Peek(ds);
-        if (!script) {
-            script = "";
-        }
-        status = AJ_MarshalReplyMsg(msg, &reply);
-        if (status == AJ_OK) {
-            status = AJ_DeliverMsgPartial(&reply, sz + sizeof(uint32_t));
-        }
-        if (status == AJ_OK) {
-            status = AJ_MarshalRaw(&reply, &sz, sizeof(uint32_t));
-        }
-        if (status == AJ_OK) {
-            status = AJ_MarshalRaw(&reply, script, sz);
-        }
-        if (status == AJ_OK) {
-            status = AJ_DeliverMsg(&reply);
-        }
-        AJ_NVRAM_Close(ds);
+    status = AJS_OpenScript(0, &sctx);
+    if (status != AJ_OK) {
+        AJ_ErrPrintf(("AJS_DebuggerGetScript(): Error opening script\n"));
+        goto ErrorReply;
     } else {
-        AJ_ErrPrintf(("Error opening script NVRAM entry\n"));
-        status = AJ_MarshalStatusMsg(msg, &reply, AJ_ERR_INVALID);
+        status = AJS_ReadScript((uint8_t**)&script, &sz, sctx);
         if (status == AJ_OK) {
-            status = AJ_DeliverMsg(&reply);
+            if (!script) {
+                script = "";
+            }
+            status = AJ_MarshalReplyMsg(msg, &reply);
+            if (status == AJ_OK) {
+                status = AJ_DeliverMsgPartial(&reply, sz + sizeof(uint32_t));
+            }
+            if (status == AJ_OK) {
+                status = AJ_MarshalRaw(&reply, &sz, sizeof(uint32_t));
+            }
+            if (status == AJ_OK) {
+                status = AJ_MarshalRaw(&reply, script, sz);
+            }
+            if (status == AJ_OK) {
+                status = AJ_DeliverMsg(&reply);
+            }
+            AJS_CloseScript(sctx);
+            return status;
+        } else {
+            AJ_ErrPrintf(("AJS_DebuggerGetScript(): Error reading script\n"));
+            goto ErrorReply;
         }
+    }
+
+ErrorReply:
+    status = AJ_MarshalStatusMsg(msg, &reply, AJ_ERR_INVALID);
+    if (status == AJ_OK) {
+        status = AJ_DeliverMsg(&reply);
     }
     return status;
 }

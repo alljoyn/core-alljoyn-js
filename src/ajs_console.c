@@ -28,6 +28,7 @@
 #include <ajtcl/aj_crypto.h>
 #include "ajs_services.h"
 #include "ajs_debugger.h"
+#include "ajs_storage.h"
 
 /**
  * Controls debug output for this module
@@ -140,14 +141,6 @@ static const AJ_Object consoleObjects[] = {
 #define ALERT_SIGNAL_MSGID  AJ_APP_MESSAGE_ID(0,  1, 8)
 #define EVAL_RESULT_MSGID   AJ_APP_MESSAGE_ID(0,  1, 9)
 #define LOCK_CONSOLE_MSGID  AJ_APP_MESSAGE_ID(0,  1, 10)
-
-/*
- * We don't want scripts to fill all available NVRAM.
- */
-uint32_t AJS_MaxScriptLen()
-{
-    return (3 * AJ_NVRAM_GetSizeRemaining()) / 4;
-}
 
 /**
  * Active session for this service
@@ -418,6 +411,7 @@ static AJ_Status Install(duk_context* ctx, AJ_Message* msg)
     uint8_t endswap = (msg->hdr->endianess != AJ_NATIVE_ENDIAN);
     AJ_NV_DATASET* ds = NULL;
     const char* scriptName;
+    void* sctx = NULL;
 
     AJS_EndSessions(ctx);
 
@@ -448,65 +442,71 @@ static AJ_Status Install(duk_context* ctx, AJ_Message* msg)
         len = ENDSWAP32(len);
     }
     AJ_MarshalReplyMsg(msg, &reply);
-    if (len > AJS_MaxScriptLen()) {
-        replyStatus = SCRIPT_RESOURCE_ERROR;
-        AJ_MarshalArgs(&reply, "ys", replyStatus, "Script too long");
-        AJ_ErrPrintf(("Script installation failed - too long\n"));
-        status = AJ_DeliverMsg(&reply);
-    } else {
-        ds = AJ_NVRAM_Open(AJS_SCRIPT_NVRAM_ID, "w", sizeof(len) + len);
-        if (AJ_NVRAM_Write(&len, sizeof(len), ds) != sizeof(len)) {
-            status = AJ_ERR_RESOURCES;
-            goto ErrorReply;
-        }
-        /* Save the script's length */
-        scriptSize = len + 4;
-        while (len) {
-            status = AJ_UnmarshalRaw(msg, &raw, len, &sz);
-            if (status != AJ_OK) {
-                goto ErrorReply;
-            }
-            if (AJ_NVRAM_Write(raw, sz, ds) != sz) {
-                status = AJ_ERR_RESOURCES;
-                goto ErrorReply;
-            }
-            len -= sz;
-        }
-        AJ_NVRAM_Close(ds);
 
-        ds = AJ_NVRAM_Open(AJS_SCRIPT_SIZE_ID, "w", sizeof(uint32_t));
-        if (AJ_NVRAM_Write(&scriptSize, sizeof(scriptSize), ds) != sizeof(scriptSize)) {
-            status = AJ_ERR_RESOURCES;
+    /* Save the script's length */
+    scriptSize = len;
+
+    status = AJS_OpenScript(scriptSize, &sctx);
+    if (status == AJ_ERR_RESOURCES) {
+        AJ_ErrPrintf(("Install(): Error, script is too large\n"));
+        goto ErrorResources;
+    } else if (status != AJ_OK) {
+        AJ_ErrPrintf(("Install(): Error opening script\n"));
+        goto ErrorReply;
+    }
+    while (len) {
+        status = AJ_UnmarshalRaw(msg, &raw, len, &sz);
+        if (status != AJ_OK) {
             goto ErrorReply;
         }
-        AJ_NVRAM_Close(ds);
-        ds = NULL;
-        /*
-         * Let console know the script was installed sucessfully
-         */
-        replyStatus = SCRIPT_OK;
-        AJ_MarshalArgs(&reply, "ys", replyStatus, "Script installed");
-        AJ_InfoPrintf(("Script succesfully installed\n"));
-        status = AJ_DeliverMsg(&reply);
-        if (status == AJ_OK) {
-            /*
-             * Return a RESTART_APP status code; this will cause the msg loop to exit and reload the
-             * script engine and run the script we just installed.
-             */
-            status = AJ_ERR_RESTART_APP;
+        status = AJS_WriteScript((uint8_t*)raw, sz, sctx);
+        if (status != AJ_OK) {
+            goto ErrorReply;
         }
+        len -= sz;
+    }
+    AJS_CloseScript(sctx);
+    ds = AJ_NVRAM_Open(AJS_SCRIPT_SIZE_ID, "w", sizeof(uint32_t));
+    if (AJ_NVRAM_Write(&scriptSize, sizeof(scriptSize), ds) != sizeof(scriptSize)) {
+        status = AJ_ERR_RESOURCES;
+        goto ErrorReply;
+    }
+    AJ_NVRAM_Close(ds);
+    ds = NULL;
+    /*
+     * Let console know the script was installed sucessfully
+     */
+    replyStatus = SCRIPT_OK;
+    AJ_MarshalArgs(&reply, "ys", replyStatus, "Script installed");
+    AJ_InfoPrintf(("Script succesfully installed\n"));
+    status = AJ_DeliverMsg(&reply);
+    if (status == AJ_OK) {
+        /*
+         * Return a RESTART_APP status code; this will cause the msg loop to exit and reload the
+         * script engine and run the script we just installed.
+         */
+        status = AJ_ERR_RESTART_APP;
     }
     return status;
 
-ErrorReply:
+    /* Not enough space error */
+ErrorResources:
+    replyStatus = SCRIPT_RESOURCE_ERROR;
+    AJ_MarshalArgs(&reply, "ys", replyStatus, "Script too long");
+    AJ_ErrPrintf(("Script installation failed - too long\n"));
+    AJ_NVRAM_Delete(AJS_SCRIPT_NAME_NVRAM_ID);
+    return AJ_DeliverMsg(&reply);
 
+    /* General error */
+ErrorReply:
     if (ds) {
         AJ_NVRAM_Close(ds);
     }
     /*
      * We don't want to leave a stale or partial script in NVRAM
      */
-    AJ_NVRAM_Delete(AJS_SCRIPT_NVRAM_ID);
+    AJS_DeleteScript();
+    AJ_NVRAM_Delete(AJS_SCRIPT_NAME_NVRAM_ID);
 
     AJ_MarshalStatusMsg(msg, &reply, status);
     return AJ_DeliverMsg(&reply);

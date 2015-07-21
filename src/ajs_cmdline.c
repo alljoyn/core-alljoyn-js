@@ -20,6 +20,7 @@
 #include "ajs.h"
 #include "ajs_target.h"
 #include "ajs_cmdline.h"
+#include "ajs_storage.h"
 
 #include <stdio.h>
 #include <errno.h>
@@ -79,31 +80,26 @@ AJ_Status AJS_InstallScript(const char* fn)
         AJ_Printf("Cannot open script file %s\n", fn);
         status = AJ_ERR_UNKNOWN;
     } else {
+        void* ctx;
         const uint8_t* data;
         uint32_t len;
         status = ReadScript(&sf, &data, &len);
         if (status == AJ_OK) {
             AJ_NV_DATASET* ds = NULL;
-
-            if (len > AJS_MaxScriptLen()) {
-                status = AJ_ERR_RESOURCES;
-                goto NVRAM_Cleanup;
+            status = AJS_OpenScript(len, &ctx);
+            if (status == AJ_ERR_RESOURCES) {
+                AJ_ErrPrintf(("AJS_InstallScript(): Script is too large\n"));
+                return status;
+            } else if (status != AJ_OK) {
+                AJ_ErrPrintf(("AJS_InstallScript(): Error opening script\n"));
+                return status;
             }
-            ds = AJ_NVRAM_Open(AJS_SCRIPT_NVRAM_ID, "w", sizeof(len) + len);
-            if (!ds) {
-                status = AJ_ERR_NO_MATCH;
-                goto NVRAM_Cleanup;
+            status = AJS_WriteScript((uint8_t*)data, len, ctx);
+            if (status != AJ_OK) {
+                AJ_ErrPrintf(("AJS_InstallScript(): Error writing script to storage\n"));
+                return status;
             }
-            if (AJ_NVRAM_Write(&len, sizeof(len), ds) != sizeof(len)) {
-                status = AJ_ERR_RESOURCES;
-                goto NVRAM_Cleanup;
-            }
-            if (AJ_NVRAM_Write(data, len, ds) != len) {
-                status = AJ_ERR_RESOURCES;
-                goto NVRAM_Cleanup;
-            }
-            AJ_NVRAM_Close(ds);
-            len += 4;
+            AJS_CloseScript(ctx);
             /*
              * Store the scripts length
              */
@@ -151,9 +147,11 @@ extern uint8_t dbgAJS;
 extern uint8_t dbgHEAP;
 extern uint8_t dbgNET;
 extern uint8_t dbgHEAPDUMP;
+#if !defined(AJS_CONSOLE_LOCKDOWN)
 extern uint8_t dbgCONSOLE;
-extern uint8_t dbgGPIO;
 extern uint8_t dbgDEBUGGER;
+#endif
+extern uint8_t dbgGPIO;
 #endif
 
 int AJS_CmdlineOptions(int argc, char* argv[], AJS_CmdOptions* options)
@@ -172,9 +170,11 @@ int AJS_CmdlineOptions(int argc, char* argv[], AJS_CmdOptions* options)
     dbgHEAP = 0;
     dbgNET = 0;
     dbgHEAPDUMP = 0;
-    dbgCONSOLE = 0;
     dbgGPIO = 0;
+#if !defined(AJS_CONSOLE_LOCKDOWN)
+    dbgCONSOLE = 0;
     dbgDEBUGGER = 0;
+#endif
 #endif
 
     memset(options, 0, sizeof(*options));
@@ -184,8 +184,10 @@ int AJS_CmdlineOptions(int argc, char* argv[], AJS_CmdOptions* options)
 #ifndef NDEBUG
             AJ_DbgLevel = 4;
             dbgAJS = 1;
+#if !defined(AJS_CONSOLE_LOCKDOWN)
             dbgCONSOLE = 4;
             dbgDEBUGGER = 4;
+#endif
             ++argn;
             continue;
 #else

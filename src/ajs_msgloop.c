@@ -36,7 +36,9 @@ static AJ_Status SessionBindReply(duk_context* ctx, AJ_Message* msg)
     AJ_Status status;
     uint32_t result;
     uint16_t port;
+#if !defined(AJS_CONSOLE_LOCKDOWN)
     uint8_t ldstate;
+#endif
 
     status = AJ_UnmarshalArgs(msg, "uq", &result, &port);
     if (status != AJ_OK) {
@@ -66,7 +68,9 @@ static AJ_Status SessionDispatcher(duk_context* ctx, AJ_Message* msg)
     uint32_t sessionId;
     uint16_t port;
     char* joiner;
+#if !defined(AJS_CONSOLE_LOCKDOWN)
     uint8_t ldstate;
+#endif
 
     status = AJ_UnmarshalArgs(msg, "qus", &port, &sessionId, &joiner);
     if (status != AJ_OK) {
@@ -114,9 +118,9 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
     uint8_t accessor = AJS_NOT_ACCESSOR;
     const char* func;
     AJ_Status status;
+#if !defined(AJS_CONSOLE_LOCKDOWN)
     uint8_t ldstate;
 
-#if !defined(AJS_CONSOLE_LOCKDOWN)
     status = AJS_GetLockdownState(&ldstate);
     if (status == AJ_OK && ldstate == AJS_CONSOLE_UNLOCKED) {
         status = AJS_ConsoleMsgHandler(ctx, msg);
@@ -164,9 +168,11 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
             return AJS_FoundAdvertisedName(ctx, msg);
         }
         if ((msg->msgId == AJ_SIGNAL_SESSION_LOST) || (msg->msgId == AJ_SIGNAL_SESSION_LOST_WITH_REASON)) {
+#if !defined(AJS_CONSOLE_LOCKDOWN)
             if (AJS_DebuggerIsAttached()) {
                 msg = AJS_CloneAndCloseMessage(ctx, msg);
             }
+#endif
             return AJS_SessionLost(ctx, msg);
         }
         func = "onSignal";
@@ -247,9 +253,11 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
          * If attached, the debugger will begin to unmarshal a message when the
          * method handler is called, therefore it must be cloned-and-closed now.
          */
+#if !defined(AJS_CONSOLE_LOCKDOWN)
         if (AJS_DebuggerIsAttached()) {
             msg = AJS_CloneAndCloseMessage(ctx, msg);
         }
+#endif
         if (duk_pcall_method(ctx, numArgs) != DUK_EXEC_SUCCESS) {
             const char* err = duk_safe_to_string(ctx, -1);
 

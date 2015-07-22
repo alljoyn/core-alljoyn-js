@@ -290,18 +290,6 @@ jsenv.SConscript('src/SConscript', variant_dir='#build/src/$VARIANT', duplicate 
 jsenv.SConscript('console/SConscript', variant_dir='#build/console/$VARIANT', duplicate = 0)
 
 #######################################################
-# Distclean target
-#######################################################
-Clean('distclean',
-          [ 'dist',
-            'build',
-            'config.log',
-            #'.sconsign.dblite',  # Can't delete .sconsign.dblite because it doesn't exist until SCons completes
-            '.sconf_temp',
-            '.whitespace.db'
-        ])
-
-#######################################################
 # Run the whitespace checker
 #######################################################
 # Set the location of the uncrustify config file

@@ -141,12 +141,7 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
     if (msg->msgId == AJ_REPLY_ID(AJ_METHOD_JOIN_SESSION)) {
         return AJS_HandleJoinSessionReply(ctx, msg);
     }
-    /*
-     * Nothing more to do if the AllJoyn module was not loaded
-     */
-    if (ajIdx < 0) {
-        return AJ_OK;
-    }
+
     /*
      * Let the bases services layer take a look at the message
      */
@@ -156,6 +151,12 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
             AJ_WarnPrintf(("AJS_ServicesMsgHandler returned %s\n", AJ_StatusText(status)));
         }
         return status;
+    }
+    /*
+     * Nothing more to do if the AllJoyn module was not loaded
+     */
+    if (ajIdx < 0) {
+        return AJ_OK;
     }
     /*
      * Push the appropriate callback function onto the duktape stack

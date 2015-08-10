@@ -43,7 +43,7 @@ static AJ_Status SetPasscode(const char* routerRealm, const uint8_t* newPasscode
         if (status != AJ_OK) {
             return status;
         }
-        AJ_ClearCredentials();
+        AJ_ClearCredentials(AJ_CRED_TYPE_GENERIC);
         status = AJ_ERR_READ;     //Force disconnect of AJ and services to refresh current sessions
     } else {
         status = AJSVC_PropertyStore_LoadAll();
@@ -69,7 +69,7 @@ AJ_Status AJS_FactoryReset(void)
         return status;
     }
 #endif
-    AJ_ClearCredentials();
+    AJ_ClearCredentials(AJ_CRED_TYPE_GENERIC);
     return AJ_ERR_RESTART;
 }
 

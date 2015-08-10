@@ -339,12 +339,21 @@ AJ_Status AJS_Main(const char* deviceName)
 
 #if defined(AJS_CONSOLE_LOCKDOWN)
     /* If lockdown is compiled in then set the bit */
-    AJS_SetLockdownState(AJS_CONSOLE_LOCKED);
+    status = AJS_SetLockdownState(AJS_CONSOLE_LOCKED);
     lockdown = AJS_CONSOLE_LOCKED;
+    if (status != AJ_OK) {
+        AJ_ErrPrintf(("AJS_Main(): Error setting lockdown state, status = %s\n", AJ_StatusText(status)));
+        return status;
+    }
 #else
     /* Get the current lockdown bit */
     status = AJS_GetLockdownState(&lockdown);
+    if (status != AJ_OK) {
+        AJ_ErrPrintf(("AJS_Main(): Error getting lockdown state, status = %s\n", AJ_StatusText(status)));
+        return status;
+    }
 #endif
+
 
     AJ_AboutSetIcon(icon, sizeof(icon), "image/jpeg", NULL);
 

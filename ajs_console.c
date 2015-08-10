@@ -77,6 +77,7 @@ static const char* const scriptConsoleIface[] = {
     "!alert txt>s",                                /* Send an alert string to the controller */
     "!evalResult output>ys",                       /* Result of a previous eval */
     "?lockdown status>y",                          /* Lock out the console application from interfacing with AJS */
+    "!throw txt>s",                                /* Send a throw string to the controller */
     NULL
 };
 
@@ -141,6 +142,7 @@ static const AJ_Object consoleObjects[] = {
 #define ALERT_SIGNAL_MSGID  AJ_APP_MESSAGE_ID(0,  1, 8)
 #define EVAL_RESULT_MSGID   AJ_APP_MESSAGE_ID(0,  1, 9)
 #define LOCK_CONSOLE_MSGID  AJ_APP_MESSAGE_ID(0,  1, 10)
+#define THROW_SIGNAL_MSGID  AJ_APP_MESSAGE_ID(0,  1, 11)
 
 /**
  * Active session for this service
@@ -189,8 +191,10 @@ static void SignalConsole(duk_context* ctx, uint32_t sigId, int nargs)
          */
         for (i = 0; i < nargs; ++i) {
             size_t sz;
-            duk_safe_to_lstring(ctx, i, &sz);
+            duk_dup(ctx, i);
+            duk_safe_to_lstring(ctx, -1, &sz);
             len += sz;
+            duk_pop(ctx);
         }
         status = AJ_MarshalSignal(bus, &msg, sigId, consoleBusName, consoleSession, 0, 0);
 
@@ -202,8 +206,11 @@ static void SignalConsole(duk_context* ctx, uint32_t sigId, int nargs)
         }
         for (i = 0; (status == AJ_OK) && (i < nargs); ++i) {
             size_t sz;
-            const char* str = duk_safe_to_lstring(ctx, i, &sz);
+            const char* str;
+            duk_dup(ctx, i);
+            str = duk_safe_to_lstring(ctx, -1, &sz);
             status = AJ_MarshalRaw(&msg, str, sz);
+            duk_pop(ctx);
         }
         /*
          * Marshal final NUL
@@ -221,6 +228,30 @@ static void SignalConsole(duk_context* ctx, uint32_t sigId, int nargs)
     }
 }
 
+static void PrintArgs(duk_context* ctx, const char* tag)
+{
+    int nargs = duk_get_top(ctx);
+    int i;
+    AJ_Printf("%s ", tag);
+    for (i = 0; i < nargs; ++i) {
+        duk_dup(ctx, i);
+        AJ_Printf("%s ", duk_safe_to_string(ctx, -1));
+        duk_pop(ctx);
+    }
+    AJ_Printf("\n");
+}
+
+void AJS_ThrowHandler(duk_context* ctx)
+{
+    int nargs = duk_get_top(ctx);
+
+    if (consoleSession && !debugQuiet) {
+        SignalConsole(ctx, THROW_SIGNAL_MSGID, nargs);
+    } else {
+        PrintArgs(ctx, "THROW: ");
+    }
+}
+
 void AJS_AlertHandler(duk_context* ctx, uint8_t alert)
 {
     int nargs = duk_get_top(ctx);
@@ -228,12 +259,7 @@ void AJS_AlertHandler(duk_context* ctx, uint8_t alert)
     if (consoleSession && !debugQuiet) {
         SignalConsole(ctx, alert ? ALERT_SIGNAL_MSGID : PRINT_SIGNAL_MSGID, nargs);
     } else {
-        int i;
-        AJ_Printf("%s: ", alert ? "ALERT" : "PRINT");
-        for (i = 0; i < nargs; ++i) {
-            AJ_Printf("%s", duk_safe_to_string(ctx, i));
-        }
-        AJ_Printf("\n");
+        PrintArgs(ctx, alert ? "ALERT: " : "PRINT: ");
     }
 }
 

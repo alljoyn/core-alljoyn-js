@@ -87,6 +87,9 @@ static const char consoleXML[] =
     "   <signal name=\"alert\"> "
     "     <arg name=\"txt\" type=\"s\"/> "
     "   </signal> "
+    "   <signal name=\"throw\"> "
+    "     <arg name=\"txt\" type=\"s\"/> "
+    "   </signal> "
     "   <signal name=\"evalResult\"> "
     "     <arg name=\"output\" type=\"ys\"/> "
     "   </signal> "
@@ -1200,6 +1203,10 @@ void AJS_Console::RegisterHandlers(BusAttachment* ajb)
                                static_cast<MessageReceiver::SignalHandler>(&AJS_Console::AlertMsg),
                                ifc->GetMember("alert"),
                                "/ScriptConsole");
+    ajb->RegisterSignalHandler(this,
+                               static_cast<MessageReceiver::SignalHandler>(&AJS_Console::ThrowMsg),
+                               ifc->GetMember("throw"),
+                               "/ScriptConsole");
 
     ajb->RegisterSignalHandler(this,
                                static_cast<MessageReceiver::SignalHandler>(&AJS_Console::EvalResult),
@@ -1389,7 +1396,7 @@ void AJS_Console::PrintMsg(const InterfaceDescription::Member* member, const cha
     if (handlers && handlers->print) {
         handlers->print(msg->GetArg()->v_string.str);
     } else {
-        Print("%s\n", msg->GetArg()->v_string.str);
+        Print("PRINT: %s\n", msg->GetArg()->v_string.str);
     }
 }
 
@@ -1398,7 +1405,16 @@ void AJS_Console::AlertMsg(const InterfaceDescription::Member* member, const cha
     if (handlers && handlers->alert) {
         handlers->alert(msg->GetArg()->v_string.str);
     } else {
-        Print("%s\n", msg->GetArg()->v_string.str);
+        Print("ALERT: %s\n", msg->GetArg()->v_string.str);
+    }
+}
+
+void AJS_Console::ThrowMsg(const InterfaceDescription::Member* member, const char* sourcePath, Message& msg)
+{
+    if (handlers && handlers->alert) {
+        handlers->throwMsg(msg->GetArg()->v_string.str);
+    } else {
+        Print("THROW: %s\n", msg->GetArg()->v_string.str);
     }
 }
 

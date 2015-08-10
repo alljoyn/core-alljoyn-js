@@ -524,6 +524,13 @@ void AJS_PushReplyObject(duk_context* ctx, uint32_t replySerial);
 void AJS_AlertHandler(duk_context* ctx, uint8_t alert);
 
 /**
+ * Signal the console (or print locally) when a throw is called from JS
+ *
+ * @param ctx   An opaque pointer to a duktape context structure
+ */
+void AJS_ThrowHandler(duk_context* ctx);
+
+/**
  * @param ctx         An opaque pointer to a duktape context structure
  * @param deviceName  If not NULL the device name to set in the property store.
  */

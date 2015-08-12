@@ -190,11 +190,13 @@ static void SignalConsole(duk_context* ctx, uint32_t sigId, int nargs)
          * We need to know the total string length before we start to marshal
          */
         for (i = 0; i < nargs; ++i) {
-            size_t sz;
-            duk_dup(ctx, i);
-            duk_safe_to_lstring(ctx, -1, &sz);
-            len += sz;
-            duk_pop(ctx);
+            if (!duk_is_object(ctx, i)) {
+                size_t sz;
+                duk_dup(ctx, i);
+                duk_safe_to_lstring(ctx, -1, &sz);
+                len += sz;
+                duk_pop(ctx);
+            }
         }
         status = AJ_MarshalSignal(bus, &msg, sigId, consoleBusName, consoleSession, 0, 0);
 
@@ -205,12 +207,14 @@ static void SignalConsole(duk_context* ctx, uint32_t sigId, int nargs)
             status = AJ_MarshalRaw(&msg, &len, 4);
         }
         for (i = 0; (status == AJ_OK) && (i < nargs); ++i) {
-            size_t sz;
-            const char* str;
-            duk_dup(ctx, i);
-            str = duk_safe_to_lstring(ctx, -1, &sz);
-            status = AJ_MarshalRaw(&msg, str, sz);
-            duk_pop(ctx);
+            if (!duk_is_object(ctx, i)) {
+                size_t sz;
+                const char* str;
+                duk_dup(ctx, i);
+                str = duk_safe_to_lstring(ctx, -1, &sz);
+                status = AJ_MarshalRaw(&msg, str, sz);
+                duk_pop(ctx);
+            }
         }
         /*
          * Marshal final NUL
@@ -234,9 +238,11 @@ static void PrintArgs(duk_context* ctx, const char* tag)
     int i;
     AJ_Printf("%s ", tag);
     for (i = 0; i < nargs; ++i) {
-        duk_dup(ctx, i);
-        AJ_Printf("%s ", duk_safe_to_string(ctx, -1));
-        duk_pop(ctx);
+        if (!duk_is_object(ctx, i)) {
+            duk_dup(ctx, i);
+            AJ_Printf("%s ", duk_safe_to_string(ctx, -1));
+            duk_pop(ctx);
+        }
     }
     AJ_Printf("\n");
 }

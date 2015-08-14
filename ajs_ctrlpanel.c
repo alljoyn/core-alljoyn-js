@@ -346,7 +346,7 @@ static int NativeValueSetter(duk_context* ctx)
         break;
     }
     duk_pop(ctx);
-    AJS_CPS_SignalValueChanged(AJS_GetBusAttachment(), widget);
+    AJS_CP_SignalValueChanged(AJS_GetBusAttachment(), widget);
     return 0;
 }
 
@@ -404,12 +404,12 @@ static int NativeValueGetter(duk_context* ctx)
 /*
  * Called when a widget value has been changed
  */
-AJ_Status AJS_CPS_OnValueChanged(AJS_Widget* ajsWidget)
+AJ_Status AJS_CP_OnValueChanged(AJS_Widget* ajsWidget, const char* sender)
 {
     AJ_Status status = AJ_OK;
     duk_context* ctx = ajsWidget->dukCtx;
 
-    AJ_InfoPrintf(("AJS_CPS_OnValueChanged\n"));
+    AJ_InfoPrintf(("AJS_CP_OnValueChanged\n"));
 
     GetWidgetObject(ctx, ajsWidget->index);
     /*
@@ -429,7 +429,8 @@ AJ_Status AJS_CPS_OnValueChanged(AJS_Widget* ajsWidget)
          */
         duk_dup(ctx, -2);
         ValueGetter(ctx, ajsWidget);
-        ret = duk_pcall_method(ctx, 1);
+        duk_push_string(ctx, sender);
+        ret = duk_pcall_method(ctx, 2);
         if (ret == DUK_EXEC_SUCCESS) {
             status = AJ_OK;
         } else {
@@ -754,17 +755,20 @@ static int NativeButtonsSetter(duk_context* ctx)
     return 0;
 
 TypeError:
-    duk_error(ctx, DUK_ERR_TYPE_ERROR, "Requires array of 1..3 objects with a label and onClick function");
+    duk_error(ctx, DUK_ERR_TYPE_ERROR, "Requires array of 1..3 objects with a label and , const char* senderonClick function");
     return 0;
 
 }
 
-static AJ_Status OnClick(duk_context* ctx)
+static AJ_Status OnClick(duk_context* ctx, duk_idx_t widgetIdx, const char* sender)
 {
     AJ_Status status = AJ_OK;
     duk_get_prop_string(ctx, -1, "onClick");
     if (duk_is_callable(ctx, -1)) {
-        duk_int_t ret = duk_pcall(ctx, 0);
+        duk_int_t ret;
+        duk_dup(ctx, widgetIdx);
+        duk_push_string(ctx, sender);
+        ret = duk_pcall_method(ctx, 1);
         if (ret != DUK_EXEC_SUCCESS) {
             AJS_ConsoleSignalError(ctx);
             status = AJ_ERR_FAILURE;
@@ -774,21 +778,23 @@ static AJ_Status OnClick(duk_context* ctx)
     return status;
 }
 
-AJ_Status AJS_CP_ExecuteAction(AJS_Widget* ajsWidget, uint8_t action)
+AJ_Status AJS_CP_OnExecuteAction(AJS_Widget* ajsWidget, uint8_t action, const char* sender)
 {
     AJ_Status status = AJ_ERR_NO_MATCH;
     duk_context* ctx = ajsWidget->dukCtx;
+    duk_idx_t widgetIdx;
 
     GetWidgetObject(ctx, ajsWidget->index);
+    widgetIdx = duk_normalize_index(ctx, -1);
     AJ_InfoPrintf(("Execute action%d on %s\n", action, ajsWidget->path));
     if (action == 0) {
-        status = OnClick(ctx);
+        status = OnClick(ctx, widgetIdx, sender);
     } else {
         duk_get_prop_string(ctx, -1, AJS_HIDDEN_PROP("buttons"));
         if (duk_is_array(ctx, -1)) {
             duk_get_prop_index(ctx, -1, action - 1);
             if (duk_is_object(ctx, -1)) {
-                status = OnClick(ctx);
+                status = OnClick(ctx, widgetIdx, sender);
             }
             duk_pop(ctx);
         }
@@ -972,7 +978,7 @@ static int NativeOptColorSetter(duk_context* ctx)
     }
     widget->base.optParams.bgColor = (r << 16) | (g << 8) | b;
     duk_pop(ctx);
-    AJS_CPS_SignalMetadataChanged(AJS_GetBusAttachment(), widget);
+    AJS_CP_SignalMetadataChanged(AJS_GetBusAttachment(), widget);
     return 0;
 }
 
@@ -990,7 +996,7 @@ static int NativeWriteableSetter(duk_context* ctx)
     AJS_Widget* widget = GetWidgetFromThis(ctx);
     setBaseWritable(&widget->base, duk_require_boolean(ctx, 0));
     duk_pop(ctx);
-    AJS_CPS_SignalMetadataChanged(AJS_GetBusAttachment(), widget);
+    AJS_CP_SignalMetadataChanged(AJS_GetBusAttachment(), widget);
     return 0;
 }
 
@@ -999,7 +1005,7 @@ static int NativeEnabledSetter(duk_context* ctx)
     AJS_Widget* widget = GetWidgetFromThis(ctx);
     setBaseEnabled(&widget->base, duk_require_boolean(ctx, 0));
     duk_pop(ctx);
-    AJS_CPS_SignalMetadataChanged(AJS_GetBusAttachment(), widget);
+    AJS_CP_SignalMetadataChanged(AJS_GetBusAttachment(), widget);
     return 0;
 }
 
@@ -1011,7 +1017,7 @@ static int NativeOptLabelSetter(duk_context* ctx)
     duk_dup(ctx, 0);
     duk_put_prop_string(ctx, -2, AJS_HIDDEN_PROP("label"));
     duk_pop(ctx);
-    AJS_CPS_SignalMetadataChanged(AJS_GetBusAttachment(), widget);
+    AJS_CP_SignalMetadataChanged(AJS_GetBusAttachment(), widget);
     return 0;
 }
 

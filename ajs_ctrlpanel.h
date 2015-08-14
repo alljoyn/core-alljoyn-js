@@ -108,36 +108,38 @@ AJ_Status AJS_CP_Terminate();
  *
  * @param ajsWidget  Widget wrapper structure
  * @param index      Identifies which of the three dialog actions to execute
+ * @param sender     Bus name of the sender of the action message
  *
  * @return Returns AJ_OK if the actions succesfully performed or an error status if the action
  *         failed or threw JavaScript exception.
  *
  */
-AJ_Status AJS_CP_ExecuteAction(AJS_Widget* ajsWidget, uint8_t index);
+AJ_Status AJS_CP_OnExecuteAction(AJS_Widget* ajsWidget, uint8_t index, const char* sender);
 
 /**
  * Report a changed value on widget
  *
  * @param ajsWidget  Widget wrapper structure with the new value already set.
+ * @param sender     Bus name of the sender of the value changed message
  *
  * @return Returns AJ_OK if the value changes was successfully reported or an error status if the
  *         operation failed or threw JavaScript exception.
  */
-AJ_Status AJS_CPS_OnValueChanged(AJS_Widget* ajsWidget);
+AJ_Status AJS_CP_OnValueChanged(AJS_Widget* ajsWidget, const char* sender);
 
 /**
  * Send signal to controller indicating a value has changed
  *
  * @param ajsWidget  Widget wrapper structure for the widget that has changed
  */
-void AJS_CPS_SignalValueChanged(AJ_BusAttachment* aj, AJS_Widget* ajsWidget);
+void AJS_CP_SignalValueChanged(AJ_BusAttachment* aj, AJS_Widget* ajsWidget);
 
 /**
  * Send signal to controller indicating a metadata property has changed
  *
  * @param ajsWidget  Widget wrapper structure for the widget that has changed
  */
-void AJS_CPS_SignalMetadataChanged(AJ_BusAttachment* aj, AJS_Widget* ajsWidget);
+void AJS_CP_SignalMetadataChanged(AJ_BusAttachment* aj, AJS_Widget* ajsWidget);
 
 #ifdef __cplusplus
 }

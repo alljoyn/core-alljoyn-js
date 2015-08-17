@@ -83,35 +83,42 @@ var MAX_SIG_ITERATIONS = 1000;
 var self_sls_count = 0;
 var sls_count = 0;
 
+var sls_pass = true;
+var sls_done = false;
+var counter_pass = true;
+var count_done = false;
+var nvram_pass = true;
+var nvram_done = false;
+
 AJ.onSignal = function()
 {
     if (this.member == 'sessionless_sig1') {
         if (arguments[0] == args_object.sessionless_sig1) {
-            print('PASS: Recv: sessionless_sig1');
             self_sls_count++;
         } else {
             alert('ERROR: sessionless_sig1: invalid argument: ' + arguments[0]);
+            sls_pass = false;
         }
     } else if (this.member == 'sessionless_sig2') {
         if (arguments[0] == args_object.sessionless_sig2) {
-            print('PASS: Recv: sessionless_sig2');
             self_sls_count++;
         } else {
             alert('ERROR: sessionless_sig2: invalid argument: ' + arguments[0]);
+            sls_pass = false;
         }
     } else if (this.member == 'sessionless_sig3') {
         if (arguments[0] == args_object.sessionless_sig3) {
-            print('PASS: Recv: sessionless_sig3');
             self_sls_count++;
         } else {
             alert('ERROR: sessionless_sig3: invalid argument: ' + arguments[0]);
+            sls_pass = false;
         }
     } else if (this.member == 'sessionless_sig4') {
         if (arguments[0] == args_object.sessionless_sig4) {
-            print('PASS: Recv: sessionless_sig4');
             self_sls_count++;
         } else {
             alert('ERROR: sessionless_sig1: invalid argument: ' + arguments[0]);
+            sls_pass = false;
         }
     } else if (this.member == 'sessionless_sig5') {
         var pass = true;
@@ -122,8 +129,9 @@ AJ.onSignal = function()
             }
         }
         if (pass) {
-            print('PASS: Recv: sessionless_sig5');
             self_sls_count++;
+        } else {
+            sls_pass = false;
         }
     } else if (this.member == 'sessionless_sig6') {
         var pass = true;
@@ -134,8 +142,9 @@ AJ.onSignal = function()
             }
         }
         if (pass) {
-            print('PASS: Recv: sessionless_sig6');
             self_sls_count++;
+        } else {
+            sls_pass = false;
         }
     } else if (this.member == 'sessionless_sig7') {
         var pass = true;
@@ -146,8 +155,9 @@ AJ.onSignal = function()
             }
         }
         if (pass) {
-            print('PASS: Recv: sessionless_sig7');
             self_sls_count++;
+        } else {
+            sls_pass = false;
         }
     } else if (this.member == 'sessionless_sig8') {
         var pass = true;
@@ -158,8 +168,9 @@ AJ.onSignal = function()
             }
         }
         if (pass) {
-            print('PASS: Recv: sessionless_sig8');
             self_sls_count++;
+        } else {
+            sls_pass = false;
         }
     } else if (this.member == 'notif') {
         JSON.stringify(arguments);
@@ -170,6 +181,7 @@ function sendSLS(iter)
 {
     if (iter >= MAX_SIG_ITERATIONS) {
         print('PASS: sessionless_sig - count: ' + sls_count);
+        sls_done = true;
         return;
     }
     AJ.signal('/org/alljoyn/unit_test1', {sessionless_sig1:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig1);
@@ -208,9 +220,7 @@ var store_obj = {
 }
 
 var store_int = 60;
-var store_str = "simple_string"
-var nvram_pass = true;
-    
+var store_str = "simple_string";
     
 print("===== Starting Unit Tests =====");
 /*
@@ -251,6 +261,9 @@ if (out_obj.obj_val.obj_str != store_obj.obj_val.obj_str) {
 if (nvram_pass == false) {
     alert('ERROR: Store/Load test failed');
 }
+
+nvram_done = true;
+
 /*
  * Time tests
  */
@@ -260,10 +273,13 @@ function checkCounter()
 {
     if (counter > 5) {
         print("Error, setInterval was called too many times");
+        counter_pass = false;
+        count_done = true;
         return;
     }
     clearInterval(interval);
     print('PASS: Counter was correct');
+    count_done = true;
 }
 
 function incCounter()
@@ -277,4 +293,15 @@ function incCounter()
  */
 var interval = setInterval(incCounter, 100);
 setTimeout(checkCounter, 500);
+
+var done = setInterval(function() {
+    if (count_done && nvram_done && sls_done) {
+        if (counter_pass && nvram_pass && sls_pass) {
+            print("*** UNIT TEST PASSED ***");
+        } else {
+            print("*** UNIT TEST FAILED ***");
+        }
+        clearInterval(done);
+    }
+}, 1000);
 

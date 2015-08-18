@@ -48,7 +48,12 @@ static int NativeServiceObjectFinalizer(duk_context* ctx)
             AJ_ASSERT(sessionInfo->refCount != 0);
             if ((--sessionInfo->refCount == 0) && sessionInfo->sessionId) {
                 duk_del_prop_string(ctx, -1, peer);
-                (void) AJ_BusLeaveSession(AJS_GetBusAttachment(), sessionInfo->sessionId);
+                /*
+                 * Only leave the session if AllJoyn is still running
+                 */
+                if (AJS_IsRunning()) {
+                    (void) AJ_BusLeaveSession(AJS_GetBusAttachment(), sessionInfo->sessionId);
+                }
                 sessionInfo->sessionId = 0;
             }
             duk_pop(ctx);

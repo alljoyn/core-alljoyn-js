@@ -264,7 +264,9 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
 #endif
         if (duk_pcall_method(ctx, numArgs) != DUK_EXEC_SUCCESS) {
             AJ_ErrPrintf(("%s: %s\n", func, duk_safe_to_string(ctx, -1)));
+#if !defined(AJS_CONSOLE_LOCKDOWN)
             AJS_ThrowHandler(ctx);
+#endif
             /*
              * Generate an error reply if this was a method call
              */

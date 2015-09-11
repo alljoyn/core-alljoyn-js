@@ -326,6 +326,15 @@ AJ_Status AJS_RegisterIO(duk_context* ctx, duk_idx_t ioIdx);
 AJ_Status AJS_ServiceIO(duk_context* ctx);
 
 /**
+ * Load any target specific modules (from require())
+ *
+ * @param ctx   An opaque pointer to a duktape context structure
+ * @param idx   Index of the target specific object
+ * @param id    Name of the target specific module
+ */
+AJ_Status AJS_TargetModuleLoad(duk_context* ctx, duk_idx_t idx, const char* id);
+
+/**
  * Register native 'C' functions for the setInterval/setTimeout functions
  *
  * @param ctx     An opaque pointer to a duktape context structure

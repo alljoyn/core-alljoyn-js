@@ -325,8 +325,13 @@ static duk_ret_t NativeModuleLoader(duk_context* ctx)
          */
         AJS_RegisterIO(ctx, 2);
     } else {
-        duk_push_sprintf(ctx, "Unknown module: \"%s\"\n", id);
-        duk_throw(ctx);
+        /*
+         * Load any target specific modules
+         */
+        if (AJS_TargetModuleLoad(ctx, 2, id) != AJ_OK) {
+            duk_push_sprintf(ctx, "Unknown module: \"%s\"\n", id);
+            duk_throw(ctx);
+        }
     }
     return 0;
 }

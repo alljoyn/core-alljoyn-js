@@ -60,7 +60,8 @@ ajs_sources = [
      'ajs_cmdline.c',
      'ajs_storage_default.c',
      env['os'] + '/ajs_main.c',
-     env['os'] + '/ajs_malloc.c'
+     env['os'] + '/ajs_malloc.c',
+     env['os'] + '/ajs_stubs.c'
 ]
 
 if os.environ.get('YUN_BUILD', '0') == '1':

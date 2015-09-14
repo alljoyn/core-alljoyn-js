@@ -22,8 +22,8 @@ def CheckCommand(context, cmd):
     context.Result(r is not None)
     return r
 
-def CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath, subdist, incpath, ext):
-    prog = "#include <%s>\nint main(void) { return 0; }" % ajheader
+def CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath, subdist, incpath, ext, stub):
+    prog = "#include <%s>\n%s\nint main(void) { return 0; }" % (ajheader, stub)
     context.Message('Checking for AllJoyn library %s...' % ajlib)
     distpath = os.path.join(ajdistpath, subdist)
     prevLIBS = list(context.env.get('LIBS', []))
@@ -66,8 +66,8 @@ def CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath, subdist, incp
     context.Result(r)
     return r
 
-def CheckAJCLib(context, ajlib, ajheader, sconsvarname, ajdistpath):
-    return CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath, '', 'include', '.c')
+def CheckAJCLib(context, ajlib, ajheader, sconsvarname, ajdistpath, stub = ''):
+    return CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath, '', 'include', '.c', stub)
 
 #######################################################
 # Initialize our build environment
@@ -143,16 +143,6 @@ Export('jsenv')
 #######################################################
 # Check dependencies
 #######################################################
-config = Configure(jsenv, custom_tests = { 'CheckCommand' : CheckCommand,
-                                           'CheckAJLib' : CheckAJCLib })
-found_ws = config.CheckCommand('uncrustify')
-found_jsdoc = config.CheckCommand('jsdoc')
-
-dep_libs = [
-    config.CheckAJLib('ajtcl',          'ajtcl/aj_bus.h',                 'AJTCL_DIST', '../ajtcl/dist'),
-    config.CheckAJLib('ajtcl_services', 'ajtcl/services/ConfigService.h', 'SVCS_DIST',  '../../services/base_tcl/dist')
-]
-
 config_check_svc_stub = """
 int AJSVC_PropertyStore_LoadAll() { return 0; }
 int AJSVC_PropertyStore_GetValueForLang() { return 0; }
@@ -166,6 +156,17 @@ int AJSVC_PropertyStore_SaveAll() { return 0; }
 int AJSVC_PropertyStore_GetMaxValueLength() { return 0; }
 int AJSVC_PropertyStore_Update() { return 0; }
 """
+
+config = Configure(jsenv, custom_tests = { 'CheckCommand' : CheckCommand,
+                                           'CheckAJLib' : CheckAJCLib })
+found_ws = config.CheckCommand('uncrustify')
+found_jsdoc = config.CheckCommand('jsdoc')
+
+dep_libs = [
+    config.CheckAJLib('ajtcl',          'ajtcl/aj_bus.h',                 'AJTCL_DIST', '../ajtcl/dist'),
+    config.CheckAJLib('ajtcl_services', 'ajtcl/services/ConfigService.h', 'SVCS_DIST',  '../../services/base_tcl/dist', config_check_svc_stub)
+]
+
 include_onboarding = config.CheckFunc('AJOBS_ClearInfo', config_check_svc_stub)
 
 jsenv = config.Finish()

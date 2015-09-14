@@ -120,6 +120,8 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
 
     virtual void AlertMsg(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
 
+    virtual void ThrowMsg(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
+
     virtual void DebugNotification(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
 
     virtual void EvalResult(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);

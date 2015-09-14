@@ -118,7 +118,7 @@ static AJ_Status SetWidgetProp(AJ_Message* msg)
                 /*
                  * Signal that the value has been changed
                  */
-                AJS_CPS_SignalValueChanged(AJS_GetBusAttachment(), widget);
+                AJS_CP_SignalValueChanged(AJS_GetBusAttachment(), widget);
                 if (status == AJ_OK) {
                     status = AJ_UnmarshalCloseContainer(msg, &st);
                 }
@@ -139,7 +139,7 @@ static AJ_Status SetWidgetProp(AJ_Message* msg)
         /*
          * Call JavaScript to report the value change
          */
-        status =  AJS_CPS_OnValueChanged(widget);
+        status =  AJS_CP_OnValueChanged(widget, msg->sender);
     } else {
         AJ_ErrPrintf(("SetWidgetProp %s\n", AJ_StatusText(status)));
     }
@@ -169,7 +169,7 @@ static AJ_Status ExecuteAction(AJ_Message* msg, uint8_t action, void* context)
     /*
      * Call into JavaScript object to perform action
      */
-    status = AJS_CP_ExecuteAction(widget, action);
+    status = AJS_CP_OnExecuteAction(widget, action, msg->sender);
     if (status == AJ_OK) {
         AJ_MarshalReplyMsg(msg, &reply);
     } else {
@@ -182,7 +182,7 @@ static AJ_Status ExecuteAction(AJ_Message* msg, uint8_t action, void* context)
 #define METADATA_CHANGED_INDEX  3
 #define VALUE_CHANGED_INDEX     5
 
-void AJS_CPS_SignalValueChanged(AJ_BusAttachment* aj, AJS_Widget* ajsWidget)
+void AJS_CP_SignalValueChanged(AJ_BusAttachment* aj, AJS_Widget* ajsWidget)
 {
     uint32_t session = AJCPS_GetCurrentSessionId();
     /*
@@ -202,7 +202,7 @@ void AJS_CPS_SignalValueChanged(AJ_BusAttachment* aj, AJS_Widget* ajsWidget)
     }
 }
 
-void AJS_CPS_SignalMetadataChanged(AJ_BusAttachment* aj, AJS_Widget* ajsWidget)
+void AJS_CP_SignalMetadataChanged(AJ_BusAttachment* aj, AJS_Widget* ajsWidget)
 {
     uint32_t session = AJCPS_GetCurrentSessionId();
     /*

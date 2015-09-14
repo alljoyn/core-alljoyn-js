@@ -500,53 +500,66 @@ AJ_Status AJS_TargetIO_PinPWM(void* pinCtx, double dutyCycle, uint32_t freq)
     return SetDeviceProp(dev, pwm_root, "duty_cycle", val);
 }
 
-AJ_Status AJS_TargetIO_PinEnableTrigger(void* pinCtx, AJS_IO_PinTriggerMode trigger, int32_t* trigId, uint8_t debounce)
+AJ_Status AJS_TargetIO_PinDisableTrigger(void* pinCtx, int pinFunction, AJS_IO_PinTriggerCondition condition, int32_t* trigId)
+{
+    AJ_Status status;
+    GPIO* gpio = (GPIO*)pinCtx;
+    const char* dev = pinInfo[gpio->pinId].gpioDev;
+
+    if (trigId) {
+        *trigId = gpio->trigId;
+    }
+    status = SetDeviceProp(dev, gpio_root, "edge", "none");
+    if (gpio->trigId != AJS_IO_PIN_NO_TRIGGER) {
+        pthread_mutex_lock(&mutex);
+        AJ_ASSERT(gpio->trigId < MAX_TRIGGERS);
+        triggers[gpio->trigId] = NULL;
+        BIT_CLR(trigSet, gpio->trigId);
+        gpio->trigId = AJS_IO_PIN_NO_TRIGGER;
+        pthread_mutex_unlock(&mutex);
+        /*
+         * Let the trigger thread know there has been a change
+         */
+        ResetTriggerThread();
+    }
+    return status;
+}
+
+AJ_Status AJS_TargetIO_PinEnableTrigger(void* pinCtx, int pinFunction, AJS_IO_PinTriggerCondition condition, int32_t* trigId, uint8_t debounce)
 {
     int i;
     AJ_Status status;
     GPIO* gpio = (GPIO*)pinCtx;
     const char* dev = pinInfo[gpio->pinId].gpioDev;
+    const char* val;
 
     InitTriggerThread();
 
-    if (trigger == AJS_IO_PIN_TRIGGER_DISABLE) {
-        status = SetDeviceProp(dev, gpio_root, "edge", "none");
-        if (gpio->trigId != AJS_IO_PIN_NO_TRIGGER) {
-            pthread_mutex_lock(&mutex);
-            AJ_ASSERT(gpio->trigId < MAX_TRIGGERS);
-            triggers[gpio->trigId] = NULL;
-            BIT_CLR(trigSet, gpio->trigId);
-            gpio->trigId = AJS_IO_PIN_NO_TRIGGER;
-            pthread_mutex_unlock(&mutex);
-        }
+    if (condition == AJS_IO_PIN_TRIGGER_ON_RISE) {
+        val = "rising";
+    } else if (condition == AJS_IO_PIN_TRIGGER_ON_FALL) {
+        val = "falling";
     } else {
-        const char* val;
-        if (trigger == AJS_IO_PIN_TRIGGER_ON_RISE) {
-            val = "rising";
-        } else if (trigger == AJS_IO_PIN_TRIGGER_ON_FALL) {
-            val = "falling";
-        } else {
-            val = "both";
-        }
-        status = SetDeviceProp(dev, gpio_root, "edge", val);
-        if (status == AJ_OK) {
-            pthread_mutex_lock(&mutex);
-            for (i = 0; i < MAX_TRIGGERS; ++i) {
-                if (!triggers[i]) {
-                    triggers[i] = gpio;
-                    gpio->trigId = i;
-                    break;
-                }
+        val = "both";
+    }
+    status = SetDeviceProp(dev, gpio_root, "edge", val);
+    if (status == AJ_OK) {
+        pthread_mutex_lock(&mutex);
+        for (i = 0; i < MAX_TRIGGERS; ++i) {
+            if (!triggers[i]) {
+                triggers[i] = gpio;
+                gpio->trigId = i;
+                break;
             }
-            gpio->debounceMillis = debounce;
-            AJ_InitTimer(&gpio->timer);
-            pthread_mutex_unlock(&mutex);
-            if (i == MAX_TRIGGERS) {
-                (void)SetDeviceProp(dev, gpio_root, "edge", "node");
-                status = AJ_ERR_RESOURCES;
-            }
-            *trigId = gpio->trigId;
         }
+        gpio->debounceMillis = debounce;
+        AJ_InitTimer(&gpio->timer);
+        pthread_mutex_unlock(&mutex);
+        if (i == MAX_TRIGGERS) {
+            (void)SetDeviceProp(dev, gpio_root, "edge", "node");
+            status = AJ_ERR_RESOURCES;
+        }
+        *trigId = gpio->trigId;
     }
     if (status == AJ_OK) {
         /*

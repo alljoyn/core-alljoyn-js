@@ -99,6 +99,11 @@ void Alert(const char* message)
     printf("ALERT: %s\n", message);
 }
 
+void Throw(const char* message)
+{
+    printf("THROW: %s\n", message);
+}
+
 void DebugVersion(const char* version)
 {
     printf("DEBUG VERSION: %s\n", version);
@@ -133,6 +138,7 @@ int main(int argc, char** argv)
     handlers.notification = &Notification;
     handlers.print = &Print;
     handlers.alert = &Alert;
+    handlers.throwMsg = &Throw;
     handlers.dbgVersion = &DebugVersion;
     handlers.dbgNotification = &DebugNotification;
     handlers.evalResult = &EvalResult;

@@ -1,200 +1,526 @@
-<!--
-This work is licensed under a Creative Commons Attribution 4.0 International License.
+<!DOCTYPE html>
+<html>
+  <head>
+      <meta charset="utf-8" />
+      <title>Control Panel Documentation</title>
+      <style>.markdown-preview, .markdown-preview[data-use-github-style] { font-family: 'Helvetica Neue', Helvetica, 'Segoe UI', Arial, freesans, sans-serif; font-size: 16px; line-height: 1.6; word-wrap: break-word; overflow: scroll; box-sizing: border-box; padding: 20px; background-color: rgb(255, 255, 255); }
+.markdown-preview > :first-child, .markdown-preview[data-use-github-style] > :first-child { margin-top: 0px !important; }
+.markdown-preview > :last-child, .markdown-preview[data-use-github-style] > :last-child { margin-bottom: 0px !important; }
+.markdown-preview a:not([href]), .markdown-preview[data-use-github-style] a:not([href]) { color: inherit; text-decoration: none; }
+.markdown-preview .absent, .markdown-preview[data-use-github-style] .absent { color: rgb(204, 0, 0); }
+.markdown-preview .anchor, .markdown-preview[data-use-github-style] .anchor { position: absolute; top: 0px; left: 0px; display: block; padding-right: 6px; padding-left: 30px; margin-left: -30px; }
+.markdown-preview .anchor:focus, .markdown-preview[data-use-github-style] .anchor:focus { outline: none; }
+.markdown-preview h1, .markdown-preview[data-use-github-style] h1, .markdown-preview h2, .markdown-preview[data-use-github-style] h2, .markdown-preview h3, .markdown-preview[data-use-github-style] h3, .markdown-preview h4, .markdown-preview[data-use-github-style] h4, .markdown-preview h5, .markdown-preview[data-use-github-style] h5, .markdown-preview h6, .markdown-preview[data-use-github-style] h6 { position: relative; margin-top: 1em; margin-bottom: 16px; font-weight: bold; line-height: 1.4; }
+.markdown-preview h1 .octicon-link, .markdown-preview[data-use-github-style] h1 .octicon-link, .markdown-preview h2 .octicon-link, .markdown-preview[data-use-github-style] h2 .octicon-link, .markdown-preview h3 .octicon-link, .markdown-preview[data-use-github-style] h3 .octicon-link, .markdown-preview h4 .octicon-link, .markdown-preview[data-use-github-style] h4 .octicon-link, .markdown-preview h5 .octicon-link, .markdown-preview[data-use-github-style] h5 .octicon-link, .markdown-preview h6 .octicon-link, .markdown-preview[data-use-github-style] h6 .octicon-link { display: none; color: rgb(0, 0, 0); vertical-align: middle; }
+.markdown-preview h1:hover .anchor, .markdown-preview[data-use-github-style] h1:hover .anchor, .markdown-preview h2:hover .anchor, .markdown-preview[data-use-github-style] h2:hover .anchor, .markdown-preview h3:hover .anchor, .markdown-preview[data-use-github-style] h3:hover .anchor, .markdown-preview h4:hover .anchor, .markdown-preview[data-use-github-style] h4:hover .anchor, .markdown-preview h5:hover .anchor, .markdown-preview[data-use-github-style] h5:hover .anchor, .markdown-preview h6:hover .anchor, .markdown-preview[data-use-github-style] h6:hover .anchor { padding-left: 8px; margin-left: -30px; text-decoration: none; }
+.markdown-preview h1:hover .anchor .octicon-link, .markdown-preview[data-use-github-style] h1:hover .anchor .octicon-link, .markdown-preview h2:hover .anchor .octicon-link, .markdown-preview[data-use-github-style] h2:hover .anchor .octicon-link, .markdown-preview h3:hover .anchor .octicon-link, .markdown-preview[data-use-github-style] h3:hover .anchor .octicon-link, .markdown-preview h4:hover .anchor .octicon-link, .markdown-preview[data-use-github-style] h4:hover .anchor .octicon-link, .markdown-preview h5:hover .anchor .octicon-link, .markdown-preview[data-use-github-style] h5:hover .anchor .octicon-link, .markdown-preview h6:hover .anchor .octicon-link, .markdown-preview[data-use-github-style] h6:hover .anchor .octicon-link { display: inline-block; }
+.markdown-preview h1 tt, .markdown-preview[data-use-github-style] h1 tt, .markdown-preview h2 tt, .markdown-preview[data-use-github-style] h2 tt, .markdown-preview h3 tt, .markdown-preview[data-use-github-style] h3 tt, .markdown-preview h4 tt, .markdown-preview[data-use-github-style] h4 tt, .markdown-preview h5 tt, .markdown-preview[data-use-github-style] h5 tt, .markdown-preview h6 tt, .markdown-preview[data-use-github-style] h6 tt, .markdown-preview h1 code, .markdown-preview[data-use-github-style] h1 code, .markdown-preview h2 code, .markdown-preview[data-use-github-style] h2 code, .markdown-preview h3 code, .markdown-preview[data-use-github-style] h3 code, .markdown-preview h4 code, .markdown-preview[data-use-github-style] h4 code, .markdown-preview h5 code, .markdown-preview[data-use-github-style] h5 code, .markdown-preview h6 code, .markdown-preview[data-use-github-style] h6 code { font-size: inherit; }
+.markdown-preview h1, .markdown-preview[data-use-github-style] h1 { padding-bottom: 0.3em; font-size: 2.25em; line-height: 1.2; border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: rgb(238, 238, 238); }
+.markdown-preview h1 .anchor, .markdown-preview[data-use-github-style] h1 .anchor { line-height: 1; }
+.markdown-preview h2, .markdown-preview[data-use-github-style] h2 { padding-bottom: 0.3em; font-size: 1.75em; line-height: 1.225; border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: rgb(238, 238, 238); }
+.markdown-preview h2 .anchor, .markdown-preview[data-use-github-style] h2 .anchor { line-height: 1; }
+.markdown-preview h3, .markdown-preview[data-use-github-style] h3 { font-size: 1.5em; line-height: 1.43; }
+.markdown-preview h3 .anchor, .markdown-preview[data-use-github-style] h3 .anchor { line-height: 1.2; }
+.markdown-preview h4, .markdown-preview[data-use-github-style] h4 { font-size: 1.25em; }
+.markdown-preview h4 .anchor, .markdown-preview[data-use-github-style] h4 .anchor { line-height: 1.2; }
+.markdown-preview h5, .markdown-preview[data-use-github-style] h5 { font-size: 1em; }
+.markdown-preview h5 .anchor, .markdown-preview[data-use-github-style] h5 .anchor { line-height: 1.1; }
+.markdown-preview h6, .markdown-preview[data-use-github-style] h6 { font-size: 1em; color: rgb(119, 119, 119); }
+.markdown-preview h6 .anchor, .markdown-preview[data-use-github-style] h6 .anchor { line-height: 1.1; }
+.markdown-preview p, .markdown-preview[data-use-github-style] p, .markdown-preview blockquote, .markdown-preview[data-use-github-style] blockquote, .markdown-preview ul, .markdown-preview[data-use-github-style] ul, .markdown-preview ol, .markdown-preview[data-use-github-style] ol, .markdown-preview dl, .markdown-preview[data-use-github-style] dl, .markdown-preview table, .markdown-preview[data-use-github-style] table, .markdown-preview pre, .markdown-preview[data-use-github-style] pre { margin-top: 0px; margin-bottom: 16px; }
+.markdown-preview hr, .markdown-preview[data-use-github-style] hr { height: 4px; padding: 0px; margin: 16px 0px; border: 0px none; background-color: rgb(231, 231, 231); }
+.markdown-preview ul, .markdown-preview[data-use-github-style] ul, .markdown-preview ol, .markdown-preview[data-use-github-style] ol { padding-left: 2em; }
+.markdown-preview ul.no-list, .markdown-preview[data-use-github-style] ul.no-list, .markdown-preview ol.no-list, .markdown-preview[data-use-github-style] ol.no-list { padding: 0px; list-style-type: none; }
+.markdown-preview ul ul, .markdown-preview[data-use-github-style] ul ul, .markdown-preview ul ol, .markdown-preview[data-use-github-style] ul ol, .markdown-preview ol ol, .markdown-preview[data-use-github-style] ol ol, .markdown-preview ol ul, .markdown-preview[data-use-github-style] ol ul { margin-top: 0px; margin-bottom: 0px; }
+.markdown-preview li > p, .markdown-preview[data-use-github-style] li > p { margin-top: 16px; }
+.markdown-preview dl, .markdown-preview[data-use-github-style] dl { padding: 0px; }
+.markdown-preview dl dt, .markdown-preview[data-use-github-style] dl dt { padding: 0px; margin-top: 16px; font-size: 1em; font-style: italic; font-weight: bold; }
+.markdown-preview dl dd, .markdown-preview[data-use-github-style] dl dd { padding: 0px 16px; margin-bottom: 16px; }
+.markdown-preview blockquote, .markdown-preview[data-use-github-style] blockquote { padding: 0px 15px; color: rgb(119, 119, 119); border-left-width: 4px; border-left-style: solid; border-left-color: rgb(221, 221, 221); }
+.markdown-preview blockquote > :first-child, .markdown-preview[data-use-github-style] blockquote > :first-child { margin-top: 0px; }
+.markdown-preview blockquote > :last-child, .markdown-preview[data-use-github-style] blockquote > :last-child { margin-bottom: 0px; }
+.markdown-preview table, .markdown-preview[data-use-github-style] table { display: block; width: 100%; overflow: auto; word-break: normal; }
+.markdown-preview table th, .markdown-preview[data-use-github-style] table th { font-weight: bold; }
+.markdown-preview table th, .markdown-preview[data-use-github-style] table th, .markdown-preview table td, .markdown-preview[data-use-github-style] table td { padding: 6px 13px; border: 1px solid rgb(221, 221, 221); }
+.markdown-preview table tr, .markdown-preview[data-use-github-style] table tr { border-top-width: 1px; border-top-style: solid; border-top-color: rgb(204, 204, 204); background-color: rgb(255, 255, 255); }
+.markdown-preview table tr:nth-child(2n), .markdown-preview[data-use-github-style] table tr:nth-child(2n) { background-color: rgb(248, 248, 248); }
+.markdown-preview img, .markdown-preview[data-use-github-style] img { max-width: 100%; box-sizing: border-box; }
+.markdown-preview .emoji, .markdown-preview[data-use-github-style] .emoji { max-width: none; }
+.markdown-preview span.frame, .markdown-preview[data-use-github-style] span.frame { display: block; overflow: hidden; }
+.markdown-preview span.frame > span, .markdown-preview[data-use-github-style] span.frame > span { display: block; float: left; width: auto; padding: 7px; margin: 13px 0px 0px; overflow: hidden; border: 1px solid rgb(221, 221, 221); }
+.markdown-preview span.frame span img, .markdown-preview[data-use-github-style] span.frame span img { display: block; float: left; }
+.markdown-preview span.frame span span, .markdown-preview[data-use-github-style] span.frame span span { display: block; padding: 5px 0px 0px; clear: both; color: rgb(51, 51, 51); }
+.markdown-preview span.align-center, .markdown-preview[data-use-github-style] span.align-center { display: block; overflow: hidden; clear: both; }
+.markdown-preview span.align-center > span, .markdown-preview[data-use-github-style] span.align-center > span { display: block; margin: 13px auto 0px; overflow: hidden; text-align: center; }
+.markdown-preview span.align-center span img, .markdown-preview[data-use-github-style] span.align-center span img { margin: 0px auto; text-align: center; }
+.markdown-preview span.align-right, .markdown-preview[data-use-github-style] span.align-right { display: block; overflow: hidden; clear: both; }
+.markdown-preview span.align-right > span, .markdown-preview[data-use-github-style] span.align-right > span { display: block; margin: 13px 0px 0px; overflow: hidden; text-align: right; }
+.markdown-preview span.align-right span img, .markdown-preview[data-use-github-style] span.align-right span img { margin: 0px; text-align: right; }
+.markdown-preview span.float-left, .markdown-preview[data-use-github-style] span.float-left { display: block; float: left; margin-right: 13px; overflow: hidden; }
+.markdown-preview span.float-left span, .markdown-preview[data-use-github-style] span.float-left span { margin: 13px 0px 0px; }
+.markdown-preview span.float-right, .markdown-preview[data-use-github-style] span.float-right { display: block; float: right; margin-left: 13px; overflow: hidden; }
+.markdown-preview span.float-right > span, .markdown-preview[data-use-github-style] span.float-right > span { display: block; margin: 13px auto 0px; overflow: hidden; text-align: right; }
+.markdown-preview code, .markdown-preview[data-use-github-style] code, .markdown-preview tt, .markdown-preview[data-use-github-style] tt { padding: 0.2em 0px; margin: 0px; font-size: 85%; border-radius: 3px; background-color: rgba(0, 0, 0, 0.0392157); }
+.markdown-preview code::before, .markdown-preview[data-use-github-style] code::before, .markdown-preview tt::before, .markdown-preview[data-use-github-style] tt::before, .markdown-preview code::after, .markdown-preview[data-use-github-style] code::after, .markdown-preview tt::after, .markdown-preview[data-use-github-style] tt::after { letter-spacing: -0.2em; content: ' '; }
+.markdown-preview code br, .markdown-preview[data-use-github-style] code br, .markdown-preview tt br, .markdown-preview[data-use-github-style] tt br { display: none; }
+.markdown-preview del code, .markdown-preview[data-use-github-style] del code { text-decoration: inherit; }
+.markdown-preview pre > code, .markdown-preview[data-use-github-style] pre > code { padding: 0px; margin: 0px; font-size: 100%; word-break: normal; white-space: pre; border: 0px; background: transparent; }
+.markdown-preview .highlight, .markdown-preview[data-use-github-style] .highlight { margin-bottom: 16px; }
+.markdown-preview .highlight pre, .markdown-preview[data-use-github-style] .highlight pre, .markdown-preview pre, .markdown-preview[data-use-github-style] pre { padding: 16px; overflow: auto; font-size: 85%; line-height: 1.45; border-radius: 3px; background-color: rgb(247, 247, 247); }
+.markdown-preview .highlight pre, .markdown-preview[data-use-github-style] .highlight pre { margin-bottom: 0px; word-break: normal; }
+.markdown-preview pre, .markdown-preview[data-use-github-style] pre { word-wrap: normal; }
+.markdown-preview pre code, .markdown-preview[data-use-github-style] pre code, .markdown-preview pre tt, .markdown-preview[data-use-github-style] pre tt { display: inline; max-width: initial; padding: 0px; margin: 0px; overflow: initial; line-height: inherit; word-wrap: normal; border: 0px; background-color: transparent; }
+.markdown-preview pre code::before, .markdown-preview[data-use-github-style] pre code::before, .markdown-preview pre tt::before, .markdown-preview[data-use-github-style] pre tt::before, .markdown-preview pre code::after, .markdown-preview[data-use-github-style] pre code::after, .markdown-preview pre tt::after, .markdown-preview[data-use-github-style] pre tt::after { content: normal; }
+.markdown-preview kbd, .markdown-preview[data-use-github-style] kbd { display: inline-block; padding: 3px 5px; font-size: 11px; line-height: 10px; color: rgb(85, 85, 85); vertical-align: middle; border-style: solid; border-width: 1px; border-color: rgb(204, 204, 204) rgb(204, 204, 204) rgb(187, 187, 187); border-radius: 3px; box-shadow: rgb(187, 187, 187) 0px -1px 0px inset; background-color: rgb(252, 252, 252); }
+.markdown-preview, .markdown-preview[data-use-github-style], .markdown-preview code, .markdown-preview[data-use-github-style] code { color: rgb(51, 51, 51); }
+.markdown-preview h1, .markdown-preview[data-use-github-style] h1, .markdown-preview h2, .markdown-preview[data-use-github-style] h2, .markdown-preview h3, .markdown-preview[data-use-github-style] h3, .markdown-preview h4, .markdown-preview[data-use-github-style] h4, .markdown-preview h5, .markdown-preview[data-use-github-style] h5, .markdown-preview h6, .markdown-preview[data-use-github-style] h6 { -webkit-font-smoothing: antialiased; cursor: text; }
+.markdown-preview > h1:first-child, .markdown-preview[data-use-github-style] > h1:first-child, .markdown-preview > h1:first-child + h2, .markdown-preview[data-use-github-style] > h1:first-child + h2, .markdown-preview > h2:first-child, .markdown-preview[data-use-github-style] > h2:first-child, .markdown-preview > h3:first-child, .markdown-preview[data-use-github-style] > h3:first-child, .markdown-preview > h4:first-child, .markdown-preview[data-use-github-style] > h4:first-child, .markdown-preview > h5:first-child, .markdown-preview[data-use-github-style] > h5:first-child, .markdown-preview > h6:first-child, .markdown-preview[data-use-github-style] > h6:first-child { margin-top: 0px; padding-top: 0px; }
+.markdown-preview a, .markdown-preview[data-use-github-style] a, .markdown-preview a code, .markdown-preview[data-use-github-style] a code { color: rgb(65, 131, 196); }
+.markdown-preview a:first-child h1, .markdown-preview[data-use-github-style] a:first-child h1, .markdown-preview a:first-child h2, .markdown-preview[data-use-github-style] a:first-child h2, .markdown-preview a:first-child h3, .markdown-preview[data-use-github-style] a:first-child h3, .markdown-preview a:first-child h4, .markdown-preview[data-use-github-style] a:first-child h4, .markdown-preview a:first-child h5, .markdown-preview[data-use-github-style] a:first-child h5, .markdown-preview a:first-child h6, .markdown-preview[data-use-github-style] a:first-child h6 { margin-top: 0px; padding-top: 0px; }
+.markdown-preview h1 + p, .markdown-preview[data-use-github-style] h1 + p, .markdown-preview h2 + p, .markdown-preview[data-use-github-style] h2 + p, .markdown-preview h3 + p, .markdown-preview[data-use-github-style] h3 + p, .markdown-preview h4 + p, .markdown-preview[data-use-github-style] h4 + p, .markdown-preview h5 + p, .markdown-preview[data-use-github-style] h5 + p, .markdown-preview h6 + p, .markdown-preview[data-use-github-style] h6 + p { margin-top: 0px; }
+.markdown-preview li p.first, .markdown-preview[data-use-github-style] li p.first { display: inline-block; }
+.markdown-preview ul li > :first-child, .markdown-preview[data-use-github-style] ul li > :first-child, .markdown-preview ol li > :first-child, .markdown-preview[data-use-github-style] ol li > :first-child, .markdown-preview ul li ul:first-of-type, .markdown-preview[data-use-github-style] ul li ul:first-of-type, .markdown-preview ol li ul:first-of-type, .markdown-preview[data-use-github-style] ol li ul:first-of-type { margin-top: 0px; }
+.markdown-preview ol > li, .markdown-preview[data-use-github-style] ol > li { list-style-type: decimal; }
+.markdown-preview ul > li, .markdown-preview[data-use-github-style] ul > li { list-style-type: disc; }
+.markdown-preview dl dt:first-child, .markdown-preview[data-use-github-style] dl dt:first-child { padding: 0px; }
+.markdown-preview dl dt > :first-child, .markdown-preview[data-use-github-style] dl dt > :first-child { margin-top: 0px; }
+.markdown-preview dl dt > :last-child, .markdown-preview[data-use-github-style] dl dt > :last-child { margin-bottom: 0px; }
+.markdown-preview dl dd > :first-child, .markdown-preview[data-use-github-style] dl dd > :first-child { margin-top: 0px; }
+.markdown-preview dl dd > :last-child, .markdown-preview[data-use-github-style] dl dd > :last-child { margin-bottom: 0px; }
+.markdown-preview blockquote p, .markdown-preview[data-use-github-style] blockquote p { font-size: 16px; line-height: 1.5; }
+.markdown-preview pre.editor-colors, .markdown-preview[data-use-github-style] pre.editor-colors { padding: 16px; overflow: auto; font-size: 84%; line-height: 1.45; border-radius: 3px; background-color: rgb(29, 31, 33); }
+.markdown-preview pre.editor-colors, .markdown-preview[data-use-github-style] pre.editor-colors { margin-bottom: 16px; word-break: normal; }
+.markdown-preview code, .markdown-preview[data-use-github-style] code, .markdown-preview tt, .markdown-preview[data-use-github-style] tt, .markdown-preview pre.editor-colors, .markdown-preview[data-use-github-style] pre.editor-colors { font-family: Consolas, 'Liberation Mono', Courier, monospace; }
+.markdown-preview .emoji, .markdown-preview[data-use-github-style] .emoji { height: 20px; width: 20px; }
+.markdown-preview code { text-shadow: none; }
+.bracket-matcher .region {
+  border-bottom: 1px dotted lime;
+  position: absolute;
+}
 
-http://creativecommons.org/licenses/by/4.0/
--->
-<!DOCTYPE html><html><head><meta charset="utf-8"><title>Control Panel</title><style></style></head><body>
+.spell-check-misspelling .region {
+  border-bottom: 1px dashed rgba(250, 128, 114, 0.5);
+}
+
+pre.editor-colors,
+.host {
+  background-color: #1d1f21;
+  color: #c5c8c6;
+}
+pre.editor-colors .invisible-character,
+.host .invisible-character {
+  color: rgba(197, 200, 198, 0.2);
+}
+pre.editor-colors .indent-guide,
+.host .indent-guide {
+  color: rgba(197, 200, 198, 0.2);
+}
+pre.editor-colors .wrap-guide,
+.host .wrap-guide {
+  background-color: rgba(197, 200, 198, 0.1);
+}
+pre.editor-colors .gutter,
+.host .gutter {
+  background-color: #292c2f;
+}
+pre.editor-colors .gutter .cursor-line,
+.host .gutter .cursor-line {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+pre.editor-colors .line-number.cursor-line-no-selection,
+.host .line-number.cursor-line-no-selection {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+pre.editor-colors .gutter .line-number.folded,
+.host .gutter .line-number.folded,
+pre.editor-colors .gutter .line-number:after,
+.host .gutter .line-number:after,
+pre.editor-colors .fold-marker:after,
+.host .fold-marker:after {
+  color: #fba0e3;
+}
+pre.editor-colors .invisible,
+.host .invisible {
+  color: #c5c8c6;
+}
+pre.editor-colors .cursor,
+.host .cursor {
+  border-color: #ffffff;
+}
+pre.editor-colors .selection .region,
+.host .selection .region {
+  background-color: #444444;
+}
+pre.editor-colors .source.gfm,
+.host .source.gfm {
+  color: #999;
+}
+pre.editor-colors .gfm .markup.heading,
+.host .gfm .markup.heading {
+  color: #eee;
+}
+pre.editor-colors .gfm .link,
+.host .gfm .link {
+  color: #555;
+}
+pre.editor-colors .gfm .variable.list,
+.host .gfm .variable.list,
+pre.editor-colors .gfm .support.quote,
+.host .gfm .support.quote {
+  color: #555;
+}
+pre.editor-colors .gfm .link .entity,
+.host .gfm .link .entity {
+  color: #ddd;
+}
+pre.editor-colors .gfm .raw,
+.host .gfm .raw {
+  color: #aaa;
+}
+pre.editor-colors .markdown .paragraph,
+.host .markdown .paragraph {
+  color: #999;
+}
+pre.editor-colors .markdown .heading,
+.host .markdown .heading {
+  color: #eee;
+}
+pre.editor-colors .markdown .raw,
+.host .markdown .raw {
+  color: #aaa;
+}
+pre.editor-colors .markdown .link,
+.host .markdown .link {
+  color: #555;
+}
+pre.editor-colors .markdown .link .string,
+.host .markdown .link .string {
+  color: #555;
+}
+pre.editor-colors .markdown .link .string.title,
+.host .markdown .link .string.title {
+  color: #ddd;
+}
+.bracket-matcher .region {
+  border-bottom: 1px solid #f8de7e;
+  margin-top: -1px;
+  opacity: .7;
+}
+.comment {
+  color: #7C7C7C;
+}
+.entity {
+  color: #FFD2A7;
+}
+.entity.name.type {
+  text-decoration: underline;
+  color: #FFFFB6;
+}
+.entity.other.inherited-class {
+  color: #9B5C2E;
+}
+.keyword {
+  color: #96CBFE;
+}
+.keyword.control {
+  color: #96CBFE;
+}
+.keyword.operator {
+  color: #EDEDED;
+}
+.storage {
+  color: #CFCB90;
+}
+.storage.modifier {
+  color: #96CBFE;
+}
+.constant {
+  color: #99CC99;
+}
+.constant.numeric {
+  color: #FF73FD;
+}
+.variable {
+  color: #C6C5FE;
+}
+.invalid.deprecated {
+  text-decoration: underline;
+  color: #FD5FF1;
+}
+.invalid.illegal {
+  color: #FD5FF1;
+  background-color: rgba(86, 45, 86, 0.75);
+}
+.string .source,
+.string .meta.embedded.line {
+  color: #EDEDED;
+}
+.string .punctuation.section.embedded {
+  color: #00A0A0;
+}
+.string .punctuation.section.embedded .source {
+  color: #00A0A0;
+}
+.string {
+  color: #A8FF60;
+}
+.string .constant {
+  color: #00A0A0;
+}
+.string.regexp {
+  color: #E9C062;
+}
+.string.regexp .constant.character.escape,
+.string.regexp .source.ruby.embedded,
+.string.regexp .string.regexp.arbitrary-repetition {
+  color: #FF8000;
+}
+.string.regexp.group {
+  color: #C6A24F;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+.string.regexp.character-class {
+  color: #B18A3D;
+}
+.string .variable {
+  color: #8A9A95;
+}
+.support {
+  color: #FFFFB6;
+}
+.support.function {
+  color: #DAD085;
+}
+.support.constant {
+  color: #FFD2A7;
+}
+.support.type.property-name.css {
+  color: #EDEDED;
+}
+.source .entity.name.tag,
+.source .punctuation.tag {
+  color: #96CBFE;
+}
+.source .entity.other.attribute-name {
+  color: #C6C5FE;
+}
+.entity.other.attribute-name {
+  color: #C6C5FE;
+}
+.entity.name.tag.namespace,
+.entity.other.attribute-name.namespace {
+  color: #E18964;
+}
+.meta.preprocessor.c {
+  color: #8996A8;
+}
+.meta.preprocessor.c .keyword {
+  color: #AFC4DB;
+}
+.meta.cast {
+  color: #676767;
+}
+.meta.sgml.html .meta.doctype,
+.meta.sgml.html .meta.doctype .entity,
+.meta.sgml.html .meta.doctype .string,
+.meta.xml-processing,
+.meta.xml-processing .entity,
+.meta.xml-processing .string {
+  color: #494949;
+}
+.meta.tag .entity,
+.meta.tag > .punctuation,
+.meta.tag.inline .entity {
+  color: #C6C5FE;
+}
+.meta.tag .name,
+.meta.tag.inline .name,
+.meta.tag > .punctuation {
+  color: #96CBFE;
+}
+.meta.selector.css .entity.name.tag {
+  text-decoration: underline;
+  color: #96CBFE;
+}
+.meta.selector.css .entity.other.attribute-name.tag.pseudo-class {
+  color: #8F9D6A;
+}
+.meta.selector.css .entity.other.attribute-name.id {
+  color: #8B98AB;
+}
+.meta.selector.css .entity.other.attribute-name.class {
+  color: #62B1FE;
+}
+.meta.property-group .support.constant.property-value.css,
+.meta.property-value .support.constant.property-value.css {
+  color: #F9EE98;
+}
+.meta.preprocessor.at-rule .keyword.control.at-rule {
+  color: #8693A5;
+}
+.meta.property-value .support.constant.named-color.css,
+.meta.property-value .constant {
+  color: #87C38A;
+}
+.meta.constructor.argument.css {
+  color: #8F9D6A;
+}
+.meta.diff,
+.meta.diff.header {
+  color: #F8F8F8;
+  background-color: #0E2231;
+}
+.meta.separator {
+  color: #60A633;
+  background-color: #242424;
+}
+.meta.line.entry.logfile,
+.meta.line.exit.logfile {
+  background-color: rgba(238, 238, 238, 0.16);
+}
+.meta.line.error.logfile {
+  background-color: #751012;
+}
+</style>
+  </head>
+  <body class='markdown-preview'><p>This work is licensed under a Creative Commons Attribution 4.0 International License.
+<a href="http://creativecommons.org/licenses/by/4.0/">http://creativecommons.org/licenses/by/4.0/</a></p>
 <h1 id="control-panel">Control Panel</h1>
 <hr>
 <h3 id="placement-constants-pc-">Placement Constants (PC)</h3>
-<p><strong>VERTICAL-</strong>Adds new widgets vertically within a container widget<br><strong>HORIZONTAL-</strong>Adds new widgets horizontally within a container widget</p>
+<p><strong>VERTICAL-</strong>Adds new widgets vertically within a container widget</p>
+<p><strong>HORIZONTAL-</strong>Adds new widgets horizontally within a container widget</p>
 <h3 id="layout-constants-lc-">Layout Constants (LC)</h3>
-<p><strong>SWITCH-</strong>Two-state buttons allowing the end-user to toggle the state of a single settings option<br><strong>CHECK_BOX-</strong>Widget for multi-select. It allows the end user to select multiple options from a list.<br><strong>SPINNER-</strong>Widget for single-select. It allows the end user to select a single option from a list.<br><strong>RADIO_BUTTON-</strong>Widget for single-select. It allows the end user to select a single option from a list.<br><strong>SLIDER-</strong>Allows the end user to select a value from a continuous or discrete range. The appearance is linear, either horizontal or vertical.<br><strong>TIME_PICKER-</strong>Allows the end user to specify a time value<br><strong>DATE_PICKER-</strong>Allows the end user to specify a date value<br><strong>NUMBER_PICKER-</strong>Allows the end user to specify a numeric value<br><strong>KEYPAD-</strong>Provides the end user with a numeric entry field and buttons for 0-9 digits, to enter a numeric value. Max digit is 32767<br><strong>ROTARY_KNOB-</strong>An alternate way to represent a slider<br><strong>TEXT_VIEW-</strong>Read-only text label<br><strong>NUMERIC_VIEW-</strong>Provides a read-only, numeric field with an optional label and numbers<br><strong>EDIT_TEXT-</strong>Provides the end user with a text entry field and keyboard. Max characters is 64 per word   </p>
+<p><strong>SWITCH-</strong>Two-state buttons allowing the end-user to toggle the state of a single settings option</p>
+<p><strong>CHECK_BOX-</strong>Widget for multi-select. It allows the end user to select multiple options from a list.</p>
+<p><strong>SPINNER-</strong>Widget for single-select. It allows the end user to select a single option from a list.</p>
+<p><strong>RADIO_BUTTON-</strong>Widget for single-select. It allows the end user to select a single option from a list.</p>
+<p><strong>SLIDER-</strong>Allows the end user to select a value from a continuous or discrete range. The appearance is linear, either horizontal or vertical.</p>
+<p><strong>TIME_PICKER-</strong>Allows the end user to specify a time value</p>
+<p><strong>DATE_PICKER-</strong>Allows the end user to specify a date value</p>
+<p><strong>NUMBER_PICKER-</strong>Allows the end user to specify a numeric value</p>
+<p><strong>KEYPAD-</strong>Provides the end user with a numeric entry field and buttons for 0-9 digits, to enter a numeric value. Max digit is 32767</p>
+<p><strong>ROTARY_KNOB-</strong>An alternate way to represent a slider</p>
+<p><strong>TEXT_VIEW-</strong>Read-only text label</p>
+<p><strong>NUMERIC_VIEW-</strong>Provides a read-only, numeric field with an optional label and numbers</p>
+<p><strong>EDIT_TEXT-</strong>Provides the end user with a text entry field and keyboard. Max characters is 64 per word</p>
 <h3 id="aj-controlpanel-">AJ.controlPanel()</h3>
-<p>Construct a new control panel  </p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> cp = AJ.controlPanel();
-</code></pre>
-<p><strong>.load()-</strong>Run the control panel  </p>
-<pre><code class="lang-javascript">cp.load();
-</code></pre>
+<p>Construct a new control panel</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;cp&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="constant other js"><span>AJ</span></span><span class="meta delimiter method period js"><span>.</span></span><span>controlPanel</span><span class="meta brace round js"><span>(</span><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
+<p><strong>.load()-</strong>Run the control panel</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span class="support function js"><span>load</span></span><span class="meta brace round js"><span>(</span><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
 <p><strong>.path-</strong>Return the file path to the control panel.</p>
-<pre><code class="lang-javascript">cp.path; <span class="hljs-comment">// /Controlpanel</span>
-</code></pre>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>path</span><span class="punctuation terminator statement js"><span>;</span></span><span>&nbsp;</span><span class="comment line double-slash js"><span class="punctuation definition comment js"><span>//</span></span><span>&nbsp;/Controlpanel</span><span>&nbsp;</span></span></span></div></pre>
 <h3 id="containerwidget-">containerWidget()</h3>
-<p><strong>.containerWidget(PC, PC)-</strong>Construct a new container widget that is able to store other widgets with a set of vertical and horizontal attributes. Can contain either vertical, horizontal, or both.  </p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> cw = cp.containerWidget(cp.VERTICAL, cp.HORIZONTAL);
-<span class="hljs-keyword">var</span> cw2 = cw.containerWidget(cp.HORIZONTAL);
-<span class="hljs-keyword">var</span> cw3 = cw.containerWidget(cp.VERTICAL);
-</code></pre>
-<p>Note: the container widget can be built off the control panel or another container widget  </p>
-<p><strong>.enabled-</strong>Set whether or not widgets within the container are enabled  </p>
-<pre><code class="lang-javascript">cw.enabled = <span class="hljs-literal">false</span>;
-cw.enabled = <span class="hljs-literal">true</span>;
-</code></pre>
+<p><strong>.containerWidget(PC, PC)-</strong>Construct a new container widget that is able to store other widgets with a set of vertical and horizontal attributes. Can contain either vertical, horizontal, or both.</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;cw&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cp</span><span class="meta delimiter method period js"><span>.</span></span><span>containerWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>VERTICAL</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;cp</span><span class="meta delimiter method period js"><span>.</span></span><span>HORIZONTAL</span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;cw2&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>containerWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>HORIZONTAL</span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;cw3&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>containerWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>VERTICAL</span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
+<p>Note: the container widget can be built off the control panel or another container widget</p>
+<p><strong>.enabled-</strong>Set whether or not widgets within the container are enabled</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>cw</span><span class="meta delimiter method period js"><span>.</span></span><span>enabled&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="constant language boolean false js"><span>false</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>cw</span><span class="meta delimiter method period js"><span>.</span></span><span>enabled&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="constant language boolean true js"><span>true</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
 <p><strong>.path-</strong>Return the file path to the control panel.</p>
-<pre><code class="lang-javascript">cw.path; <span class="hljs-comment">// /Controlpanel/CONTAINER1</span>
-</code></pre>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>cw</span><span class="meta delimiter method period js"><span>.</span></span><span>path</span><span class="punctuation terminator statement js"><span>;</span></span><span>&nbsp;</span><span class="comment line double-slash js"><span class="punctuation definition comment js"><span>//</span></span><span>&nbsp;/Controlpanel/CONTAINER1</span><span>&nbsp;</span></span></span></div></pre>
 <h3 id="labelwidget-">labelWidget()</h3>
-<p><strong>.labelWidget(String phrase)-</strong>Construct a new label widget which is like a text box<br>phrase: the phrase that the label widget will display </p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> lw = cw.labelWidget(<span class="hljs-string">"Hello World"</span>);
-</code></pre>
-<p>Note: the label widget is built off a container widget  </p>
-<p><strong>.label-</strong>Return/Set the phrase the label displays </p>
-<pre><code class="lang-javascript">lw.label = <span class="hljs-string">"Goodbye World"</span>;
-print(lw.label); <span class="hljs-comment">//Goodbye World</span>
-</code></pre>
+<p><strong>.labelWidget(String phrase)-</strong>Construct a new label widget which is like a text box
+phrase: the phrase that the label widget will display</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;lw&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>labelWidget</span><span class="meta brace round js"><span>(</span></span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Hello&nbsp;World</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
+<p>Note: the label widget is built off a container widget</p>
+<p><strong>.label-</strong>Return/Set the phrase the label displays</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>lw</span><span class="meta delimiter method period js"><span>.</span></span><span class="support constant dom js"><span>label</span></span><span>&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Goodbye&nbsp;World</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="support function js"><span>print</span></span><span class="meta brace round js"><span>(</span></span><span>lw</span><span class="meta delimiter method period js"><span>.</span></span><span class="support constant dom js"><span>label</span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span><span>&nbsp;</span><span class="comment line double-slash js"><span class="punctuation definition comment js"><span>//</span></span><span>Goodbye&nbsp;World</span><span>&nbsp;</span></span></span></div></pre>
 <p><strong>.path-</strong>Return the file path to the control panel.</p>
-<pre><code class="lang-javascript">lw.path; <span class="hljs-comment">// /Controlpanel/CONTAINER1/LABEL2</span>
-</code></pre>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>lw</span><span class="meta delimiter method period js"><span>.</span></span><span>path</span><span class="punctuation terminator statement js"><span>;</span></span><span>&nbsp;</span><span class="comment line double-slash js"><span class="punctuation definition comment js"><span>//</span></span><span>&nbsp;/Controlpanel/CONTAINER1/LABEL2</span><span>&nbsp;</span></span></span></div></pre>
 <h3 id="propertywidget-">propertyWidget()</h3>
-<p><strong>.propertyWidget(LC layout)-</strong>Construct a new property widget, which is an input widget based on the layout chosen<br>layout: a Layout Constant that determines the method of input  </p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> pw = cw.propertyWidget(cp.SWITCH);
-</code></pre>
-<p>Note: the property widget is built off a container widget  </p>
-<p><strong>.propertyWidget(LC layout, value, String label)-</strong>Construct a new property widget, which is an input widget based on the layout chosen and contains a starting value and a label<br>layout: a Layout Constant that determines the method of input<br>value: the inital starting value for the widget<br>label: the label for the widget<br><strong>See below for constructor examples for each LC</strong></p>
-<p><strong>.label-</strong>Return/Set the label of the widget  </p>
-<pre><code class="lang-javascript">pw.label = <span class="hljs-string">"Please make a selection:"</span>;
-print(pw.label); <span class="hljs-comment">//Please make a selection:</span>
-</code></pre>
-<p><strong>.value-</strong>Return/Set the value of the widget  </p>
-<pre><code class="lang-javascript">pw.value = <span class="hljs-number">5</span>;
-print(pw.value); <span class="hljs-comment">//5</span>
-</code></pre>
-<p><strong>.choices-</strong>Set the choices for the widget </p>
-<pre><code class="lang-javascript">pw.choices = [<span class="hljs-string">"One"</span>, <span class="hljs-string">"Two"</span>, <span class="hljs-string">"Three"</span>, <span class="hljs-string">"Four"</span>];
-</code></pre>
-<p>Note: the choices must be Strings<br>Note: must call this function if LC is SPINNER, or RADIO_BUTTON  </p>
-<p><strong>.range-</strong>Set the range for the widget  </p>
-<pre><code class="lang-javascript">pw.range = {min: <span class="hljs-number">0</span>, max: <span class="hljs-number">100</span>, increment: <span class="hljs-number">5</span>, units: <span class="hljs-string">"Celsius"</span>};
-</code></pre>
-<p>Note: must have labels min, max, increment, and units<br>Note: min, max, and increment are integers while units is a String<br>Note: must call this function if LC is SLIDER or ROTARY_KNOB</p>
-<p><strong>.onValueChanged-</strong>this function is called when a property widget&#39;s value has been changed  </p>
-<pre><code class="lang-javascript">pw.onValueChanged = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(val)</span>{</span>print(val);}
-</code></pre>
-<p>Note: val is the value that was just changed  </p>
-<p><strong>.enabled-</strong>Set whether or not the widget is running  </p>
-<pre><code class="lang-javascript">pw.enabled = <span class="hljs-literal">false</span>;
-pw.enabled = <span class="hljs-literal">true</span>;
-</code></pre>
+<p><strong>.propertyWidget(LC layout)-</strong>Construct a new property widget, which is an input widget based on the layout chosen</p>
+<p>layout: a Layout Constant that determines the method of input</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;pw&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>SWITCH</span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
+<p>Note: the property widget is built off a container widget</p>
+<p><strong>.propertyWidget(LC layout, value, String label)-</strong>Construct a new property widget, which is an input widget based on the layout chosen and contains a starting value and a label</p>
+<p>layout: a Layout Constant that determines the method of input</p>
+<p>value: the inital starting value for the widget</p>
+<p>label: the label for the widget</p>
+<p><strong>See below for constructor examples for each LC</strong></p>
+<p><strong>.label-</strong>Return/Set the label of the widget</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>pw</span><span class="meta delimiter method period js"><span>.</span></span><span class="support constant dom js"><span>label</span></span><span>&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Please&nbsp;make&nbsp;a&nbsp;selection:</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="support function js"><span>print</span></span><span class="meta brace round js"><span>(</span></span><span>pw</span><span class="meta delimiter method period js"><span>.</span></span><span class="support constant dom js"><span>label</span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span><span>&nbsp;</span><span class="comment line double-slash js"><span class="punctuation definition comment js"><span>//</span></span><span>Please&nbsp;make&nbsp;a&nbsp;selection:</span><span>&nbsp;</span></span></span></div></pre>
+<p><strong>.value-</strong>Return/Set the value of the widget</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>pw</span><span class="meta delimiter method period js"><span>.</span></span><span class="support constant dom js"><span>value</span></span><span>&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="constant numeric js"><span>5</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="support function js"><span>print</span></span><span class="meta brace round js"><span>(</span></span><span>pw</span><span class="meta delimiter method period js"><span>.</span></span><span class="support constant dom js"><span>value</span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span><span>&nbsp;</span><span class="comment line double-slash js"><span class="punctuation definition comment js"><span>//</span></span><span>5</span><span>&nbsp;</span></span></span></div></pre>
+<p><strong>.choices-</strong>Set the choices for the widget</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>pw</span><span class="meta delimiter method period js"><span>.</span></span><span>choices&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="meta brace square js"><span>[</span></span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>One</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Two</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Three</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Four</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace square js"><span>]</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
+<p>Note: the choices must be Strings</p>
+<p>Note: must call this function if LC is SPINNER, or RADIO_BUTTON</p>
+<p><strong>.range-</strong>Set the range for the widget</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>pw</span><span class="meta delimiter method period js"><span>.</span></span><span>range&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="meta brace curly js"><span>{</span></span><span>min</span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="constant numeric js"><span>0</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;max</span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="constant numeric js"><span>100</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;increment</span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="constant numeric js"><span>5</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;units</span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Celsius</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace curly js"><span>}</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
+<p>Note: must have labels min, max, increment, and units</p>
+<p>Note: min, max, and increment are integers while units is a String</p>
+<p>Note: must call this function if LC is SLIDER or ROTARY_KNOB</p>
+<p><strong>.onValueChanged-</strong>this function is called when a property widget&#39;s value has been changed</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="meta function js"><span class="support class js"><span>pw</span></span><span>.</span><span class="entity name function js"><span>onValueChanged</span></span><span>&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="storage type function js"><span>function</span></span><span class="punctuation definition parameters begin js"><span>(</span></span><span class="variable parameter function js"><span>val</span></span><span class="punctuation definition parameters end js"><span>)</span></span></span><span class="meta brace curly js"><span>{</span></span><span class="support function js"><span>print</span></span><span class="meta brace round js"><span>(</span></span><span>val</span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span><span class="meta brace curly js"><span>}</span></span></span></div></pre>
+<p>Note: val is the value that was just changed</p>
+<p><strong>.enabled-</strong>Set whether or not the widget is running</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>pw</span><span class="meta delimiter method period js"><span>.</span></span><span>enabled&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="constant language boolean false js"><span>false</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>pw</span><span class="meta delimiter method period js"><span>.</span></span><span>enabled&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="constant language boolean true js"><span>true</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
 <p><strong>.path-</strong>Return the file path to the control panel.</p>
-<pre><code class="lang-javascript">pw.path; <span class="hljs-comment">// /Controlpanel/CONTAINER1/PROPERTY2</span>
-</code></pre>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>pw</span><span class="meta delimiter method period js"><span>.</span></span><span>path</span><span class="punctuation terminator statement js"><span>;</span></span><span>&nbsp;</span><span class="comment line double-slash js"><span class="punctuation definition comment js"><span>//</span></span><span>&nbsp;/Controlpanel/CONTAINER1/PROPERTY2</span><span>&nbsp;</span></span></span></div></pre>
 <h3 id="actionwidget-">actionWidget()</h3>
-<p><strong>.actionWidget(String phrase)-</strong>Construct a new action widget which is a button that needs to be pressed before further action can be taken<br>phrase: the phrase that the widget will display on the button  </p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> aw = cw.actionWidget(<span class="hljs-string">"Click Me"</span>);
-</code></pre>
-<p>Note: the action widget is build off a container widget  </p>
-<p><strong>.label-</strong>Return/Set the label of the widget  </p>
-<pre><code class="lang-javascript">aw.label = <span class="hljs-string">"Click Me"</span>;
-print(aw.label); <span class="hljs-comment">//Click Me</span>
-</code></pre>
-<p><strong>.enabled-</strong>Set whether or not the button can be pressed  </p>
-<pre><code class="lang-javascript">aw.enabled = <span class="hljs-literal">false</span>;
-aw.enabled = <span class="hljs-literal">true</span>;
-</code></pre>
+<p><strong>.actionWidget(String phrase)-</strong>Construct a new action widget which is a button that needs to be pressed before further action can be taken
+phrase: the phrase that the widget will display on the button</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;aw&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>actionWidget</span><span class="meta brace round js"><span>(</span></span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Click&nbsp;Me</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
+<p>Note: the action widget is build off a container widget</p>
+<p><strong>.label-</strong>Return/Set the label of the widget</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>aw</span><span class="meta delimiter method period js"><span>.</span></span><span class="support constant dom js"><span>label</span></span><span>&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Click&nbsp;Me</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="support function js"><span>print</span></span><span class="meta brace round js"><span>(</span></span><span>aw</span><span class="meta delimiter method period js"><span>.</span></span><span class="support constant dom js"><span>label</span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span><span>&nbsp;</span><span class="comment line double-slash js"><span class="punctuation definition comment js"><span>//</span></span><span>Click&nbsp;Me</span><span>&nbsp;</span></span></span></div></pre>
+<p><strong>.enabled-</strong>Set whether or not the button can be pressed</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>aw</span><span class="meta delimiter method period js"><span>.</span></span><span>enabled&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="constant language boolean false js"><span>false</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>aw</span><span class="meta delimiter method period js"><span>.</span></span><span>enabled&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="constant language boolean true js"><span>true</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
 <p><strong>.path-</strong>Return the file path to the control panel.</p>
-<pre><code class="lang-javascript">aw.path; <span class="hljs-comment">// /Controlpanel/CONTAINER1/ACTION2</span>
-</code></pre>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>aw</span><span class="meta delimiter method period js"><span>.</span></span><span>path</span><span class="punctuation terminator statement js"><span>;</span></span><span>&nbsp;</span><span class="comment line double-slash js"><span class="punctuation definition comment js"><span>//</span></span><span>&nbsp;/Controlpanel/CONTAINER1/ACTION2</span><span>&nbsp;</span></span></span></div></pre>
 <h3 id="dialogwidget-">dialogWidget()</h3>
-<p><strong>.dialogWidget(String phrase)-</strong>Construct a new dialog widget, which is a widget that pops up a dialog box and provides 1-3 choices with actions<br>phrase: the phrase that the widget will display  </p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> dw = aw.dialogWidget(<span class="hljs-string">"Please choose:"</span>);
-</code></pre>
-<p>Note: the dialog widget is built off an action widget  </p>
-<p><strong>.buttons-</strong>Set the buttons for the widget  </p>
-<pre><code class="lang-javascript">dw.buttons = [
-    {label: <span class="hljs-string">"Yes"</span>, onClick: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>{</span>print(<span class="hljs-string">"Yes"</span>);}},
-    {label: <span class="hljs-string">"No"</span>, onClick: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>{</span>print(<span class="hljs-string">"No"</span>);}}
-];
-</code></pre>
-<p>Note: must have labels label and onClick, must call this function in order to run the dialog widget, and must have 1-3 buttons<br>Note: label is a String and onClick is a function</p>
+<p><strong>.dialogWidget(String phrase)-</strong>Construct a new dialog widget, which is a widget that pops up a dialog box and provides 1-3 choices with actions</p>
+<p>phrase: the phrase that the widget will display</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;dw&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;aw</span><span class="meta delimiter method period js"><span>.</span></span><span>dialogWidget</span><span class="meta brace round js"><span>(</span></span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Please&nbsp;choose:</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
+<p>Note: the dialog widget is built off an action widget</p>
+<p><strong>.buttons-</strong>Set the buttons for the widget</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>dw</span><span class="meta delimiter method period js"><span>.</span></span><span>buttons&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="meta brace square js"><span>[</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="meta brace curly js"><span>{</span></span><span>label</span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Yes</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="meta function json js"><span class="entity name function js"><span>onClick</span></span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="storage type function js"><span>function</span></span><span class="punctuation definition parameters begin js"><span>(</span></span><span class="punctuation definition parameters end js"><span>)</span></span></span><span class="meta brace curly js"><span>{</span></span><span class="support function js"><span>print</span></span><span class="meta brace round js"><span>(</span></span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Yes</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span><span class="meta brace curly js"><span>}</span><span>}</span></span><span class="meta delimiter object comma js"><span>,</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="meta brace curly js"><span>{</span></span><span>label</span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>No</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="meta function json js"><span class="entity name function js"><span>onClick</span></span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="storage type function js"><span>function</span></span><span class="punctuation definition parameters begin js"><span>(</span></span><span class="punctuation definition parameters end js"><span>)</span></span></span><span class="meta brace curly js"><span>{</span></span><span class="support function js"><span>print</span></span><span class="meta brace round js"><span>(</span></span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>No</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span><span class="meta brace curly js"><span>}</span><span>}</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="meta brace square js"><span>]</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
+<p>Note: must have labels label and onClick, must call this function in order to run the dialog widget, and must have 1-3 buttons</p>
+<p>Note: label is a String and onClick is a function</p>
 <p><strong>.path-</strong>Return the file path to the control panel.</p>
-<pre><code class="lang-javascript">dw.path; <span class="hljs-comment">// /Controlpanel/CONTAINER1/ACTION2/DIALOG3</span>
-</code></pre>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>dw</span><span class="meta delimiter method period js"><span>.</span></span><span>path</span><span class="punctuation terminator statement js"><span>;</span></span><span>&nbsp;</span><span class="comment line double-slash js"><span class="punctuation definition comment js"><span>//</span></span><span>&nbsp;/Controlpanel/CONTAINER1/ACTION2/DIALOG3</span><span>&nbsp;</span></span></span></div></pre>
 <h3 id="constructor-examples-for-layout-constants">Constructor Examples for Layout Constants</h3>
 <p><strong>SWITCH</strong></p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> sw = cw.propertyWidget(cp.SWITCH, <span class="hljs-literal">true</span>, <span class="hljs-string">"Bedroom Lights"</span>);
-</code></pre>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;sw&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>SWITCH</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="constant language boolean true js"><span>true</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Bedroom&nbsp;Lights</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
 <p>Note: value is a boolean</p>
 <p><strong>CHECK_BOX</strong></p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> cb = cw.propertyWidget(cp.CHECK_BOX, <span class="hljs-literal">true</span>, <span class="hljs-string">"Hot"</span>);
-</code></pre>
+<pre class="editor-colors lang-javascrip"><div class="line"><span class="text plain null-grammar"><span>t</span></span></div><div class="line"><span class="text plain null-grammar"><span>var&nbsp;cb&nbsp;=&nbsp;cw.propertyWidget(cp.CHECK_BOX,&nbsp;true,&nbsp;&quot;Hot&quot;);</span></span></div></pre>
 <p>Note: value is a boolean</p>
 <p><strong>SPINNER</strong></p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> sp = cw.propertyWidget(cp.SPINNER, <span class="hljs-number">0</span>, <span class="hljs-string">"Mood Lighting Color"</span>);
-</code></pre>
-<p>Note: value is an integer and refers to the index of the .choices array<br>Note: must assign .choices in order for LC to work</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;sp&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>SPINNER</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="constant numeric js"><span>0</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Mood&nbsp;Lighting&nbsp;Color</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
+<p>Note: value is an integer and refers to the index of the .choices array</p>
+<p>Note: must assign .choices in order for LC to work</p>
 <p><strong>RADIO_BUTTON</strong></p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> rb = cw.propertyWidget(cp.RADIO_BUTTON, <span class="hljs-number">2</span>, <span class="hljs-string">"Lighting Options"</span>);
-</code></pre>
-<p>Note: value is an integer and refers to the index of the .choices array<br>Note: must assign .choices in order for LC to work</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;rb&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>RADIO_BUTTON</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="constant numeric js"><span>2</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Lighting&nbsp;Options</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
+<p>Note: value is an integer and refers to the index of the .choices array</p>
+<p>Note: must assign .choices in order for LC to work</p>
 <p><strong>SLIDER</strong></p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> sl = cw.propertyWidget(cp.SLIDER, <span class="hljs-number">21</span>, <span class="hljs-string">"Room Temperature"</span>);
-</code></pre>
-<p>Note: value is an integer within the range set by .range<br>Note: must assign .range in order for LC to work  </p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;sl&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>SLIDER</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="constant numeric js"><span>21</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Room&nbsp;Temperature</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
+<p>Note: value is an integer within the range set by .range</p>
+<p>Note: must assign .range in order for LC to work</p>
 <p><strong>TIME_PICKER</strong></p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> tp = cw.propertyWidget(cp.TIME_PICKER);
-</code></pre>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;tp&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>TIME_PICKER</span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
 <p><strong>DATE_PICKER</strong></p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> dp = cw.propertyWidget(cp.DATE_PICKER);
-</code></pre>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;dp&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>DATE_PICKER</span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
 <p><strong>NUMBER_PICKER</strong></p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> np = cw.propertyWidget(cp.NUMBER_PICKER);
-</code></pre>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;np&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>NUMBER_PICKER</span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
 <p><strong>KEYPAD</strong></p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> kp = cw.propertyWidget(cp.KEYPAD, <span class="hljs-number">0</span>, <span class="hljs-string">"Please enter your password"</span>);
-</code></pre>
-<p>Note: value is an integer  </p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;kp&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>KEYPAD</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="constant numeric js"><span>0</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Please&nbsp;enter&nbsp;your&nbsp;password</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
+<p>Note: value is an integer</p>
 <p><strong>ROTARY_KNOB</strong></p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> rk = cw.propertyWidget(cp.ROTARY_KNOB, <span class="hljs-number">30</span>, <span class="hljs-string">"Sound Volume"</span>);
-</code></pre>
-<p>Note: value is an integer within the range set by .range<br>Note: must assign .range in order for LC to work</p>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;rk&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>ROTARY_KNOB</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="constant numeric js"><span>30</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Sound&nbsp;Volume</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
+<p>Note: value is an integer within the range set by .range</p>
+<p>Note: must assign .range in order for LC to work</p>
 <p><strong>TEXT_VIEW</strong></p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> tv = cw.propertyWidget(cp.TEXT_VIEW, <span class="hljs-string">"Green"</span>, <span class="hljs-string">"Mood Lighting Color:"</span>);
-</code></pre>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;tv&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>TEXT_VIEW</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Green</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Mood&nbsp;Lighting&nbsp;Color:</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
 <p>Note: value is a String</p>
 <p><strong>NUMERIC_VIEW</strong></p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> nv = cw.propertyWidget(cp.NUMERIC_vIEW, <span class="hljs-number">45</span>, <span class="hljs-string">"Time left on Washing Machine:"</span>);
-</code></pre>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;nv&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>NUMERIC_vIEW</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="constant numeric js"><span>45</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Time&nbsp;left&nbsp;on&nbsp;Washing&nbsp;Machine:</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
 <p>Note: value is an integer</p>
 <p><strong>EDIT_TEXT</strong></p>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> et = cw.propertyWidget(cp.EDIT_TEXT, <span class="hljs-string">""</span>, <span class="hljs-string">"Please Type in Name for Appliance"</span>);
-</code></pre>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;et&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cw</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>EDIT_TEXT</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Please&nbsp;Type&nbsp;in&nbsp;Name&nbsp;for&nbsp;Appliance</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre>
 <p>Note: value is a String</p>
 <h3 id="control-panel-example-washing-machine">Control Panel Example-Washing Machine</h3>
-<pre><code class="lang-javascript"><span class="hljs-keyword">var</span> cp = AJ.controlPanel();
-<span class="hljs-keyword">var</span> root = cp.containerWidget(cp.VERTICAL, cp.HORIZONTAL);
-<span class="hljs-keyword">var</span> title = root.labelWidget(<span class="hljs-string">"Washing Machine Settings"</span>);
-
-<span class="hljs-keyword">var</span> label = root.propertyWidget(cp.TEXT_VIEW, <span class="hljs-string">"Water Temperature:"</span>);
-<span class="hljs-keyword">var</span> temp = root.containerWidget(cp.HORIZONTAL);
-<span class="hljs-keyword">var</span> hot = temp.propertyWidget(cp.CHECK_BOX, <span class="hljs-literal">false</span>, <span class="hljs-string">"Hot"</span>);
-<span class="hljs-keyword">var</span> warm = temp.propertyWidget(cp.CHECK_BOX, <span class="hljs-literal">false</span>, <span class="hljs-string">"Warm"</span>);
-<span class="hljs-keyword">var</span> cold = temp.propertyWidget(cp.CHECK_BOX, <span class="hljs-literal">false</span>, <span class="hljs-string">"Cold"</span>);
-
-<span class="hljs-keyword">var</span> speed = root.containerWidget(cp.HORIZONTAL);
-<span class="hljs-keyword">var</span> spin = speed.propertyWidget(cp.RADIO_BUTTON, <span class="hljs-number">0</span>, <span class="hljs-string">"Spin Speed:"</span>);
-spin.choices = [<span class="hljs-string">"Fast"</span>, <span class="hljs-string">"Medium"</span>, <span class="hljs-string">"Slow"</span>];
-
-<span class="hljs-keyword">var</span> size = root.containerWidget(cp.VERTICAL);
-<span class="hljs-keyword">var</span> load = size.propertyWidget(cp.SPINNER, <span class="hljs-number">0</span>, <span class="hljs-string">"Load Size:"</span>);
-load.choices = [<span class="hljs-string">"Extra-Large"</span>, <span class="hljs-string">"Large"</span>, <span class="hljs-string">"Medium"</span>, <span class="hljs-string">"Small"</span>];
-
-<span class="hljs-keyword">var</span> time = root.containerWidget(cp.VERTICAL);
-<span class="hljs-keyword">var</span> delay = time.propertyWidget(cp.SLIDER, <span class="hljs-number">0</span>, <span class="hljs-string">"Time Delay:"</span>);
-delay.range = {min: <span class="hljs-number">0</span>, max: <span class="hljs-number">120</span>, increment: <span class="hljs-number">1</span>, units: <span class="hljs-string">"Minutes"</span>};
-
-<span class="hljs-keyword">var</span> submit = root.actionWidget(<span class="hljs-string">"SUBMIT"</span>);
-<span class="hljs-keyword">var</span> confirm = submit.dialogWidget(<span class="hljs-string">"Are you sure?"</span>);
-confirm.buttons = [
-    {label: <span class="hljs-string">"Yes"</span>, onClick: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>{</span>root.enabled = <span class="hljs-literal">false</span>; 
-                                       hot.enabled = <span class="hljs-literal">false</span>;
-                                       warm.enabled = <span class="hljs-literal">false</span>;
-                                       cold.enabled = <span class="hljs-literal">false</span>;
-                                       submit.enabled = <span class="hljs-literal">false</span>;
-                                       speed.enabled = <span class="hljs-literal">false</span>;}},
-    {label: <span class="hljs-string">"No"</span>, onClick: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span>{</span>}}
-];
-cp.load();
-</code></pre>
-
-</body></html>
+<pre class="editor-colors lang-javascript"><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;cp&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="constant other js"><span>AJ</span></span><span class="meta delimiter method period js"><span>.</span></span><span>controlPanel</span><span class="meta brace round js"><span>(</span><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;root&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;cp</span><span class="meta delimiter method period js"><span>.</span></span><span>containerWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>VERTICAL</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;cp</span><span class="meta delimiter method period js"><span>.</span></span><span>HORIZONTAL</span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;title&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;root</span><span class="meta delimiter method period js"><span>.</span></span><span>labelWidget</span><span class="meta brace round js"><span>(</span></span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Washing&nbsp;Machine&nbsp;Settings</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;label&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;root</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>TEXT_VIEW</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Water&nbsp;Temperature:</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;temp&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;root</span><span class="meta delimiter method period js"><span>.</span></span><span>containerWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>HORIZONTAL</span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;hot&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;temp</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>CHECK_BOX</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="constant language boolean false js"><span>false</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Hot</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;warm&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;temp</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>CHECK_BOX</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="constant language boolean false js"><span>false</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Warm</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;cold&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;temp</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>CHECK_BOX</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="constant language boolean false js"><span>false</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Cold</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;speed&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;root</span><span class="meta delimiter method period js"><span>.</span></span><span>containerWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>HORIZONTAL</span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;spin&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;speed</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>RADIO_BUTTON</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="constant numeric js"><span>0</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Spin&nbsp;Speed:</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>spin</span><span class="meta delimiter method period js"><span>.</span></span><span>choices&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="meta brace square js"><span>[</span></span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Fast</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Medium</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Slow</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace square js"><span>]</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;size&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;root</span><span class="meta delimiter method period js"><span>.</span></span><span>containerWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>VERTICAL</span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;load&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;size</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>SPINNER</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="constant numeric js"><span>0</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Load&nbsp;Size:</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>load</span><span class="meta delimiter method period js"><span>.</span></span><span>choices&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="meta brace square js"><span>[</span></span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Extra-Large</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Large</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Medium</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Small</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace square js"><span>]</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;time&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;root</span><span class="meta delimiter method period js"><span>.</span></span><span>containerWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>VERTICAL</span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;delay&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;time</span><span class="meta delimiter method period js"><span>.</span></span><span>propertyWidget</span><span class="meta brace round js"><span>(</span></span><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span>SLIDER</span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="constant numeric js"><span>0</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Time&nbsp;Delay:</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>delay</span><span class="meta delimiter method period js"><span>.</span></span><span>range&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="meta brace curly js"><span>{</span></span><span>min</span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="constant numeric js"><span>0</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;max</span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="constant numeric js"><span>120</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;increment</span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="constant numeric js"><span>1</span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;units</span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Minutes</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace curly js"><span>}</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;submit&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;root</span><span class="meta delimiter method period js"><span>.</span></span><span>actionWidget</span><span class="meta brace round js"><span>(</span></span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>SUBMIT</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span></span></div><div class="line"><span class="source js"><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span class="storage modifier js"><span>var</span></span><span>&nbsp;confirm&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;submit</span><span class="meta delimiter method period js"><span>.</span></span><span>dialogWidget</span><span class="meta brace round js"><span>(</span></span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Are&nbsp;you&nbsp;sure?</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta brace round js"><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>confirm</span><span class="meta delimiter method period js"><span>.</span></span><span>buttons&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="meta brace square js"><span>[</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="meta brace curly js"><span>{</span></span><span>label</span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>Yes</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="meta function json js"><span class="entity name function js"><span>onClick</span></span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="storage type function js"><span>function</span></span><span class="punctuation definition parameters begin js"><span>(</span></span><span class="punctuation definition parameters end js"><span>)</span></span></span><span class="meta brace curly js"><span>{</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root</span><span class="meta delimiter method period js"><span>.</span></span><span>enabled&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="constant language boolean false js"><span>false</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hot</span><span class="meta delimiter method period js"><span>.</span></span><span>enabled&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="constant language boolean false js"><span>false</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;warm</span><span class="meta delimiter method period js"><span>.</span></span><span>enabled&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="constant language boolean false js"><span>false</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cold</span><span class="meta delimiter method period js"><span>.</span></span><span>enabled&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="constant language boolean false js"><span>false</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;submit</span><span class="meta delimiter method period js"><span>.</span></span><span>enabled&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="constant language boolean false js"><span>false</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;speed</span><span class="meta delimiter method period js"><span>.</span></span><span>enabled&nbsp;</span><span class="keyword operator js"><span>=</span></span><span>&nbsp;</span><span class="constant language boolean false js"><span>false</span></span><span class="punctuation terminator statement js"><span>;</span></span><span class="meta brace curly js"><span>}</span><span>}</span></span><span class="meta delimiter object comma js"><span>,</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="meta brace curly js"><span>{</span></span><span>label</span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="string quoted double js"><span class="punctuation definition string begin js"><span>&quot;</span></span><span>No</span><span class="punctuation definition string end js"><span>&quot;</span></span></span><span class="meta delimiter object comma js"><span>,</span></span><span>&nbsp;</span><span class="meta function json js"><span class="entity name function js"><span>onClick</span></span><span class="keyword operator js"><span>:</span></span><span>&nbsp;</span><span class="storage type function js"><span>function</span></span><span class="punctuation definition parameters begin js"><span>(</span></span><span class="punctuation definition parameters end js"><span>)</span></span></span><span class="punctuation section scope begin js"><span>{</span></span><span class="punctuation section scope end js"><span>}</span></span><span class="meta brace curly js"><span>}</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span class="meta brace square js"><span>]</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div><div class="line"><span class="source js"><span>&nbsp;</span></span></div><div class="line"><span class="source js"><span>cp</span><span class="meta delimiter method period js"><span>.</span></span><span class="support function js"><span>load</span></span><span class="meta brace round js"><span>(</span><span>)</span></span><span class="punctuation terminator statement js"><span>;</span></span></span></div></pre></body>
+</html>

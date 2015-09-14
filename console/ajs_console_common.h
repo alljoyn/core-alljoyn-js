@@ -76,6 +76,12 @@ typedef void (*AJS_PrintHandler)(const char* message);
 typedef void (*AJS_AlertHandler)(const char* message);
 
 /**
+ * Throw function handler. This type of C function can be registered to
+ * handler throw messages from AllJoyn.js
+ */
+typedef void (*AJS_ThrowHandler)(const char* message);
+
+/**
  * Debug version handler. This C function can be registered to handler
  * debug notification signals which are sent when debugging begins.
  */
@@ -101,6 +107,7 @@ typedef struct {
     AJS_NotificationHandler notification;
     AJS_PrintHandler print;
     AJS_AlertHandler alert;
+    AJS_ThrowHandler throwMsg;
     AJS_DebugVersionHandler dbgVersion;
     AJS_DebugNotificationHandler dbgNotification;
     AJS_DeferredEvalHandler evalResult;

@@ -1,10 +1,10 @@
 This work is licensed under a Creative Commons Attribution 4.0 International License.
 http://creativecommons.org/licenses/by/4.0/
 
-##AllJoyn Signals, Methods, and Properties
+## AllJoyn Signals, Methods, and Properties
 ***
 
-###Message Types
+### Message Types
 
 **AJ.METHOD-**A message that has specific arguments included and requires a return value
 
@@ -39,7 +39,7 @@ AJ.interfaceDefinition["org.alljoyn.marshal_test"] = {
 
 ```
 
-###Message Methods
+### Message Methods
 
 **AJ.interfaceDefinition[String interface]-**List all of the different methods/signals/properties within the given interface
 
@@ -91,7 +91,7 @@ AJ.onDetach = function()
 
 ```
 
-###Sending Message Methods
+### Sending Message Methods
 
 **AJ.findService(String interface, function() {})-**Find the service that is using the given interface and perform the given function once the service has been found.
 interface: the interface name from the interface definition
@@ -107,7 +107,7 @@ AJ.findService('org.alljoyn.test', function(svc) {});
 ```javascript
 
 AJ.onPeerConnected = function(svc) {
-    
+
     return true;
 
 }
@@ -152,11 +152,11 @@ name.call({"s":"Hello"});
 
 name.onReply = function(arg) {print(arg);}
 
-``` 
+```
 
 **.signal(String objectDef, String interfaceDef, String name)-**Create a signal message using the information provided in the interface definition and the object definition on the service found from AJ.findService.
 
-objectDef: the path for the object from objectDefinition  
+objectDef: the path for the object from objectDefinition
 
 interfaceDef: the name of the interface definition from interfaceDefinition
 
@@ -229,7 +229,7 @@ svc.getAllProps("org.alljoyn.marshal_test").onReply = function() {
 
 
 
-###Receiving Message Methods
+### Receiving Message Methods
 
 **AJ.onMethodCall-**This function is called when the program receives a method message
 
@@ -354,7 +354,7 @@ AJ.addMatch('org.alljoyn.test', 'signal1');
 ```
 
 
-###Data Types (DT)
+### Data Types (DT)
 
 **"y"-**Byte (8-bit unsigned integer)
 
@@ -400,7 +400,7 @@ AJ.interfaceDefinition["org.alljoyn.test"] = {
     method2:{type:AJ.METHOD, args:["ai"], returns:["dbs"]},
 
     method3:{type:AJ.METHOD, args:["ay"], returns:["(ii)"]},
-  
+
   method4:{type:AJ.METHOD, args:["a{is}"], returns:["a{is}"]},
 
     signal1:{type:AJ.SIGNAL, args:["d"]},

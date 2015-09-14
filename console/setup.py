@@ -63,9 +63,10 @@ elif platform == 'Windows':
                            define_macros = [('QCC_OS_GROUP_WINDOWS', None),
                                             ('QCC_CPU_X86_64', None),
                                             ('_ITERATOR_DEBUG_LEVEL', 0),
-                                            ('_GLIBCXX_USE_C99_FP_MACROS_DYNAMIC', None)
+                                            ('_GLIBCXX_USE_C99_FP_MACROS_DYNAMIC', None),
+                                            ('_CRT_SECURE_NO_WARNINGS', None)
                                             ],
-                           extra_compile_args = ['/vmm', '/vmg', '/Zi'],
+                           extra_compile_args = ['/vmm', '/vmg', '/Zi', '/EHsc'],
                            include_dirs = [distdir + 'cpp/inc',
                                            distdir + 'about/inc'],
                            library_dirs = [distdir + 'cpp/lib',

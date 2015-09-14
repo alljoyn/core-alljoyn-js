@@ -3,7 +3,8 @@ Import('jsenv')
 jsenv['srcs'].extend(File([
     'ajs_main.c',
     'ajs_malloc.c',
-    'ajs_obs_stubs.c'
+    'ajs_obs_stubs.c',
+    'ajs_stubs.c'
 ]))
 
 if jsenv['ENV'].get('YUN_BUILD', '0') == '1':

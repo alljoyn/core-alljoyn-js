@@ -17,9 +17,9 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
-#include "ajs.h"
+#include "../ajs.h"
 
-AJ_Status AJS_RegisterIO(duk_context* ctx)
+AJ_Status AJS_TargetModuleLoad(duk_context* ctx, duk_idx_t idx, const char* id)
 {
-    return AJ_OK;
+    return AJ_ERR_INVALID;
 }

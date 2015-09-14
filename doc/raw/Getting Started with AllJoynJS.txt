@@ -1,9 +1,9 @@
-This work is licensed under a Creative Commons Attribution 4.0 International License.  
+This work is licensed under a Creative Commons Attribution 4.0 International License.
 http://creativecommons.org/licenses/by/4.0/
 
-##Getting Started with AllJoyn.js
+## Getting Started with AllJoyn.js
 
-###Background
+### Background
 The primary goal of AllJoyn.js is to make it easy to develop AllJoyn applications in one of the most widely used programming languages in the world.
 
 AllJoyn.js is a deep integration of the AllJoyn Thin Core Library (AJTCL) and base services with Duktape (www.duktape.org), an ECMAScript 5.0 compliant compiler and runtime specifically designed for running in small-footprint embedded microcontrollers. Although designed to work within the limited resources of embedded mocrocontrollers, Alljoyn.js is not limited to this use case and can also be used for general AllJoyn programming on Windows, Linux, and other high-level operating systems.
@@ -14,20 +14,13 @@ Over time the plan is to add additional features to the ScriptConsole to support
 
 As AllJoyn.js matures we expect the community will produce binary images for specific microcontroller boards and installable packages for high level operating systems. Currently AllJoyn.js must be built from source code. The instructions for building AllJoyn.js are below.
 
-###Downloading Duktape
-AllJoyn.js uses some very new features of duktape (debugging) and thus requres a very recent snapshot of the codebase. There is currently no formal release out that contains the functionality needed so a brebuilt snapshot of the master branch (git) is needed. This can be found here: (duktape-1.1.x):  
-http://duktape.org/snapshots/duktape-master.tar.xz
+### Downloading Duktape
+Duktape 1.2.1 can be downloaded [here](http://www.duktape.org/duktape-1.2.1.tar.xz)
+After downloading, set the environment variable DUKTAPE_DIST to point to the distribution root directory. This is the top level directory for the release version and the dist subdirectory if you build the distribution yourself. DUKTAPE_DIST defaults to “./external/duktape”, which works well if you clone the duktape git repository at that path within the alljoyn-js code tree.
 
-Alternatively, the sources can be obtained by cloning from github at  
-https://github.com/svaarala/duktape.git (master)
-
-If you are feeling more adventurous you can build the duktape distribution from the master branch on github which may include bug fixes or less mature code. Building the duktape distribution is best done on Linux because of the external tool dependencies.
-
-After downloading or building the distribution, set the environment variable DUKTAPE_DIST to point to the distribution root directory. This is the top level directory for the release version and the dist subdirectory if you build the distribution yourself. DUKTAPE_DIST defaults to “./external/duktape”, which works well if you clone the duktape git repository at that path within the alljoyn-js code tree.
-
-###Building AllJoyn.js on Windows 7
-Even if you are planning to use the prebuilt SDK (see below) you will need to setup the build environment as described in the link below.  
-https://allseenalliance.org/docs-and-downloads/documentation/configuring-build-environment-microsoft-windows-xp-and-windows-7 
+### Building AllJoyn.js on Windows 7
+Even if you are planning to use the prebuilt SDK (see below) you will need to setup the build environment as described in the link below.
+https://allseenalliance.org/docs-and-downloads/documentation/configuring-build-environment-microsoft-windows-xp-and-windows-7
 
 Note:  At this time AllJoyn.js has not been built for Windows XP
 
@@ -37,36 +30,36 @@ To build AllJoyn.js run the scons script in the alljoyn-js project directory. It
 
 You may need to specify the version of visual studio on the scons command line. For example if you are using Visual Studio 11.0 (Visual Studio 2012) you will need to run `scons MSVC_VERSION=11.0`
 
-####Console client for Windows
-The console client is an AllJoyn standard core library application. It can be compiled against the AllJoyn 14.06 prebuilt SDK and libraries which can be downloaded from here:  
+#### Console client for Windows
+The console client is an AllJoyn standard core library application. It can be compiled against the AllJoyn 14.06 prebuilt SDK and libraries which can be downloaded from here:
 https://allseenalliance.org/source-code
 
-After unzipping the appropriate SDK version set the ALLJOYN_DISTDIR environment variable to point to the SDK directory and run scons to build it.  
+After unzipping the appropriate SDK version set the ALLJOYN_DISTDIR environment variable to point to the SDK directory and run scons to build it.
 `scons VARIANT=[release|debug]`
 
 Note: the beta SDK is compiled with Visual Studio 11.0 – if you have a different version of Visual Studio you will need to build the AllJoyn standard core library from source.
 
-###Building AllJoyn.js on Linux
-On Linux AllJoyn.js must be built from source. The following link has instructions on how to configure the build environment for Linux.  
-https://allseenalliance.org/docs-and-downloads/documentation/configuring-build-environment-linux-platform  
+### Building AllJoyn.js on Linux
+On Linux AllJoyn.js must be built from source. The following link has instructions on how to configure the build environment for Linux.
+https://allseenalliance.org/docs-and-downloads/documentation/configuring-build-environment-linux-platform
 
-Run scons in ajtcl first to build the thin core libraries. 
+Run scons in ajtcl first to build the thin core libraries.
 
 AllJoyn.js requires some code changes that are not part of AllJoyn 14.06 so you will need to build the AJTCL libraries from the master branch source as described in the documentation.
 
-To build AllJoyn.js run the scons script in the alljoyn-js project directory. It will be simpler if you keep the directory structure as it appears in the git repo with ajtcl, alljoyn, and alljoyn-js all at the same level. 
+To build AllJoyn.js run the scons script in the alljoyn-js project directory. It will be simpler if you keep the directory structure as it appears in the git repo with ajtcl, alljoyn, and alljoyn-js all at the same level.
 
-####Console client for Linux
-The console client is an AllJoyn standard core library application. You can download the AllJoyn 14.06 source code tarball from here:  
+#### Console client for Linux
+The console client is an AllJoyn standard core library application. You can download the AllJoyn 14.06 source code tarball from here:
 https://allseenalliance.org/source-code
 
-Follow the build instructions for building the standard core library  
+Follow the build instructions for building the standard core library
 https://wiki.allseenalliance.org/develop/building_and_running
 
-After building the standard core libraries set the ALLJOYN_DISTDIR environment variable to point to the SDK directory and run scons to build the console application.  
+After building the standard core libraries set the ALLJOYN_DISTDIR environment variable to point to the SDK directory and run scons to build the console application.
 `scons VARIANT=[release|debug]`
 
-###Running AllJoyn.js
+### Running AllJoyn.js
 AllJoyn.js always runs as an AllJoyn leaf node which requires that there be a routing node available somewhere on the network. For testing purposes it is convenient to run a routing node and multiple AllJoyn.js applications on the same computer.
 
 If you are running on Windows with the 14.06 SDK there is a pre-built routing node called SampleDaemon in the bin\samples subdirectory. If you are on Linux the SampleDaemon get built when the AllJoyn standard libraries are built and is in dist/cpp/bin/samples.
@@ -89,16 +82,16 @@ Connected to Routing Node with BusUniqueName=:LH9ybZbr.4
 000.512 aj_msg.c:1093 Discarding bad message AJ_ERR_NO_MATCH
 000.517 aj_msg.c:1093 Discarding bad message AJ_ERR_NO_MATCH
 ```
-Don’t worry about the “Discarding bad message” errors;  this is reporting that an unrecognized message was received and has been ignored.  The NVRAM errors are from the config service and just mean that the device has not been configured – again nothing to be concerned about. 
+Don’t worry about the “Discarding bad message” errors;  this is reporting that an unrecognized message was received and has been ignored.  The NVRAM errors are from the config service and just mean that the device has not been configured – again nothing to be concerned about.
 
-The important output is the line that says that alljoynjs has connected to the routing node as has been given a unique name. 
+The important output is the line that says that alljoynjs has connected to the routing node as has been given a unique name.
 
 Open another term/cmd window and run ajs_console you should see something like this:
 ```
 Found script console service: :LH9ybZbr.4
 Joined session: 2799231907
 ```
-The string “:LH9ybZbr.4” should be the same unique name that alljoynjs reported and tells us we connected to the correct application. 
+The string “:LH9ybZbr.4” should be the same unique name that alljoynjs reported and tells us we connected to the correct application.
 
 Now the console is connected we can send JavaScript to AllJoyn.js.  Type “2+3” and you should see the following:
 ```
@@ -110,7 +103,7 @@ This shows the string sent to AllJoyn.js (“2+3”) and the status and value re
 ```
 for (i = 0; i < 10; ++i) {  print(i)  }
 ```
-As you will see the output from the `print()` function call is sent to the console application. 
+As you will see the output from the `print()` function call is sent to the console application.
 
 The console application is configured as a notification listener for AllJoyn notifications sent by the connected application. This is mainly for debugging but also makes for a nice demonstration of how easy it is to send an AllJoyn notification. To send a notification try typing this into ajsconsole:
 ```
@@ -123,10 +116,10 @@ en: Door is unlocked
 ```
 Because the device has not been configured it does not have manufacturer or product names so the notification just contains default values. The notification text itself is in the default language “en”. There are APIs for setting additional language strings and other metadata on the notification before sending it.
 
-###Simulated I/O
-AllJoyn.js includes APIs that provide access to low-level I/O functions such as digital and analog GPIO pins and various other IO ports commonly found on embedded microcontrollers.  These APIs sit above a hardware abstraction layer that in turn sits above a board support package providing access to the physical I/O devices. For Windows and Linux desktops AllJoyn.js provides a simulated board support package that interacts with a simple GUI application written in Python. It provides four virtual LEDs that are mapped to digital output IO pins 1..4, four check boxes that are mapped to digital input IO pins 5..8, and four push buttons mapped to digital input pins 9..12. The test application simio.js shows how to drive these pins.  
+### Simulated I/O
+AllJoyn.js includes APIs that provide access to low-level I/O functions such as digital and analog GPIO pins and various other IO ports commonly found on embedded microcontrollers.  These APIs sit above a hardware abstraction layer that in turn sits above a board support package providing access to the physical I/O devices. For Windows and Linux desktops AllJoyn.js provides a simulated board support package that interacts with a simple GUI application written in Python. It provides four virtual LEDs that are mapped to digital output IO pins 1..4, four check boxes that are mapped to digital input IO pins 5..8, and four push buttons mapped to digital input pins 9..12. The test application simio.js shows how to drive these pins.
 
 The simulation I/O script is in tools/simio.py
 
-If you are running on Windows and do not already have the Python for Windows extensions installed, please install those extensions using the executable installer for your specific Python version and platform within Build 219. The extensions can be found here:  
+If you are running on Windows and do not already have the Python for Windows extensions installed, please install those extensions using the executable installer for your specific Python version and platform within Build 219. The extensions can be found here:
 http://sourceforge.net/projects/pywin32/files/pywin32/

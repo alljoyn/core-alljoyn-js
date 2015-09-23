@@ -18,6 +18,7 @@
 #define AJS_CONSOLE_C_H_
 
 #include <signal.h>
+#include <stddef.h>
 #include <stdint.h>
 #include "ajs_console_common.h"
 

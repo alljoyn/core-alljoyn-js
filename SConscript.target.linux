@@ -34,6 +34,7 @@ if os.environ.has_key('STAGING_DIR') and not env.has_key('DUKTAPE_SRC'):
 
 # Compiler flags
 env.Append(CFLAGS = [
+    '-std=c99',
     '-pipe',
     '-funsigned-char',
     '-fno-strict-aliasing',
@@ -44,7 +45,6 @@ env.Append(CFLAGS = [
     '-Wfloat-equal',
     '-Wformat=2',
     '-Wformat-security',
-    '-Wlong-long',
     '-Wmissing-declarations',
     '-Wmissing-format-attribute',
     '-Wmissing-prototypes',

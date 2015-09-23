@@ -3,8 +3,8 @@ import platform
 
 Import('env', 'CheckAJLib')
 
-def CheckAJCXXLib(context, ajlib, ajheader, sconsvarname, ajdistpath):
-    r = CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath, 'cpp', 'inc', '.cc')
+def CheckAJCXXLib(context, ajlib, ajheader, sconsvarname, ajdistpath, stub = ''):
+    r = CheckAJLib(context, ajlib, ajheader, sconsvarname, ajdistpath, 'cpp', 'inc', '.cc', stub)
     return r
 
 cenv = env.Clone()

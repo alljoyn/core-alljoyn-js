@@ -22,8 +22,10 @@
 #ifdef _WIN32
 #include <Windows.h>
 #else
+#define _POSIX_C_SOURCE 200112L
 #include <errno.h>
 #include <pthread.h>
+#include <stdio.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>

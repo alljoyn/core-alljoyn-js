@@ -371,6 +371,14 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
             break;
         }
         /*
+         * Check if any external modules have operations to perform
+         */
+        status = AJS_ServiceExtModules(ctx);
+        if (status != AJ_OK) {
+            AJ_ErrPrintf(("Error servicing external modules\n"));
+            break;
+        }
+        /*
          * Services the internal and timeout timers and updates the timeout value for any new
          * timers that have been registered since this function was last called.
          */

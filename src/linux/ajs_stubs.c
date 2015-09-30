@@ -23,3 +23,8 @@ AJ_Status AJS_TargetModuleLoad(duk_context* ctx, duk_idx_t idx, const char* id)
 {
     return AJ_ERR_INVALID;
 }
+
+AJ_Status AJS_ServiceExtModules(duk_context* ctx)
+{
+    return AJ_OK;
+}

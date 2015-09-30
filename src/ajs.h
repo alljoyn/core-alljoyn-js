@@ -334,6 +334,15 @@ AJ_Status AJS_ServiceIO(duk_context* ctx);
  */
 AJ_Status AJS_TargetModuleLoad(duk_context* ctx, duk_idx_t idx, const char* id);
 
+/*
+ * Check to see if any external modules have asynchronous events (platform specific)
+ *
+ * @param ctx   An opaque pointer to a duktape context structure
+ *
+ * @return      AJ_OK on success
+ */
+AJ_Status AJS_ServiceExtModules(duk_context* ctx);
+
 /**
  * Register native 'C' functions for the setInterval/setTimeout functions
  *

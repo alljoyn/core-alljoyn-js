@@ -397,6 +397,11 @@ AJ_Status AJS_ConsoleInit(AJ_BusAttachment* aj);
 void AJS_ConsoleTerminate();
 
 /**
+ * Services any pending sessions to join (when authentication is pending)
+ */
+AJ_Status AJS_ServiceSessions(duk_context* ctx);
+
+/**
  * Set the object list for About
  *
  * @param objList  The list of objects to announce
@@ -410,6 +415,15 @@ AJ_Status AJS_SetAnnounceObjects(const AJ_Object* objList);
  * @param path  The object path to send.
  */
 void AJS_SetObjectPath(const char* path);
+
+/*
+ * Same functionality as AJS_SetObjectPath() except the object table is registered by
+ * the authenticatio code.
+ *
+ * @param path  The object path to register
+ * @param index The object index
+ */
+void AJS_AuthRegisterObject(const char* path, uint8_t index);
 
 /**
  * Handle an incoming About announcement signal

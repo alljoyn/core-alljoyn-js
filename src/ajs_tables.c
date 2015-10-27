@@ -435,6 +435,29 @@ AJ_Status AJS_InitTables(duk_context* ctx, duk_idx_t ajIdx)
     return status;
 }
 
+void AJS_AuthRegisterObject(const char* path, uint8_t index)
+{
+    if (index == AJ_PRX_ID_FLAG) {
+        proxyList[0].path = path;
+        if (path) {
+            proxyList[0].interfaces = interfaceTable;
+            proxyList[0].flags |= AJ_OBJ_FLAG_SECURE;
+            AJ_AuthorisationRegister(&proxyList[0], index);
+        } else {
+            proxyList[0].interfaces = NULL;
+        }
+    } else {
+        objectList->path = path;
+        if (path) {
+            objectList->interfaces = interfaceTable;
+            objectList->flags |= AJ_OBJ_FLAG_SECURE;
+            AJ_AuthorisationRegister(objectList, index);
+        } else {
+            objectList->interfaces = NULL;
+        }
+    }
+}
+
 void AJS_SetObjectPath(const char* path)
 {
     proxyList[0].path = path;

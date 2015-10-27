@@ -22,12 +22,96 @@
 #include "ajs_debugger.h"
 #include <ajtcl/aj_msg_priv.h>
 
+#include <ajtcl/aj_cert.h>
+#include <ajtcl/aj_peer.h>
+#include <ajtcl/aj_creds.h>
+#include <ajtcl/aj_auth_listener.h>
+#include <ajtcl/aj_authentication.h>
+#include <ajtcl/aj_authorisation.h>
+#include <ajtcl/aj_security.h>
+
+typedef enum {
+    AJS_SVC_AUTHENTICATED   = 0,    /* Auth has finished but callback has not been called */
+    AJS_SVC_NO_AUTH         = 1,    /* No auth is needed for this connection */
+    AJS_SVC_AUTHENTICATING  = 2,    /* Currently authenticating */
+    AJS_SVC_AUTH_DONE       = 3,    /* Auth has finished and callback has been called */
+    AJS_SVC_AUTH_ERROR      = 4     /* An error occurred */
+} AuthStatus;
+
 typedef struct {
     uint16_t port;
     uint16_t refCount;
     uint32_t replySerial;
     uint32_t sessionId;
 } SessionInfo;
+
+typedef struct {
+    char* peer;
+    duk_context* ctx;
+} PeerInfo;
+
+/*
+ * TODO: Add all security suites
+ */
+static const uint32_t suites[] = { AUTH_SUITE_ECDHE_NULL };
+
+static AuthStatus GetPeerStatus(duk_context* ctx, const char* peer)
+{
+    duk_int_t ret;
+    AJS_GetGlobalStashObject(ctx, peer);
+    duk_get_prop_string(ctx, -1, "authStatus");
+    if (!duk_is_number(ctx, -1)) {
+        /* No peer found */
+        duk_pop_2(ctx);
+        return AJS_SVC_AUTH_ERROR;
+    }
+    ret = duk_get_int(ctx, -1);
+    duk_pop_2(ctx);
+    return (AuthStatus)ret;
+}
+
+/*
+ * Set the authStatus on a peer. If no peer object exists, one will be created.
+ */
+static void SetPeerStatus(duk_context* ctx, const char* peer, AuthStatus status)
+{
+    AJS_GetGlobalStashObject(ctx, peer);
+    duk_get_prop_string(ctx, -1, "name");
+    if (!duk_is_string(ctx, -1)) {
+        /* Peer doesn't exist */
+        duk_pop(ctx);
+        duk_push_string(ctx, peer);
+        duk_put_prop_string(ctx, -2, "name");
+        duk_push_int(ctx, (int)status);
+        duk_put_prop_string(ctx, -2, "authStatus");
+    } else {
+        /* Peer exists, update status */
+        duk_pop(ctx);
+        duk_push_int(ctx, (int)status);
+        duk_put_prop_string(ctx, -2, "authStatus");
+    }
+    duk_pop(ctx);
+}
+
+static void AuthCallback(const void* context, AJ_Status status)
+{
+    PeerInfo* info = (PeerInfo*)context;
+    if (info) {
+        /*
+         * Update the peers status
+         */
+        SetPeerStatus(info->ctx, info->peer, (status == AJ_OK) ? AJS_SVC_AUTHENTICATED : AJS_SVC_AUTHENTICATING);
+        if (status == AJ_OK) {
+            /*
+             * Auth is complete, info will never be used again
+             */
+            if (info->peer) {
+                AJ_Free(info->peer);
+            }
+            AJ_Free(info);
+        }
+    }
+}
 
 static int NativeServiceObjectFinalizer(duk_context* ctx)
 {
@@ -347,12 +431,78 @@ static int NativeGetAllProps(duk_context* ctx)
     return 1;
 }
 
+static int NativeEnableSecurity(duk_context* ctx)
+{
+    const char* peer;
+    const char* objPath;
+    AJ_Status status = AJ_OK;
+    PeerInfo* info = (PeerInfo*)AJ_Malloc(sizeof(PeerInfo));
+
+    AJ_InfoPrintf(("NativeEnableSecurity()\n"));
+    if (!info) {
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "Could not allocate PeerInfo, AJ_ERR_RESOURCES");
+    }
+    if (!duk_is_function(ctx, 0)) {
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "Lone argument must be a function");
+    }
+    duk_push_this(ctx);
+    duk_get_prop_string(ctx, -1, "path");
+    objPath = duk_get_string(ctx, -1);
+    /*
+     * Object path must be set here, before making any method/signal/prop calls
+     */
+    AJS_AuthRegisterObject(objPath, AJ_PRX_ID_FLAG);
+    duk_pop(ctx);
+
+    duk_get_prop_string(ctx, -1, "dest");
+    peer = duk_get_string(ctx, -1);
+    /*
+     * Set the peers status to AJS_SVC_AUTHENTICATING (not authenticated)
+     */
+    SetPeerStatus(ctx, peer, AJS_SVC_AUTHENTICATING);
+    /*
+     * Set the callback function for this peer
+     */
+    AJS_GetGlobalStashObject(ctx, peer);
+    duk_dup(ctx, 0);
+    duk_put_prop_string(ctx, -2, "callback");
+    /*
+     * Save the service object by putting it into the peer object
+     */
+    duk_dup(ctx, -3);
+    duk_put_prop_string(ctx, -2, "service");
+    /*
+     * Save the peer info so AuthCallback can access it
+     */
+    info->peer = (char*)AJ_Malloc(strlen(peer) + 1);
+    if (!info->peer) {
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "Could not allocate peer string, AJ_ERR_RESOURCES");
+    }
+    memcpy(info->peer, peer, strlen(peer));
+    info->peer[strlen(peer)] = '\0';
+    info->ctx = ctx;
+
+    status = AJ_BusEnableSecurity(AJS_GetBusAttachment(), suites, ArraySize(suites));
+    if (status != AJ_OK) {
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "AJ_BusEnableSecurity() failed\n");
+    }
+    AJ_InfoPrintf(("NativeEnableSecurity(): Authenticating peer %s\n", info->peer));
+    status = AJ_BusAuthenticatePeer(AJS_GetBusAttachment(), info->peer, AuthCallback, (void*)info);
+    if (status != AJ_OK) {
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "AJ_BusAuthenticatePeer() failed\n");
+    }
+    duk_pop_3(ctx);
+
+    return 0;
+}
+
 static const duk_function_list_entry peer_native_functions[] = {
-    { "method",      NativeMethod,      1 },
-    { "signal",      NativeSignal,      2 },
-    { "getAllProps", NativeGetAllProps, 1 },
-    { "getProp",     NativeGetProp,     1 },
-    { "setProp",     NativeSetProp,     2 },
+    { "method",         NativeMethod,           1 },
+    { "signal",         NativeSignal,           2 },
+    { "getAllProps",    NativeGetAllProps,      1 },
+    { "getProp",        NativeGetProp,          1 },
+    { "setProp",        NativeSetProp,          2 },
+    { "enableSecurity", NativeEnableSecurity,   1 },
     { NULL }
 };
 
@@ -475,6 +625,10 @@ static void AnnouncementCallbacks(duk_context* ctx, const char* peer, SessionInf
                 duk_put_prop_string(ctx, svcIdx, "session");
                 duk_push_string(ctx, peer);
                 duk_put_prop_string(ctx, svcIdx, "dest");
+                /*
+                 * Set the peer status for this new peer
+                 */
+                SetPeerStatus(ctx, peer, AJS_SVC_NO_AUTH);
                 /*
                  * Call the callback function
                  */
@@ -797,6 +951,61 @@ Exit:
     return status;
 }
 
+AJ_Status AJS_ServiceSessions(duk_context* ctx)
+{
+    /*
+     * Loop through pending sessions and determine if the service callback should be called
+     */
+    AuthStatus peerStatus;
+    const char* peer = NULL;
+    SessionInfo* sessionInfo = NULL;
+    uint8_t call = FALSE;
+
+    AJ_InfoPrintf(("AJS_ServiceSessions()\n"));
+
+    AJS_GetGlobalStashObject(ctx, "sessions");
+
+    duk_enum(ctx, -1, DUK_ENUM_OWN_PROPERTIES_ONLY);
+    while (duk_next(ctx, -1, 1)) {
+        peer = duk_get_string(ctx, -2);
+        AJ_ASSERT(duk_is_object(ctx, -1));
+        duk_pop_2(ctx);
+        peerStatus = GetPeerStatus(ctx, peer);
+        if (peerStatus == AJS_SVC_AUTHENTICATED) {
+            AJ_InfoPrintf(("AJS_ServiceSessions(): Peer %s status = %u\n", peer, peerStatus));
+            call = TRUE;
+            break;
+        }
+    }
+    duk_pop(ctx); /* Pop the enum */
+    if (call) {
+        AJS_GetGlobalStashObject(ctx, peer);
+        duk_get_prop_string(ctx, -1, "callback");
+        duk_get_prop_string(ctx, -2, "service");
+        duk_push_int(ctx, TRUE);
+        /*
+         * Set status to AJS_SVC_AUTH_DONE to not continually call the service callback
+         */
+        SetPeerStatus(ctx, peer, AJS_SVC_AUTH_DONE);
+        AJ_InfoPrintf(("AJS_ServiceSessions(): Authenticated, calling service callback\n"));
+        AJS_DumpStack(ctx);
+        if (duk_pcall(ctx, 2) != DUK_EXEC_SUCCESS) {
+            AJS_ConsoleSignalError(ctx);
+        }
+        duk_pop_2(ctx);
+#ifndef NDEBUG
+    } else if (peerStatus == AJS_SVC_AUTHENTICATING) {
+        AJ_InfoPrintf(("AJS_ServiceSessions(): Authenticating peer %s\n", peer));
+    }
+#else
+    }
+#endif
+    /* Pop "sessions" */
+    duk_pop(ctx);
+
+    return AJ_OK;
+}
+
 AJ_Status AJS_HandleJoinSessionReply(duk_context* ctx, AJ_Message* msg)
 {
     const char* peer = NULL;
@@ -903,6 +1112,19 @@ AJ_Status AJS_SessionLost(duk_context* ctx, AJ_Message* msg)
     return RemoveSessions(ctx, sessionId);
 }
 
+static int NativeAuthenticatePeer(duk_context* ctx)
+{
+    const char* path;
+    AJ_InfoPrintf(("NativeAuthenticatePeer\n"));
+    if (!duk_is_string(ctx, 0)) {
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "Lone argument must be an object path (string)");
+    }
+    AJS_AuthRegisterObject(duk_require_string(ctx, 0), AJ_APP_ID_FLAG);
+    AJ_BusEnableSecurity(AJS_GetBusAttachment(), suites, ArraySize(suites));
+    duk_pop(ctx);
+    return 0;
+}
+
 AJ_Status AJS_HandleAcceptSession(duk_context* ctx, AJ_Message* msg, uint16_t port, uint32_t sessionId, const char* joiner)
 {
     uint32_t accept = TRUE;
@@ -926,6 +1148,8 @@ AJ_Status AJS_HandleAcceptSession(duk_context* ctx, AJ_Message* msg, uint16_t po
             msg = AJS_CloneAndCloseMessage(ctx, msg);
         }
 #endif
+        duk_push_c_function(ctx, NativeAuthenticatePeer, 1);
+        duk_put_prop_string(ctx, -2, "authenticate");
         if (duk_pcall(ctx, 1) != DUK_EXEC_SUCCESS) {
             AJS_ConsoleSignalError(ctx);
             accept = FALSE;

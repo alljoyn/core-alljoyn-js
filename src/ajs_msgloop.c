@@ -390,6 +390,15 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
             break;
         }
         /*
+         * Service any pending session joining
+         */
+        status = AJS_ServiceSessions(ctx);
+        if (status != AJ_OK) {
+            AJ_ErrPrintf(("Error servicing sessions\n"));
+            break;
+        }
+
+        /*
          * Do any announcing required
          */
         status = AJS_GetLockdownState(&ldstate);

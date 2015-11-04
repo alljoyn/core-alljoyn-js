@@ -17,6 +17,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#ifdef CONTROLPANEL_SERVICE
 #include "ajs.h"
 #include "ajs_util.h"
 #include "ajs_translations.h"
@@ -1129,3 +1130,4 @@ AJ_Status AJS_RegisterControlPanelHandlers(AJ_BusAttachment* bus, duk_context* c
     duk_pop(ctx);
     return AJ_OK;
 }
+#endif /* CONTROLPANEL_SERVICE */

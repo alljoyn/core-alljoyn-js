@@ -14,6 +14,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#ifdef CONTROLPANEL_SERVICE
 /**
  * Per-module definition of the current module for debug logging.  Must be defined
  * prior to first inclusion of aj_debug.h.
@@ -396,3 +397,4 @@ AJ_Status AJS_CP_Init(AJ_Object* cpObjects)
     }
     return status;
 }
+#endif /* CONTROLPANEL_SERVICE */

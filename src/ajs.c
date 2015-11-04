@@ -73,7 +73,9 @@ static void AJRegistrations(AJ_BusAttachment* aj, duk_context* ctx, duk_idx_t aj
     /*
      * Register control panel support
      */
+#ifdef CONTROLPANEL_SERVICE
     AJS_RegisterControlPanelHandlers(aj, ctx, ajIdx);
+#endif
     /*
      * Register translations table
      */
@@ -221,7 +223,9 @@ static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx)
     /*
      * Make sure the control panel service is terminated
      */
+#ifdef CONTROLPANEL_SERVICE
     AJS_CP_Terminate();
+#endif
     /*
      * If we told JavaScript we are attached now indicate we are detached
      */

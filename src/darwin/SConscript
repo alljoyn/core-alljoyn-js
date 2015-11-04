@@ -3,7 +3,6 @@ Import('jsenv')
 jsenv['srcs'] += File([
     'ajs_main.c',
     'ajs_malloc.c',
-    'ajs_obs_stubs.c',
     'ajs_stubs.c'
 ])
 

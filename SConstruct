@@ -101,6 +101,7 @@ vars.Add(BoolVariable('POOL_MALLOC',        'Use pool based memory allocation', 
 vars.Add(BoolVariable('SHORT_SIZES',        'Use 16 bit sizes and pointers - only when POOL_MALLOC == True', os.environ.get('AJ_SHORT_SIZES', True)))
 vars.Add(BoolVariable('DUK_DEBUG',          'Turn on duktape logging and print debug messages', os.environ.get('AJ_DUK_DEBUG',   False)))
 vars.Add(BoolVariable('CONSOLE_LOCKDOWN',   'Removes all debugger and console code', os.environ.get('AJ_CONSOLE_LOCKDOWN', False)))
+vars.Add(BoolVariable('CONTROL_PANEL',      'Set to compile in control panel code', os.environ.get('AJ_CONTROL_PANEL', False)))
 vars.Add('DUKTAPE_SRC', 'URL/Path to Duktape generated source', os.environ.get('AJ_DUCTAPE_SRC', duktape_default_url))
 vars.Add('CC',  'C Compiler override')
 vars.Add('CXX', 'C++ Compiler override')
@@ -214,7 +215,6 @@ jsenv.Append(CPPPATH = jsenv.Dir(duktape_srcdir))
 jsenv.Append(CPPDEFINES = [
     # Base Services defines
     'CONFIG_SERVICE',
-    'CONTROLPANEL_SERVICE',
     'NOTIFICATION_SERVICE_CONSUMER',
     'NOTIFICATION_SERVICE_PRODUCER',
     # Duktape defines
@@ -236,6 +236,8 @@ jsenv.Append(CPPDEFINES = [
     'ALLJOYN_JS',
     'BIG_HEAP' ])
 
+if jsenv['CONTROL_PANEL']:
+    jsenv.Append(CPPDEFINES = 'CONTROLPANEL_SERVICE')
 if include_onboarding:
     jsenv.Append(CPPDEFINES = 'ONBOARDING_SERVICE')
 if jsenv['VARIANT'] == 'release':

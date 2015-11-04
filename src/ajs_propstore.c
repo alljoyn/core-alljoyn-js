@@ -20,7 +20,9 @@
 #include "ajs_translations.h"
 #include <ajtcl/services/PropertyStore.h>
 #include <ajtcl/services/ServicesCommon.h>
+#ifdef ONBOARDING_SERVICE
 #include <ajtcl/services/OnboardingManager.h>
+#endif
 #include <ajtcl/aj_guid.h>
 #include <ajtcl/aj_nvram.h>
 #include <ajtcl/aj_creds.h>

@@ -26,7 +26,9 @@
 
 #include <ajtcl/services/ServicesHandlers.h>
 #include <ajtcl/services/ServicesCommon.h>
+#ifdef ONBOARDING_SERVICE
 #include <ajtcl/services/OnboardingManager.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

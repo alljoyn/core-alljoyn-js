@@ -47,13 +47,14 @@ AJ_Status AJS_DetachAllJoyn(AJ_BusAttachment* aj, AJ_Status reason)
 #define MSG_TO   (2 * 1000)  /* Milliseconds */
 #define LINK_TO  120         /* Seconds */
 
+#ifdef ONBOARDING_SERVICE
 /*
  * TODO - this string need to be provisioned
  */
 static const char softAPSSID[] = "AJ_AllJoyn.js";
 
 static AJOBS_Settings obSettings = AJOBS_DEFAULT_SETTINGS;
-
+#endif
 AJ_Status AJS_AttachAllJoyn(AJ_BusAttachment* aj)
 {
     AJ_Status status;
@@ -64,12 +65,14 @@ AJ_Status AJS_AttachAllJoyn(AJ_BusAttachment* aj)
     /*
      * Initialize the onboarding service
      */
+#ifdef ONBOARDING_SERVICE
     sapSz = min(sizeof(obSettings.AJOBS_SoftAPSSID), sizeof(softAPSSID));
     memcpy((char*)obSettings.AJOBS_SoftAPSSID, softAPSSID, sapSz);
     status = AJOBS_Start(&obSettings);
     if (status != AJ_OK) {
         goto Exit;
     }
+#endif
     AJ_InfoPrintf(("Attempting to attach to AllJoyn\n"));
     while (!isConnected) {
         status = AJSVC_RoutingNodeConnect(aj, busNode, CONNECT_TO, CONNECT_PAUSE, linkTO, &isConnected);
@@ -83,6 +86,7 @@ AJ_Status AJS_AttachAllJoyn(AJ_BusAttachment* aj)
             AJ_ErrPrintf(("Failed to initialize services"));
         }
     }
+#ifdef ONBOARDING_SERVICE
     if (isConnected && (AJOBS_GetState() != AJOBS_STATE_CONFIGURED_VALIDATED)) {
         /*
          * Kick of onboarding
@@ -166,6 +170,12 @@ AJ_Status AJS_AttachAllJoyn(AJ_BusAttachment* aj)
             status = AJ_ERR_RESTART;
         }
     }
+#else
+    /*
+     * Let the link monitor know we are receiving messages
+     */
+    AJ_NotifyLinkActive();
+#endif
     /*
      * If all went well let the services know we are connected
      */

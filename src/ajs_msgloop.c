@@ -85,9 +85,11 @@ static AJ_Status SessionDispatcher(duk_context* ctx, AJ_Message* msg)
     /*
      * See if this is the control panel port
      */
+#ifdef CONTROLPANEL_SERVICE
     if (AJCPS_CheckSessionAccepted(port, sessionId, joiner)) {
         return AJ_BusReplyAcceptSession(msg, TRUE);
     }
+#endif
     status = AJ_ResetArgs(msg);
     if (status != AJ_OK) {
         return status;

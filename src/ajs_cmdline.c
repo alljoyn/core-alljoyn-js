@@ -142,7 +142,9 @@ extern uint8_t dbgHELPER;
 extern uint8_t dbgBUS;
 extern uint8_t dbgABOUT;
 extern uint8_t dbgINTROSPECT;
+#ifdef CONTROLPANEL_SERVICE
 extern uint8_t dbgAJCPS;
+#endif
 extern uint8_t dbgAJS;
 extern uint8_t dbgHEAP;
 extern uint8_t dbgNET;
@@ -165,7 +167,9 @@ int AJS_CmdlineOptions(int argc, char* argv[], AJS_CmdOptions* options)
     dbgABOUT = 0;
     dbgBUS = 0;
     dbgINTROSPECT = 0;
+#ifdef CONTROLPANEL_SERVICE
     dbgAJCPS = 0;
+#endif
     dbgAJS = 0;
     dbgHEAP = 0;
     dbgNET = 0;

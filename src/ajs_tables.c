@@ -21,6 +21,7 @@
 #include "ajs_util.h"
 #include "ajs_ctrlpanel.h"
 #include "ajs_translations.h"
+#include <ajtcl/services/ServicesCommon.h>
 
 #define JS_OBJ_INDEX AJAPP_OBJECTS_LIST_INDEX
 
@@ -332,7 +333,9 @@ static AJ_Status BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
 void AJS_ResetTables(duk_context* ctx)
 {
     AJ_RegisterObjectList(NULL, JS_OBJ_INDEX);
+#ifdef CONTROLPANEL_SERVICE
     AJS_CP_Terminate();
+#endif
     duk_free(ctx, objectList);
     objectList = NULL;
     memset(proxyList, 0, sizeof(proxyList));

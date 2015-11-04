@@ -16,6 +16,7 @@
  *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
+#ifdef CONTROLPANEL_SERVICE
 #include "ajs.h"
 
 #include <ajtcl/services/ServicesCommon.h>
@@ -146,3 +147,4 @@ void AJS_CP_SignalMetadataChanged(AJ_BusAttachment* aj, AJS_Widget* ajsWidget);
 #endif
 
 #endif
+#endif /* CONTROLPANEL_SERVICE */

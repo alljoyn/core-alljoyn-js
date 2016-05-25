@@ -164,8 +164,9 @@ found_ws = config.CheckCommand('uncrustify')
 found_jsdoc = config.CheckCommand('jsdoc')
 
 dep_libs = [
-    config.CheckAJLib('ajtcl',          'ajtcl/aj_bus.h',                 'AJTCL_DIST', '../ajtcl/dist'),
-    config.CheckAJLib('ajtcl_services', 'ajtcl/services/ConfigService.h', 'SVCS_DIST',  '../../services/base_tcl/dist', config_check_svc_stub)
+    config.CheckAJLib('ajtcl'       ,         'ajtcl/aj_bus.h',                       'AJTCL_DIST','../ajtcl/dist'),
+    config.CheckAJLib('ajtcl_services_config','ajtcl/services/ConfigService.h',       'AJTCL_DIST','../ajtcl/dist'),
+    config.CheckAJLib('ajtcl_services',       'ajtcl/services/NotificationProducer.h','SVCS_DIST', '../../services/base_tcl/dist', config_check_svc_stub)
 ]
 
 include_onboarding = config.CheckFunc('AJOBS_ClearInfo', config_check_svc_stub)

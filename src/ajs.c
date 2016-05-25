@@ -19,6 +19,7 @@
 
 #include "ajs.h"
 #include "ajs_util.h"
+#include "ajs_security.h"
 #include "ajs_target.h"
 #include "ajs_ctrlpanel.h"
 #include "ajs_heap.h"
@@ -190,6 +191,14 @@ static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx)
                  * Bind the application session port
                  */
                 status = AJ_BusBindSessionPort(aj, AJS_APP_PORT, NULL, AJ_FLAG_NO_REPLY_EXPECTED);
+            }
+            /*
+             * If securityDefinition was populated, enable security
+             * after we attach to alljoyn. AJS_EnableSecurity will check
+             * if rules were created while parsing securityDefinition
+             */
+            if (status == AJ_OK) {
+                status = AJS_EnableSecurity(ctx);
             }
             if (status != AJ_OK) {
                 break;

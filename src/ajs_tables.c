@@ -19,6 +19,7 @@
 
 #include "ajs.h"
 #include "ajs_util.h"
+#include "ajs_security.h"
 #include "ajs_ctrlpanel.h"
 #include "ajs_translations.h"
 #include <ajtcl/services/ServicesCommon.h>
@@ -251,8 +252,11 @@ static AJ_InterfaceDescription LookupInterface(duk_context* ctx, const char* ifa
 static AJ_Status BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
 {
     AJ_Status status = AJ_OK;
+    AJ_PermissionRule* rules = NULL;
     size_t numObjects = NumProps(ctx, ajIdx) + 1;
+    size_t rulesPos = 0;
     size_t allocSz;
+    size_t rulesAllocSz;
     AJ_Object* jsObjects;
 
     AJ_ASSERT(objectList == NULL);
@@ -263,16 +267,23 @@ static AJ_Status BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
     /*
      * Nothing to do if objectDefinition is not defined
      */
-    if (duk_is_undefined(ctx, -1)) {
+    if (duk_is_null_or_undefined(ctx, -1)) {
         return AJ_OK;
     }
     allocSz = numObjects * sizeof(AJ_Object);
+    rulesAllocSz = numObjects * sizeof(AJ_PermissionRule);
 
     objectList = duk_alloc(ctx, allocSz);
     if (!objectList) {
         return AJ_ERR_RESOURCES;
     }
     memset(objectList, 0, allocSz);
+
+    rules = duk_alloc(ctx, rulesAllocSz);
+    if (!rules) {
+        return AJ_ERR_RESOURCES;
+    }
+    memset(rules, 0, rulesAllocSz);
 
     /*
      * Add objects declared by the script
@@ -303,14 +314,25 @@ static AJ_Status BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
             break;
         }
         memset((void*)interfaces, 0, (numInterfaces + 2) * sizeof(AJ_InterfaceDescription*));
+        jsObjects->path = duk_require_string(ctx, -3);
+        AJ_InfoPrintf(("%s\n", jsObjects->path));
         /*
          * Locate the interfaces in the interface table
          */
         for (i = 0; i < numInterfaces; ++i) {
             duk_get_prop_index(ctx, -1, i);
             interfaces[i] = LookupInterface(ctx, duk_get_string(ctx, -1));
+            rules[rulesPos].obj = jsObjects->path;
+            rules[rulesPos].ifn = interfaces[i][0];
+            rules[rulesPos].members = AJS_GetPermissionMembers();
+            rules[rulesPos].next = NULL;
+            if (rulesPos > 0) {
+                rules[rulesPos-1].next = &rules[rulesPos];
+            }
             duk_pop(ctx);
+            rulesPos++;
         }
+        AJS_SetSecurityRules(ctx, rules, rulesPos);
         /*
          * Done with the interfaces
          */
@@ -318,8 +340,6 @@ static AJ_Status BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
         interfaces[numInterfaces++] = AJ_PropertiesIface;
         interfaces[numInterfaces] = NULL;
 
-        jsObjects->path = duk_require_string(ctx, -2);
-        AJ_InfoPrintf(("%s\n", jsObjects->path));
         jsObjects->interfaces = interfaces;
         jsObjects->flags = AJ_OBJ_FLAG_ANNOUNCED;
         duk_pop_2(ctx);
@@ -328,6 +348,20 @@ static AJ_Status BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
     duk_pop(ctx); // enum
     duk_pop(ctx); // JavaScript objects
     return status;
+}
+
+static AJ_Status BuildSecurityCredentials(duk_context* ctx)
+{
+   AJ_Status status = AJ_OK;
+   AJS_GetAllJoynProperty(ctx, "securityDefinition");
+   if (duk_is_undefined(ctx, -1)) {
+       duk_pop(ctx);
+       return AJ_OK;
+   }
+   status = AJS_GetAllJoynSecurityProps(ctx, duk_get_top_index(ctx));
+   duk_pop(ctx);
+
+   return status;
 }
 
 void AJS_ResetTables(duk_context* ctx)
@@ -418,6 +452,9 @@ AJ_Status AJS_InitTables(duk_context* ctx, duk_idx_t ajIdx)
 
     if (status == AJ_OK) {
         status = BuildLocalObjects(ctx, ajIdx);
+    }
+    if (status == AJ_OK) {
+        status = BuildSecurityCredentials(ctx);
     }
     if (status == AJ_OK) {
         AJ_RegisterObjectList(proxyList, AJ_PRX_ID_FLAG);

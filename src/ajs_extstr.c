@@ -299,6 +299,7 @@ static const char* const sortedWords[] = {
     "round",
     "seal",
     "search",
+    "securityDefinition",
     "session",
     "setDate",
     "setFullYear",

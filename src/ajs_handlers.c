@@ -19,6 +19,7 @@
 
 #include "ajs.h"
 #include "ajs_util.h"
+#include "ajs_security.h"
 #include "ajs_services.h"
 #include "ajs_propstore.h"
 
@@ -168,10 +169,57 @@ static int NativeFindService(duk_context* ctx)
         }
     } else {
         AJS_GetGlobalStashObject(ctx, "serviceCB");
+        duk_del_prop_string(ctx, -2, iface);
+        duk_pop(ctx);
+    }
+    /* ASACORE-2964 */
+    if (status != AJ_OK) {
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "findService: %s", AJ_StatusText(status));
+    }
+    /*
+     * Push reply object. The method serial number is one less than the serial number
+     */
+    AJS_PushReplyObject(ctx, ajBus->serial - 1);
+    return 1;
+}
+
+static int NativeFindSecureService(duk_context* ctx)
+{
+    AJ_Status status;
+    const char* iface = duk_require_string(ctx, 0);
+    const char* path = duk_require_string(ctx, 1);
+    uint8_t rule = AJ_BUS_SIGNAL_ALLOW;
+
+    if (duk_is_callable(ctx, 3)) {
+        rule = AJ_BUS_SIGNAL_ALLOW;
+    } else if (duk_is_undefined(ctx, 3)) {
+        rule = AJ_BUS_SIGNAL_DENY;
+    } else {
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "findService requires a callback function");
+    }
+
+    if (!duk_is_undefined(ctx, 2)) {
+        AJ_PermissionRule rules[] = { {path, iface, AJS_GetPermissionMembers(), NULL}};
+        AJS_SetSecurityRules(ctx, rules, 1);
+        AJS_GetAllJoynSecurityProps(ctx, 2);
+        AJS_EnableSecurity(ctx);
+    }
+
+    duk_push_sprintf(ctx, "type='signal',sessionless='t',implements='%s',interface='org.alljoyn.About',member='Announce'", iface);
+    status = AJ_BusSetSignalRule(ajBus, duk_get_string(ctx, -1), rule);
+    if (rule == AJ_BUS_SIGNAL_ALLOW) {
+        if (status == AJ_OK) {
+            AJS_GetGlobalStashObject(ctx, "serviceCB");
+            duk_dup(ctx, 3);
+            duk_put_prop_string(ctx, -2, iface);
+            duk_pop(ctx);
+        }
+    } else {
+        AJS_GetGlobalStashObject(ctx, "serviceCB");
         duk_del_prop_string(ctx, -1, iface);
         duk_pop(ctx);
     }
-    /* TODO - delete "serviceCB" if it is empty */
+    /* ASACORE-2964 */
     if (status != AJ_OK) {
         duk_error(ctx, DUK_ERR_TYPE_ERROR, "findService: %s", AJ_StatusText(status));
     }
@@ -400,6 +448,7 @@ static const duk_function_list_entry aj_native_functions[] = {
     { "addMatch",          NativeAddMatch,          3 },
     { "removeMatch",       NativeRemoveMatch,       3 },
     { "findService",       NativeFindService,       2 },
+    { "findSecureService", NativeFindSecureService, 4 },
     { "findServiceByName", NativeFindServiceByName, 3 },
     { "advertiseName",     NativeAdvertiseName,     1 },
     { "load",              NativeLoadProperty,      1 },

@@ -503,6 +503,7 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
         case AJ_ERR_WRITE:
         case AJ_ERR_RESTART:
         case AJ_ERR_RESTART_APP:
+        case AJ_ERR_SECURITY:
             break;
 
         default:

@@ -77,7 +77,7 @@ static const char DEFAULT_LANGUAGE[]            = "en";
 #define IS_VALID_FIELD_ID(f) \
     (((f) > AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX) && ((f) < AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS))
 
-static const PropertyStoreEntry propDefs[AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS] =
+static PropertyStoreEntry propDefs[AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS] =
 {
     /* config keys */
     { "DeviceId",          P_READONLY | P_ANNOUNCE,                NULL },
@@ -99,6 +99,33 @@ static const PropertyStoreEntry propDefs[AJSVC_PROPERTY_STORE_NUMBER_OF_KEYS] =
     { "HardwareVersion",   P_READONLY,                             DEFAULT_HARDWARE_VERSION },
     { "SupportUrl",        P_LOCALIZED,                            DEFAULT_SUPPORT_URL },
 };
+
+AJ_Status AJS_GetAllJoynAboutProps(duk_context* ctx, duk_idx_t aboutIdx)
+{
+    duk_enum(ctx, aboutIdx, DUK_ENUM_OWN_PROPERTIES_ONLY);
+    const char* value = NULL;
+    const char* aboutProp = NULL;
+    int8_t fieldIndex = AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX;
+    for (; duk_next(ctx, -1, 1);) {
+        aboutProp = duk_require_string(ctx, -2);
+        fieldIndex =  AJSVC_PropertyStore_GetFieldIndex(aboutProp);
+        if (fieldIndex != AJSVC_PROPERTY_STORE_ERROR_FIELD_INDEX) {
+            if (duk_is_string(ctx, -1)) {
+                propDefs[fieldIndex].initialValue = duk_require_string(ctx, -1);
+                duk_pop(ctx);
+            } else {
+                duk_enum(ctx, -1, DUK_ENUM_OWN_PROPERTIES_ONLY);
+                if (duk_has_prop_string(ctx, -1, "access")) {
+                    propDefs[fieldIndex].flags = AJS_GetIntProp(ctx, -2, "access");
+                }
+                propDefs[fieldIndex].initialValue = AJS_GetStringProp(ctx, -2, "value");
+                duk_pop_2(ctx);
+            }
+        }
+        duk_pop(ctx);
+    }
+    duk_pop(ctx);
+}
 
 static const char* SupportedLanguagesKey = "SupportedLanguages";
 
@@ -318,6 +345,11 @@ static AJ_Status AboutPropGetter(AJ_Message* msg, const char* language)
 AJ_Status AJS_PropertyStoreInit(duk_context* ctx, const char* deviceName)
 {
     duktape = ctx;
+    AJS_GetAllJoynProperty(ctx, "aboutDefinition");
+    if (!duk_is_undefined(ctx, -1)) {
+        AJS_GetAllJoynAboutProps(ctx, duk_get_top_index(ctx));
+        duk_pop(ctx);
+    }
     InitProperties(deviceName, FALSE);
     AJ_AboutRegisterPropStoreGetter(AboutPropGetter);
     return AJ_OK;

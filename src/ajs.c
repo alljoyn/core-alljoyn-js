@@ -295,6 +295,12 @@ static const duk_number_list_entry AJ_constants[] = {
     { "METHOD",      0 },
     { "SIGNAL",      1 },
     { "PROPERTY",    2 },
+
+    { "READONLY",  1},
+    { "ANNOUNCE",  2},
+    { "LOCALIZED", 4},
+    { "PRIVATE",   8},
+
     { NULL }
 };
 
@@ -311,9 +317,13 @@ static void InitAllJoynObject(duk_context* ctx, duk_idx_t ajIdx)
     duk_put_number_list(ctx, -1, AJ_config_constants);
     duk_put_prop_string(ctx, ajIdx, "config");
     duk_push_object(ctx);
+    duk_put_prop_string(ctx, ajIdx, "aboutDefinition");
+    duk_push_object(ctx);
     duk_put_prop_string(ctx, ajIdx, "interfaceDefinition");
     duk_push_object(ctx);
     duk_put_prop_string(ctx, ajIdx, "objectDefinition");
+    duk_push_object(ctx);
+    duk_put_prop_string(ctx, ajIdx, "securityDefinition");
     /*
      * Register exported properties on the AllJoyn object
      */
@@ -424,7 +434,6 @@ AJ_Status AJS_Main(const char* deviceName)
             duk_put_global_string(ctx, "alert");
         }
 #endif
-        status = AJS_PropertyStoreInit(ctx, deviceName);
         if (status != AJ_OK) {
             AJ_ErrPrintf(("Failed to initialize property store\n"));
         }
@@ -506,6 +515,7 @@ AJ_Status AJS_Main(const char* deviceName)
             }
         }
     Run:
+        status = AJS_PropertyStoreInit(ctx, deviceName);
         if (status == AJ_OK) {
             status = Run(&ajBus, ctx);
         }

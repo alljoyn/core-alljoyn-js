@@ -35,7 +35,6 @@ static AJ_InterfaceDescription* interfaceTable;
  * Local and proxy object tables
  */
 static AJ_Object* objectList;
-static AJ_Object* announcedList;
 static AJ_Object proxyList[2];
 
 static size_t NumProps(duk_context* ctx, duk_idx_t idx)
@@ -250,17 +249,38 @@ static AJ_InterfaceDescription LookupInterface(duk_context* ctx, const char* ifa
     return NULL;
 }
 
+static uint8_t ReadFlags(duk_context* ctx, duk_idx_t flagsIdx)
+{
+    uint8_t flags = 0;
+    uint8_t isHidden = 0;
+    duk_get_prop_string(ctx, flagsIdx, "flags");
+    duk_enum(ctx, -1, DUK_ENUM_OWN_PROPERTIES_ONLY);
+    while(duk_next(ctx, -1, 1)) {
+        flags = flags | duk_get_int(ctx, -1);
+        if (flags & AJ_OBJ_FLAG_HIDDEN) {
+            isHidden = 1;
+        }
+        duk_pop_2(ctx);
+    }
+
+    if (!isHidden) {
+        flags = flags | AJ_OBJ_FLAG_ANNOUNCED;
+    }
+    duk_pop(ctx);
+    duk_pop(ctx);
+
+    return flags;
+}
+
 static AJ_Status BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
 {
     AJ_Status status = AJ_OK;
     AJ_PermissionRule* rules = NULL;
     size_t numObjects = NumProps(ctx, ajIdx) + 1;
     size_t rulesPos = 0;
-    size_t numAnnounced = 0;
     size_t allocSz;
     size_t rulesAllocSz;
     AJ_Object* jsObjects;
-    AJ_Object* announcedObjects;
 
     AJ_ASSERT(objectList == NULL);
 
@@ -288,17 +308,10 @@ static AJ_Status BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
     }
     memset(rules, 0, rulesAllocSz);
 
-    announcedList = duk_alloc(ctx, allocSz);
-    if (!objectList) {
-        return AJ_ERR_RESOURCES;
-    }
-    memset(announcedList, 0, allocSz);
-
     /*
      * Add objects declared by the script
      */
     jsObjects = objectList;
-    announcedObjects = announcedList;
     duk_enum(ctx, -1, DUK_ENUM_OWN_PROPERTIES_ONLY);
     while (duk_next(ctx, -1, 1)) {
         size_t i;
@@ -342,13 +355,11 @@ static AJ_Status BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
             duk_pop(ctx);
             rulesPos++;
         }
-        AJS_SetSecurityRules(ctx, rules, rulesPos);
 
         if (duk_has_prop_string(ctx, -2, "flags")) {
-            if(AJS_GetIntProp(ctx, -2, "flags") != 8) {
-                announcedObjects = jsObjects;
-                ++announcedObjects;
-                numAnnounced++;
+            jsObjects->flags = ReadFlags(ctx, -2);
+            if (jsObjects->flags & AJ_OBJ_FLAG_SECURE) {
+                AJS_SetSecurityRules(ctx, rules, rulesPos);
             }
         }
         /*
@@ -364,16 +375,6 @@ static AJ_Status BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
     }
     duk_pop(ctx); // enum
     duk_pop(ctx); // JavaScript objects
-
-    /*
-     * No need to waste space if
-     * there are no unannounced objects
-     */
-    if (numAnnounced == numObjects) {
-        duk_free(ctx, announcedList);
-        AJ_AboutSetAnnounceObjects(objectList);
-    }
-    AJ_AboutSetAnnounceObjects(announcedList);
     return status;
 }
 
@@ -387,6 +388,8 @@ static AJ_Status BuildSecurityCredentials(duk_context* ctx)
    }
    status = AJS_GetAllJoynSecurityProps(ctx, duk_get_top_index(ctx));
    duk_pop(ctx);
+
+   AJ_AuthorisationRegister(objectList, AJ_APP_ID_FLAG);
 
    return status;
 }

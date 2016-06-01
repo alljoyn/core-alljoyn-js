@@ -41,7 +41,8 @@ AJ.interfaceDefinition['org.alljoyn.alljoyn_test.values'] =
 };
 
 AJ.objectDefinition['/org/alljoyn/alljoyn_test'] = {
-    interfaces:['org.alljoyn.alljoyn_test', 'org.alljoyn.alljoyn_test.values']
+    interfaces:['org.alljoyn.alljoyn_test', 'org.alljoyn.alljoyn_test.values'],
+    flags:[AJ.SECURE]
 };
 
 properties = {

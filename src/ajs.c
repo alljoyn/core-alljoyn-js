@@ -25,6 +25,7 @@
 #include "ajs_heap.h"
 #include <ajtcl/aj_util.h>
 #include "ajs_storage.h"
+#include <ajtcl/aj_introspect.h>
 
 /**
  * Turn on per-module debug printing by setting this variable to non-zero value
@@ -300,6 +301,12 @@ static const duk_number_list_entry AJ_constants[] = {
     { "ANNOUNCE",  2},
     { "LOCALIZED", 4},
     { "PRIVATE",   8},
+
+    { "SECURE",    AJ_OBJ_FLAG_SECURE    },
+    { "HIDDEN",    AJ_OBJ_FLAG_HIDDEN    },
+    { "DISABLED",  AJ_OBJ_FLAG_DISABLED  },
+    { "ANNOUNCED", AJ_OBJ_FLAG_ANNOUNCED },
+    { "PROXY",     AJ_OBJ_FLAG_IS_PROXY  },
 
     { NULL }
 };

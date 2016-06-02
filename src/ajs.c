@@ -23,8 +23,9 @@
 #include "ajs_target.h"
 #include "ajs_ctrlpanel.h"
 #include "ajs_heap.h"
-#include <ajtcl/aj_util.h>
 #include "ajs_storage.h"
+#include <ajtcl/aj_creds.h>
+#include <ajtcl/aj_util.h>
 #include <ajtcl/aj_introspect.h>
 
 /**
@@ -308,12 +309,32 @@ static const duk_number_list_entry AJ_constants[] = {
     { "ANNOUNCED", AJ_OBJ_FLAG_ANNOUNCED },
     { "PROXY",     AJ_OBJ_FLAG_IS_PROXY  },
 
+    { "CRED_ALL", 0 },
+    { "CRED_GENERIC",   AJ_CRED_TYPE_GENERIC     },
+    { "CRED_AES",       AJ_CRED_TYPE_AES         },
+    { "CRED_PRIVATE",   AJ_CRED_TYPE_PRIVATE     },
+    { "CRED_PEM",       AJ_CRED_TYPE_PEM         },
+    { "CRED_PUBLIC",    AJ_CRED_TYPE_PUBLIC      },
+    { "CRED_CERT",      AJ_CRED_TYPE_CERTIFICATE },
+    { "CRED_MANIFESTS", AJ_CRED_TYPE_MANIFESTS   },
+    { "CRED_POLICY",    AJ_CRED_TYPE_POLICY      },
+    { "CRED_CONFIG",    AJ_CRED_TYPE_CONFIG      },
+
+
+    {"TRANPSORT_NONE",  AJ_TRANSPORT_NONE},
+    {"TRANSPORT_LOCAL", AJ_TRANSPORT_LOCAL},
+    {"TRANSPORT_TCP",   AJ_TRANSPORT_TCP},
+    {"TRANSPORT_UDP",   AJ_TRANSPORT_UDP},
+    {"TRANSPORT_IP",    AJ_TRANSPORT_IP},
+    {"TRANSPORT_ANY",   AJ_TRANSPORT_ANY},
+
     { NULL }
 };
 
 static const duk_number_list_entry AJ_config_constants[] = {
-    { "linkTimeout", 10000 },
-    { "callTimeout", 10000 },
+    { "linkTimeout",    10000 },
+    { "callTimeout",    10000 },
+    { "minProtoVersion",   12 },
     { NULL }
 };
 

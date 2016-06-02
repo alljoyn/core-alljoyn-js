@@ -26,6 +26,12 @@
 
 static AJ_BusAttachment* ajBus;
 
+static int NativeGetUniqueName(duk_context* ctx)
+{
+    duk_push_string(ctx, AJ_GetUniqueName(ajBus));
+    return 1;
+}
+
 static int NativeAdvertiseName(duk_context* ctx)
 {
     AJ_Status status = AJ_OK;
@@ -44,6 +50,67 @@ static int NativeAdvertiseName(duk_context* ctx)
     if (status != AJ_OK) {
         duk_error(ctx, DUK_ERR_TYPE_ERROR, "advertiseName: %s", AJ_StatusText(status));
     }
+    /*
+     * Push reply object. The method serial number is one less than the serial number
+     */
+    AJS_PushReplyObject(ctx, ajBus->serial - 1);
+    return 1;
+}
+
+static int NativeFindServiceByTransport(duk_context* ctx)
+{
+    AJ_Status status;
+    const char* name = duk_require_string(ctx, 0);
+    uint8_t op;
+    uint16_t transport = duk_require_int(ctx, 1);
+
+    AJ_InfoPrintf(("findServiceByName %s\n", name));
+
+    if (duk_is_callable(ctx, 3)) {
+        if (!duk_is_object(ctx, 2)) {
+            duk_error(ctx, DUK_ERR_TYPE_ERROR, "Second arg must be an object with properties 'interfaces', 'path', and 'port'");
+        }
+        duk_get_prop_string(ctx, 2, "interfaces");
+        if (!duk_is_array(ctx, -1)) {
+            duk_error(ctx, DUK_ERR_TYPE_ERROR, "Property 'interfaces' is required and must be an array of strings");
+        }
+        duk_pop(ctx);
+        duk_get_prop_string(ctx, 2, "path");
+        if (!duk_is_string(ctx, -1)) {
+            duk_error(ctx, DUK_ERR_TYPE_ERROR, "Property 'path' is required and must be a string");
+        }
+        duk_pop(ctx);
+        duk_get_prop_string(ctx, 2, "port");
+        if (!duk_is_number(ctx, -1)) {
+            duk_error(ctx, DUK_ERR_TYPE_ERROR, "Property 'port' is required and must be an integer");
+        }
+        duk_pop(ctx);
+        op = AJ_BUS_START_FINDING;
+    } else if (duk_is_undefined(ctx, 2)) {
+        op = AJ_BUS_STOP_FINDING;
+    } else {
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "findServiceByName requires a callback function");
+    }
+    status = AJ_BusFindAdvertisedNameByTransport(ajBus, name, transport, op);
+    if (status != AJ_OK) {
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "findServiceByName: %s", AJ_StatusText(status));
+    }
+    AJS_GetGlobalStashObject(ctx, "findName");
+    if (op == AJ_BUS_START_FINDING) {
+        duk_push_object(ctx);
+        duk_get_prop_string(ctx, 1, "interfaces");
+        duk_put_prop_string(ctx, -2, "interfaces");
+        duk_get_prop_string(ctx, 1, "path");
+        duk_put_prop_string(ctx, -2, "path");
+        duk_get_prop_string(ctx, 1, "port");
+        duk_put_prop_string(ctx, -2, "port");
+        duk_dup(ctx, 2);
+        duk_put_prop_string(ctx, -2, "cb");
+        duk_put_prop_string(ctx, -2, name);
+    } else {
+        duk_del_prop_string(ctx, -1, name);
+    }
+    duk_pop(ctx);
     /*
      * Push reply object. The method serial number is one less than the serial number
      */
@@ -444,17 +511,29 @@ static int NativeOffboard(duk_context* ctx)
     return 0;
 }
 
+static int NativeClearCredentials(duk_context* ctx)
+{
+    uint16_t type = duk_require_int(ctx, 0);
+    AJ_Status status = AJ_ClearCredentials(type);
+    if (status != AJ_OK) {
+        duk_error(ctx, DUK_ERR_TYPE_ERROR, "clearCredentials: %s", AJ_StatusText(status));
+    }
+}
+
 static const duk_function_list_entry aj_native_functions[] = {
-    { "addMatch",          NativeAddMatch,          3 },
-    { "removeMatch",       NativeRemoveMatch,       3 },
-    { "findService",       NativeFindService,       2 },
-    { "findSecureService", NativeFindSecureService, 4 },
-    { "findServiceByName", NativeFindServiceByName, 3 },
-    { "advertiseName",     NativeAdvertiseName,     1 },
-    { "load",              NativeLoadProperty,      1 },
-    { "store",             NativeStoreProperty,     2 },
-    { "factoryReset",      NativeFactoryReset,      0 },
-    { "offboard",          NativeOffboard,          0 },
+    { "getUniqueName",          NativeGetUniqueName,          0 },
+    { "addMatch",               NativeAddMatch,               3 },
+    { "removeMatch",            NativeRemoveMatch,            3 },
+    { "findService",            NativeFindService,            2 },
+    { "findSecureService",      NativeFindSecureService,      4 },
+    { "findServiceByTransport", NativeFindServiceByTransport, 3 },
+    { "findServiceByName",      NativeFindServiceByName,      3 },
+    { "advertiseName",          NativeAdvertiseName,          1 },
+    { "load",                   NativeLoadProperty,           1 },
+    { "store",                  NativeStoreProperty,          2 },
+    { "factoryReset",           NativeFactoryReset,           0 },
+    { "offboard",               NativeOffboard,               0 },
+    { "clearCredentials",       NativeClearCredentials,       1 },
     { NULL }
 };
 

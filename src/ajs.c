@@ -308,12 +308,20 @@ static const duk_number_list_entry AJ_constants[] = {
     { "ANNOUNCED", AJ_OBJ_FLAG_ANNOUNCED },
     { "PROXY",     AJ_OBJ_FLAG_IS_PROXY  },
 
+    {"TRANPSORT_NONE",  AJ_TRANSPORT_NONE},
+    {"TRANSPORT_LOCAL", AJ_TRANSPORT_LOCAL},
+    {"TRANSPORT_TCP",   AJ_TRANSPORT_TCP},
+    {"TRANSPORT_UDP",   AJ_TRANSPORT_UDP},
+    {"TRANSPORT_IP",    AJ_TRANSPORT_IP},
+    {"TRANSPORT_ANY",   AJ_TRANSPORT_ANY},
+
     { NULL }
 };
 
 static const duk_number_list_entry AJ_config_constants[] = {
-    { "linkTimeout", 10000 },
-    { "callTimeout", 10000 },
+    { "linkTimeout",    10000 },
+    { "callTimeout",    10000 },
+    { "minProtoVersion",   12 },
     { NULL }
 };
 

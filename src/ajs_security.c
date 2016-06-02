@@ -51,6 +51,7 @@ static X509CertificateChain* chain = NULL;
 static uint8_t isSecurityEnabled = FALSE;
 static AJ_PermissionRule* securityRules = NULL;
 static AJ_PermissionMember members[] = { { "*", AJ_MEMBER_TYPE_ANY, AJ_ACTION_PROVIDE | AJ_ACTION_OBSERVE, NULL } };
+static uint16_t claimCapabilities = 0;
 
 static AJ_Status AuthListenerCallback(uint32_t authmechanism, uint32_t command, AJ_Credential*cred)
 {
@@ -181,6 +182,13 @@ uint32_t AJS_GetAllJoynSecurityProps(duk_context* ctx, duk_idx_t enumIdx)
                suites[suitesIdx++] = AUTH_SUITE_ECDHE_ECDSA;
            }
            duk_pop_2(ctx);
+       } else if (strcmp(property, "claimWith") == 0) {
+           duk_enum(ctx, -1, DUK_ENUM_OWN_PROPERTIES_ONLY);
+           while (duk_next(ctx, -1, 1)) {
+               claimCapabilities = claimCapabilities | duk_get_int(ctx, -1);
+               duk_pop_2(ctx);
+           }
+           duk_pop_2(ctx);
        }
        duk_pop(ctx);
    }
@@ -210,8 +218,8 @@ AJ_Status AJS_EnableSecurity(duk_context* ctx)
    /*
     * Set app claimable if not already claimed
     */
-   if (APP_STATE_CLAIMED != state) {
-        AJ_SecuritySetClaimConfig(AJS_GetBusAttachment(), APP_STATE_CLAIMABLE, CLAIM_CAPABILITY_ECDHE_PSK, 0);
+   if (APP_STATE_CLAIMED != state && claimCapabilities != 0) {
+        AJ_SecuritySetClaimConfig(AJS_GetBusAttachment(), APP_STATE_CLAIMABLE, claimCapabilities, 0);
    }
 
 

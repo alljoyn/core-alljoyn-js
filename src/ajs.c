@@ -24,6 +24,7 @@
 #include "ajs_ctrlpanel.h"
 #include "ajs_heap.h"
 #include "ajs_storage.h"
+#include <ajtcl/aj_security.h>
 #include <ajtcl/aj_creds.h>
 #include <ajtcl/aj_util.h>
 #include <ajtcl/aj_introspect.h>
@@ -320,6 +321,9 @@ static const duk_number_list_entry AJ_constants[] = {
     { "CRED_POLICY",    AJ_CRED_TYPE_POLICY      },
     { "CRED_CONFIG",    AJ_CRED_TYPE_CONFIG      },
 
+    { "CLAIM_NULL",  CLAIM_CAPABILITY_ECDHE_NULL  },
+    { "CLAIM_ECDSA", CLAIM_CAPABILITY_ECDHE_ECDSA },
+    { "CLAIM_SPEKE", CLAIM_CAPABILITY_ECDHE_SPEKE },
 
     {"TRANPSORT_NONE",  AJ_TRANSPORT_NONE},
     {"TRANSPORT_LOCAL", AJ_TRANSPORT_LOCAL},

@@ -24,6 +24,7 @@ AJ.securityDefinition = {
         password: "1234"
     },
     ecdhe_null: true,
+    claimWith: [AJ.CLAIM_SPEKE, AJ.CLAIM_ECDSA],
     expiration: 5000
 };
 

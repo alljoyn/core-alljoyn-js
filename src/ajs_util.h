@@ -102,6 +102,16 @@ int AJS_IncrementProperty(duk_context* ctx, const char* intProp, duk_idx_t objId
 void AJS_SetPropertyAccessors(duk_context* ctx, duk_idx_t objIdx, const char* prop, duk_c_function setter, duk_c_function getter);
 
 /**
+ * Get the number of properties for a duktape enumeration
+ *
+ * @param ctx      An opaque pointer to a duktpae context structure
+ * @param enumIdx  Index on duktape stack for the enumeration
+ *
+ * @return  Returns the number of properties in the enumeration
+ */
+size_t NumProps(duk_context* ctx, duk_idx_t enumIdx);
+
+/**
  * Get a string property from the object on the stack. This is a convenience function that leaves
  * the duktape stack unchanged. Note that the returned string is only guaranteed to be live while
  * the object remains on the stack.

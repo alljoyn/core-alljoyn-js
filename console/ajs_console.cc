@@ -1278,7 +1278,7 @@ QStatus AJS_Console::Install(qcc::String name, const uint8_t* script, size_t scr
     /*
      * Strip file path from the name
      */
-    size_t pos = name.find_last_of("/\\");
+    size_t pos = name.find_last_of_std("/\\");
     if (pos != qcc::String::npos) {
         name = name.substr(pos + 1);
     }

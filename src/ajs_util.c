@@ -116,6 +116,19 @@ void AJS_SetPropertyAccessors(duk_context* ctx, duk_idx_t objIdx, const char* pr
     duk_def_prop(ctx, objIdx, flags);
 }
 
+size_t NumProps(duk_context* ctx, duk_idx_t enumIdx)
+{
+    size_t num = 0;
+    AJ_ASSERT(duk_is_object(ctx, enumIdx));
+    duk_enum(ctx, enumIdx, DUK_ENUM_OWN_PROPERTIES_ONLY);
+    while (duk_next(ctx, -1, 0)) {
+        duk_pop(ctx);
+        ++num;
+    }
+    duk_pop(ctx); // enum
+    return num;
+}
+
 const char* AJS_GetStringProp(duk_context* ctx, duk_idx_t idx, const char* prop)
 {
     const char* str;

@@ -37,19 +37,6 @@ static AJ_InterfaceDescription* interfaceTable;
 static AJ_Object* objectList;
 static AJ_Object proxyList[2];
 
-static size_t NumProps(duk_context* ctx, duk_idx_t idx)
-{
-    size_t num = 0;
-    AJ_ASSERT(duk_is_object(ctx, idx));
-    duk_enum(ctx, idx, DUK_ENUM_OWN_PROPERTIES_ONLY);
-    while (duk_next(ctx, -1, 0)) {
-        duk_pop(ctx);
-        ++num;
-    }
-    duk_pop(ctx); // enum
-    return num;
-}
-
 static void AddArgs(duk_context* ctx, duk_idx_t strIdx, char inout)
 {
     int i;
@@ -189,7 +176,7 @@ static AJ_Status BuildInterfaceTable(duk_context* ctx, duk_idx_t ajIdx)
     /*
      * Nothing to do if interfaceDefinition is not defined
      */
-    if (duk_is_undefined(ctx, -1)) {
+    if (duk_is_undefined(ctx, -1) || NumProps(ctx, -1) == 0) {
         return AJ_OK;
     }
     /*
@@ -253,21 +240,23 @@ static uint8_t ReadFlags(duk_context* ctx, duk_idx_t flagsIdx)
 {
     uint8_t flags = 0;
     uint8_t isHidden = 0;
-    duk_get_prop_string(ctx, flagsIdx, "flags");
-    duk_enum(ctx, -1, DUK_ENUM_OWN_PROPERTIES_ONLY);
-    while(duk_next(ctx, -1, 1)) {
-        flags = flags | duk_get_int(ctx, -1);
-        if (flags & AJ_OBJ_FLAG_HIDDEN) {
-            isHidden = 1;
+    if (duk_has_prop_string(ctx, flagsIdx, "flags")) {
+        duk_get_prop_string(ctx, flagsIdx, "flags");
+        duk_enum(ctx, -1, DUK_ENUM_OWN_PROPERTIES_ONLY);
+        while(duk_next(ctx, -1, 1)) {
+            flags = flags | duk_get_int(ctx, -1);
+            if (flags & AJ_OBJ_FLAG_HIDDEN) {
+                isHidden = 1;
+            }
+            duk_pop_2(ctx);
         }
-        duk_pop_2(ctx);
+        duk_pop(ctx);
+        duk_pop(ctx);
     }
 
     if (!isHidden) {
         flags = flags | AJ_OBJ_FLAG_ANNOUNCED;
     }
-    duk_pop(ctx);
-    duk_pop(ctx);
 
     return flags;
 }
@@ -290,7 +279,7 @@ static AJ_Status BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
     /*
      * Nothing to do if objectDefinition is not defined
      */
-    if (duk_is_null_or_undefined(ctx, -1)) {
+    if (duk_is_null_or_undefined(ctx, -1) || numObjects - 1 == 0) {
         return AJ_OK;
     }
     allocSz = numObjects * sizeof(AJ_Object);
@@ -356,12 +345,11 @@ static AJ_Status BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
             rulesPos++;
         }
 
-        if (duk_has_prop_string(ctx, -2, "flags")) {
-            jsObjects->flags = ReadFlags(ctx, -2);
-            if (jsObjects->flags & AJ_OBJ_FLAG_SECURE) {
-                AJS_SetSecurityRules(ctx, rules, rulesPos);
-            }
+        jsObjects->flags = ReadFlags(ctx, -2);
+        if (jsObjects->flags & AJ_OBJ_FLAG_SECURE) {
+            AJS_SetSecurityRules(ctx, rules, rulesPos);
         }
+
         /*
          * Done with the interfaces
          */
@@ -380,18 +368,18 @@ static AJ_Status BuildLocalObjects(duk_context* ctx, duk_idx_t ajIdx)
 
 static AJ_Status BuildSecurityCredentials(duk_context* ctx)
 {
-   AJ_Status status = AJ_OK;
-   AJS_GetAllJoynProperty(ctx, "securityDefinition");
-   if (duk_is_undefined(ctx, -1)) {
-       duk_pop(ctx);
-       return AJ_OK;
-   }
-   status = AJS_GetAllJoynSecurityProps(ctx, duk_get_top_index(ctx));
-   duk_pop(ctx);
+    AJ_Status status = AJ_OK;
+    AJS_GetAllJoynProperty(ctx, "securityDefinition");
+    if (duk_is_null_or_undefined(ctx, -1) || NumProps(ctx, -1) == 0) {
+        duk_pop(ctx);
+        return AJ_OK;
+    }
+    status = AJS_GetAllJoynSecurityProps(ctx, duk_get_top_index(ctx));
+    duk_pop(ctx);
 
-   AJ_AuthorisationRegister(objectList, AJ_APP_ID_FLAG);
+    AJ_AuthorisationRegister(objectList, AJ_APP_ID_FLAG);
 
-   return status;
+    return status;
 }
 
 void AJS_ResetTables(duk_context* ctx)

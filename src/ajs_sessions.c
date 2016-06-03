@@ -180,7 +180,7 @@ static const char* FindInterfaceForMember(duk_context* ctx, duk_idx_t mbrIdx, co
     numInterfaces = duk_get_length(ctx, -1);
     listIdx = AJS_GetAllJoynProperty(ctx, "interfaceDefinition");
 
-    if (duk_is_object(ctx, mbrIdx)) {
+    if (duk_is_object(ctx, mbrIdx) && NumProps(ctx, mbrIdx) > 0) {
         /*
          * Expect an object of form { member:"org.foo.interface" }
          */

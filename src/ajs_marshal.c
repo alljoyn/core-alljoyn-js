@@ -265,7 +265,7 @@ static AJ_Status MarshalProperties(duk_context* ctx, AJ_Message* msg, const char
      * Ok if there are no interfaces
      */
     AJS_GetAllJoynProperty(ctx, "interfaceDefinition");
-    if (!duk_is_object(ctx, -1)) {
+    if (!duk_is_object(ctx, -1) || NumProps(ctx, -1) == 0) {
         duk_pop(ctx);
         goto ExitProps;
     }

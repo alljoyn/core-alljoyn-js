@@ -86,12 +86,14 @@ int AJS_ConsoleConnect(AJS_ConsoleCtx* ctx, const char* deviceName, volatile sig
 int8_t AJS_ConsoleEval(AJS_ConsoleCtx* ctx, const char* script)
 {
     AJS_Console* console;
+    qcc::String scriptStr;
     if (ctx && ctx->console) {
         console = static_cast<AJS_Console*>(ctx->console);
     } else {
         return 0;
     }
-    return console->Eval(qcc::String(script, 0, strlen(script)));
+    scriptStr.assign(script, strlen(script));
+    return console->Eval(scriptStr);
 }
 
 int AJS_ConsoleReboot(AJS_ConsoleCtx* ctx)

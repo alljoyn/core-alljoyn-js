@@ -346,7 +346,7 @@ AJ_Status AJS_PropertyStoreInit(duk_context* ctx, const char* deviceName)
 {
     duktape = ctx;
     AJS_GetAllJoynProperty(ctx, "aboutDefinition");
-    if (!duk_is_undefined(ctx, -1)) {
+    if (duk_is_undefined(ctx, -1) && NumProps(ctx, -1) > 0) {
         AJS_GetAllJoynAboutProps(ctx, duk_get_top_index(ctx));
         duk_pop(ctx);
     }

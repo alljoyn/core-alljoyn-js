@@ -18,13 +18,8 @@ var AJ = require('AllJoyn');
 AJ.securityDefinition = {
     ecdsa: {
         prv_key: "-----BEGIN EC PRIVATE KEY-----MDECAQEEICCRJMbxSiWUqj4Zs7jFQRXDJdBRPWX6fIVqE1BaXd08oAoGCCqGSM49AwEH-----END EC PRIVATE KEY-----",
-        cert_chain:  "-----BEGIN CERTIFICATE-----MIIBuDCCAV2gAwIBAgIHMTAxMDEwMTAKBggqhkjOPQQDAjBCMRUwEwYDVQQLDAxvcmdhbml6YXRpb24xKTAnBgNVBAMMIDgxM2FkZDFmMWNiOTljZTk2ZmY5MTVmNTVkMzQ4MjA2MB4XDTE1MDcyMjIxMDYxNFoXDTE2MDcyMTIxMDYxNFowQjEVMBMGA1UECwwMb3JnYW5pemF0aW9uMSkwJwYDVQQDDCAzOWIxZGNmMjBmZDJlNTNiZGYzMDU3NzMzMjBlY2RjMzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABGJ/9F4xHn3Klw7z6LREmHJgzu8yJ4i09b4EWX6a5MgUpQoGKJcjWgYGWb86bzbciMCFpmKzfZ42Hg+kBJs2ZWajPjA8MAwGA1UdEwQFMAMBAf8wFQYDVR0lBA4wDAYKKwYBBAGC3nwBATAVBgNVHSMEDjAMoAoECELxjRK/fVhaMAoGCCqGSM49BAMCA0kAMEYCIQDixoulcO7Sdf6Iz6lvt2CDy0sjt/bfuYVW3GeMLNK1LAIhALNklms9SP8ZmTkhCKdpC+/fuwn0+7RX8CMop11eWCih-----END CERTIFICATE-----"
+        cert_chain: "-----BEGIN CERTIFICATE-----MIIBuDCCAV2gAwIBAgIHMTAxMDEwMTAKBggqhkjOPQQDAjBCMRUwEwYDVQQLDAxvcmdhbml6YXRpb24xKTAnBgNVBAMMIDgxM2FkZDFmMWNiOTljZTk2ZmY5MTVmNTVkMzQ4MjA2MB4XDTE1MDcyMjIxMDYxNFoXDTE2MDcyMTIxMDYxNFowQjEVMBMGA1UECwwMb3JnYW5pemF0aW9uMSkwJwYDVQQDDCAzOWIxZGNmMjBmZDJlNTNiZGYzMDU3NzMzMjBlY2RjMzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABGJ/9F4xHn3Klw7z6LREmHJgzu8yJ4i09b4EWX6a5MgUpQoGKJcjWgYGWb86bzbciMCFpmKzfZ42Hg+kBJs2ZWajPjA8MAwGA1UdEwQFMAMBAf8wFQYDVR0lBA4wDAYKKwYBBAGC3nwBATAVBgNVHSMEDjAMoAoECELxjRK/fVhaMAoGCCqGSM49BAMCA0kAMEYCIQDixoulcO7Sdf6Iz6lvt2CDy0sjt/bfuYVW3GeMLNK1LAIhALNklms9SP8ZmTkhCKdpC+/fuwn0+7RX8CMop11eWCih-----END CERTIFICATE-----"
     },
-    speke: {
-        password: "1234"
-    },
-    ecdhe_null: true,
-    claimWith: [AJ.CLAIM_SPEKE, AJ.CLAIM_ECDSA],
     expiration: 5000
 };
 
@@ -43,7 +38,7 @@ AJ.interfaceDefinition['org.alljoyn.alljoyn_test.values'] =
 
 AJ.objectDefinition['/org/alljoyn/alljoyn_test'] = {
     interfaces:['org.alljoyn.alljoyn_test', 'org.alljoyn.alljoyn_test.values'],
-    flags:[AJ.SECURE]
+    flags: [AJ.SECURE]
 };
 
 properties = {
@@ -84,6 +79,7 @@ AJ.onPropGet = function(iface, prop)
 
 AJ.onMethodCall = function(arg)
 {
+    print(this.member);
     if (this.member == 'my_ping') {
         print('my_ping ', arg);
         this.reply(arg);

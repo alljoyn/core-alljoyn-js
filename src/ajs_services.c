@@ -89,7 +89,6 @@ AJ_Status AJS_ServicesInit(AJ_BusAttachment* aj)
 {
     AJ_Status status = AJ_OK;
 
-    AJ_BusSetPasswordCallback(aj, AJS_PasswordCallback);
     status = AJCFG_Start(AJS_FactoryReset, Restart, SetPasscode, IsValueValid);
     if (status != AJ_OK) {
         goto Exit;

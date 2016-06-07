@@ -21,6 +21,7 @@
 #include "ajs_util.h"
 #include "ajs_debugger.h"
 #include "ajs_security.h"
+#include "ajs_propstore.h"
 #include <ajtcl/aj_msg_priv.h>
 
 #include <ajtcl/aj_cert.h>
@@ -36,7 +37,7 @@ typedef struct {
 } PeerInfo;
 
 /*
- * suites has a size of 3 for the only
+ * suites has a size of 3 for the
  * only 3 valid suites in thin core
  */
 static uint32_t suites[3] = {0, 0, 0} ;
@@ -82,9 +83,11 @@ static AJ_Status AuthListenerCallback(uint32_t authmechanism, uint32_t command, 
     case AUTH_SUITE_ECDHE_ECDSA:
         switch (command) {
         case AJ_CRED_PRV_KEY:
-            AJ_ASSERT(sizeof (AJ_ECCPrivateKey) == cred->len);
-            status = AJ_DecodePrivateKeyPEM((AJ_ECCPrivateKey*) cred->data, pem_prv);
-            cred->expiration = keyExpiration;
+            if (pem_prv) {
+                AJ_ASSERT(sizeof (AJ_ECCPrivateKey) == cred->len);
+                status = AJ_DecodePrivateKeyPEM((AJ_ECCPrivateKey*) cred->data, pem_prv);
+                cred->expiration = keyExpiration;
+            }
             break;
 
         case AJ_CRED_CERT_CHAIN:
@@ -122,6 +125,27 @@ static AJ_Status AuthListenerCallback(uint32_t authmechanism, uint32_t command, 
     return status;
 }
 
+void AJS_EnableSecuritySuite(uint32_t suite)
+{
+    switch(suite) {
+        case AUTH_SUITE_ECDHE_NULL:
+            suites[0] = AUTH_SUITE_ECDHE_NULL;
+            break;
+        case AUTH_SUITE_ECDHE_SPEKE:
+            suites[1] = AUTH_SUITE_ECDHE_SPEKE;
+            break;
+        case AUTH_SUITE_ECDHE_ECDSA:
+            suites[2] = AUTH_SUITE_ECDHE_ECDSA;
+            break;
+    }
+}
+
+void AJS_SetDefaultPasscode(const char* passcode)
+{
+    ecspeke_password = passcode;
+    AJS_EnableSecuritySuite(AUTH_SUITE_ECDHE_SPEKE);
+}
+
 AJ_PermissionMember* AJS_GetPermissionMembers()
 {
     return members;
@@ -144,7 +168,6 @@ void AJS_SetSecurityRules(duk_context* ctx, const AJ_PermissionRule* rules, cons
 
 uint32_t AJS_GetAllJoynSecurityProps(duk_context* ctx, duk_idx_t enumIdx)
 {
-   size_t suitesIdx = 0;
    duk_enum(ctx, enumIdx, DUK_ENUM_OWN_PROPERTIES_ONLY);
    while (duk_next(ctx, -1, 1)) {
        const char* property = duk_require_string(ctx, -2);
@@ -158,13 +181,18 @@ uint32_t AJS_GetAllJoynSecurityProps(duk_context* ctx, duk_idx_t enumIdx)
            if (!ecspeke_password) {
                duk_error(ctx, DUK_ERR_REFERENCE_ERROR, "password is required for speke suite");
            } else {
-               suites[suitesIdx++] = AUTH_SUITE_ECDHE_SPEKE;
+               AJS_EnableSecuritySuite(AUTH_SUITE_ECDHE_SPEKE);
            }
+
+           /*
+            * Set passcode for config security
+            */
+           AJSVC_PropertyStore_SetValue("Passcode", ecspeke_password);
 
            duk_pop_2(ctx);
        } else if (strcmp(property, "ecdhe_null") == 0) {
            if(duk_is_boolean(ctx, -1) && duk_get_boolean(ctx, -1)) {
-                suites[suitesIdx++] = AUTH_SUITE_ECDHE_NULL;
+               AJS_EnableSecuritySuite(AUTH_SUITE_ECDHE_NULL);
            }
            duk_pop(ctx);
        } else if (strcmp(property, "ecdsa") == 0) {
@@ -179,7 +207,7 @@ uint32_t AJS_GetAllJoynSecurityProps(duk_context* ctx, duk_idx_t enumIdx)
                    duk_error(ctx, DUK_ERR_REFERENCE_ERROR, "cert_chain is required for AJ.securityDefinition");
                }
 
-               suites[suitesIdx++] = AUTH_SUITE_ECDHE_ECDSA;
+               AJS_EnableSecuritySuite(AUTH_SUITE_ECDHE_ECDSA);
            }
            duk_pop_2(ctx);
        } else if (strcmp(property, "claimWith") == 0) {

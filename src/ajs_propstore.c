@@ -63,6 +63,7 @@ static duk_context* duktape;
 /*
  * Default property strings
  */
+static const char DEFAULT_PASSCODE_CLEAN[]      = "000000";
 static const char DEFAULT_PASSCODE[]            = "303030303030"; // HEX encoded { '0', '0', '0', '0', '0', '0' }
 static const char DEFAULT_APP_NAME[]            = "AllJoyn.js";
 static const char DEFAULT_DESCRIPTION[]         = "AllJoyn.js";
@@ -261,6 +262,11 @@ uint8_t AJSVC_PropertyStore_SetValue(int8_t field, const char* value)
     return AJSVC_PropertyStore_SetValueForLang(field, AJS_GetCurrentLanguage(), value);
 }
 
+uint8_t AJS_PropertyStore_SetPasscode(const char* passcode)
+{
+    return AJSVC_PropertyStore_SetValue("Passcode", passcode);
+}
+
 /*
  * If mandatory properties have not been initialize set them to hardcoded default values
  */
@@ -278,6 +284,11 @@ static void InitProperties(const char* deviceName, uint8_t force)
     if (deviceName) {
         AJSVC_PropertyStore_SetValue(AJSVC_PROPERTY_STORE_DEVICE_NAME, deviceName);
     }
+
+    /*
+     * Set the default passcode for the auth listener
+     */
+    AJS_SetDefaultPasscode(DEFAULT_PASSCODE_CLEAN);
     /*
      * Initialize properties that have not been set
      */
@@ -568,25 +579,4 @@ uint8_t AJS_GetCurrentLanguage()
         langNum = AJS_GetLanguageIndex(ctx, lang);
     }
     return langNum;
-}
-
-uint32_t AJS_PasswordCallback(uint8_t* buffer, uint32_t bufLen)
-{
-    AJ_Status status = AJ_OK;
-    const char* hexPassword;
-    size_t hexPasswordLen;
-    uint32_t len = 0;
-
-    hexPassword = PeekProp(AJSVC_PROPERTY_STORE_PASSCODE);
-    if (hexPassword == NULL) {
-        AJ_ErrPrintf(("Password is NULL!\n"));
-        return len;
-    }
-    hexPasswordLen = strlen(hexPassword);
-    len = hexPasswordLen / 2;
-    status = AJ_HexToRaw(hexPassword, hexPasswordLen, buffer, bufLen);
-    if (status == AJ_ERR_RESOURCES) {
-        len = 0;
-    }
-    return len;
 }

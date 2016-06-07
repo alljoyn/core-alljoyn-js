@@ -37,14 +37,13 @@ AJ_Status AJS_PropertyStore_Init();
 uint8_t AJS_PropertyStore_IsReadOnly(int8_t index);
 
 /**
- * Function to retrieve a password from the property store.
+ * Set the PropertyStore passcode
  *
- * @param buffer Buffer to return the password
- * @param bufLen The size of the buffer
+ * @param passcode Passcode to use
  *
- * @return  Returns the actual length of the password
+ * @return Returns TRUE if successful
  */
-uint32_t AJS_PasswordCallback(uint8_t* buffer, uint32_t bufLen);
+uint8_t AJS_PropertyStore_SetPasscode(const char* passcode);
 
 #ifdef __cplusplus
 }

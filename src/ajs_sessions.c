@@ -50,10 +50,6 @@ typedef struct {
     duk_context* ctx;
 } PeerInfo;
 
-/*
- * TODO: Add all security suites
- */
-static const uint32_t suites[] = { AUTH_SUITE_ECDHE_NULL };
 
 static AuthStatus GetPeerStatus(duk_context* ctx, const char* peer)
 {
@@ -482,10 +478,6 @@ static int NativeEnableSecurity(duk_context* ctx)
     info->peer[strlen(peer)] = '\0';
     info->ctx = ctx;
 
-    status = AJ_BusEnableSecurity(AJS_GetBusAttachment(), suites, ArraySize(suites));
-    if (status != AJ_OK) {
-        duk_error(ctx, DUK_ERR_TYPE_ERROR, "AJ_BusEnableSecurity() failed\n");
-    }
     AJ_InfoPrintf(("NativeEnableSecurity(): Authenticating peer %s\n", info->peer));
     status = AJ_BusAuthenticatePeer(AJS_GetBusAttachment(), info->peer, AuthCallback, (void*)info);
     if (status != AJ_OK) {
@@ -1120,7 +1112,6 @@ static int NativeAuthenticatePeer(duk_context* ctx)
         duk_error(ctx, DUK_ERR_TYPE_ERROR, "Lone argument must be an object path (string)");
     }
     AJS_AuthRegisterObject(duk_require_string(ctx, 0), AJ_APP_ID_FLAG);
-    AJ_BusEnableSecurity(AJS_GetBusAttachment(), suites, ArraySize(suites));
     duk_pop(ctx);
     return 0;
 }

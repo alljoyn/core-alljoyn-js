@@ -1,7 +1,7 @@
 This work is licensed under a Creative Commons Attribution 4.0 International License.
 http://creativecommons.org/licenses/by/4.0/
 
-## AllJoyn Signals, Methods, and Properties
+## AllJoyn Signals, Methods, Security, About and Properties
 ***
 
 ### Message Types
@@ -39,7 +39,156 @@ AJ.interfaceDefinition["org.alljoyn.marshal_test"] = {
 
 ```
 
+### About Data Access Types
+
+**AJ.ANNOUNCE-**The about property is announced and can be modified remotely
+
+```javascript
+
+AJ.aboutDefinition = {
+    AppName: "AllJoyn.js", access:AJ.ANNOUNCE
+}
+
+```
+
+
+**AJ.READONLY-**The about property is announced but cannot be modified
+
+```javascript
+
+AJ.aboutDefinition = {
+    AppName: "AllJoyn.js", access:AJ.READONLY
+}
+
+```
+
+**AJ.LOCALIZED-**The about property is kept locally on the nvram
+
+```javascript
+
+AJ.aboutDefinition = {
+    AppName: "AllJoyn.js", access:AJ.LOCALIZED
+}
+
+```
+
+**AJ.PRIVATE-**The about property is not announced
+
+```javascript
+
+AJ.aboutDefinition = {
+    AppName: "AllJoyn.js", access:AJ.PRIVATE
+}
+
+```
+
+### Bus Object Flags
+
+**AJ.ANNOUNCED-**Announce the object. If no flags are given this is implied. AJ.HIDDEN overrides this.
+
+```javascript
+
+AJ.objectDefinition['/org/alljoyn/alljoyn_hidden'] = {
+    interfaces:['org.alljoyn.alljoyn_ping'],
+    flags: [AJ.HIDDEN]
+};
+
+```
+
+**AJ.SECURE-**Enforce security when accessing the object.
+
+```javascript
+
+AJ.objectDefinition['/org/alljoyn/alljoyn_hidden'] = {
+    interfaces:['org.alljoyn.alljoyn_ping'],
+    flags: [AJ.SECURE]
+};
+
+```
+
+**AJ.DISABLED-**The object is disabled
+
+```javascript
+
+AJ.objectDefinition['/org/alljoyn/alljoyn_hidden'] = {
+    interfaces:['org.alljoyn.alljoyn_ping'],
+    flags: [AJ.DISABLED]
+};
+
+```
+
+**AJ.PROXY-**The object is defined as a proxy.
+
+```javascript
+
+AJ.objectDefinition['/org/alljoyn/alljoyn_hidden'] = {
+    interfaces:['org.alljoyn.alljoyn_ping'],
+    flags: [AJ.PROXY]
+};
+
+```
+
+**AJ.HIDDEN-**The object is not announced. This overrides AJ.ANNOUNCED.
+
+```javascript
+
+AJ.objectDefinition['/org/alljoyn/alljoyn_hidden'] = {
+    interfaces:['org.alljoyn.alljoyn_ping'],
+    flags: [AJ.HIDDEN]
+};
+
+```
+
+### Security object
+
+**ecdhe_ecdsa-**Enable the ECDHE_ECDSA security suite
+
+prv_key: A String that defines the private key to use for this suite
+
+cert_chain; A String that defines the certificate chain to use for this suite
+
+**ecdhe_speke-**Enable the ECDHE_SPEKE security suite
+
+password: A String defining the password to use for this suite
+
+**ecdhe_null-**A boolean that enables the ECDHE_NULL security suite
+
+**claimWith-**An array of claiming types to use as claiming mechanism for the application
+
+**expiration-**The expiration time in seconds for the provided credentials
+
+```javascript
+
+var credentials = {
+    ecdhe_speke: {
+        password: "1234"
+    },
+    ecdhe_ecdsa: {
+        prv_key: "-----BEGIN EC PRIVATE KEY-----.....",
+        cert_chain:  "-----BEGIN CERTIFICATE-----....."
+    },
+    ecdhe_null: true,
+    claimWith: [AJ.CLAIM_NULL, AJ.CLAIM_SPEKE],
+    expiration: 5000
+}
+
+```
+
+
 ### Message Methods
+
+**AJ.aboutDefinition-**Object defining the different the values and access types for various about data fields
+
+```javascript
+
+AJ.aboutDefinition = {
+    DeviceName: "AllJoyn.js",
+    AppName: "MyPing",
+    Description: "Custom About Info in AllJoyn.js",
+    { Manufacturer: "AllseenAlliance", access:AJ.PRIVATE }
+}
+
+```
 
 **AJ.interfaceDefinition[String interface]-**List all of the different methods/signals/properties within the given interface
 
@@ -51,7 +200,7 @@ AJ.interfaceDefinition["org.alljoyn.marshal_test"] = {messages};
 
 ```
 
-**AJ.objcectDefinition[String object]-**List all of the different interfaces and other information within one object
+**AJ.objectDefinition[String object]-**List all of the different interfaces and other information within one object
 
 object: Path for the object
 
@@ -60,8 +209,28 @@ object: Path for the object
 AJ.objectDefinition['/test'] = {
 
     interfaces:['org.alljoyn.test']
+    flags: [AJ.SECURE]
 
 };
+
+Note: To apply security to an object, the AJ.SECURE flag needs to be given and AJ.securityDefinition needs to be defined
+
+**AJ.securityDefinition-**Define which security suites and credentials to use during communication with a security object
+
+```javascript
+
+AJ.securityDefinition = {
+    ecdhe_speke: {
+        password: "1234"
+    },
+    ecdhe_ecdsa: {
+        prv_key: "-----BEGIN EC PRIVATE KEY-----.....",
+        cert_chain:  "-----BEGIN CERTIFICATE-----....."
+    },
+    ecdhe_null: true,
+    claimWith: [AJ.CLAIM_NULL, AJ.CLAIM_SPEKE],
+    expiration: 5000
+}
 
 ```
 
@@ -99,6 +268,27 @@ interface: the interface name from the interface definition
 ```javascript
 
 AJ.findService('org.alljoyn.test', function(svc) {});
+
+```
+
+**AJ.findSecureService(String interface, SecurityObject, function() {})-**Find the secure service that is using the given interface and perform the given function once the secure service has been found.
+
+```javascript
+
+var credentials = {
+    ecdhe_speke: {
+        password: "1234"
+    },
+    ecdhe_ecdsa: {
+        prv_key: "-----BEGIN EC PRIVATE KEY-----.....",
+        cert_chain:  "-----BEGIN CERTIFICATE-----....."
+    },
+    ecdhe_null: true,
+    claimWith: [AJ.CLAIM_NULL, AJ.CLAIM_SPEKE],
+    expiration: 5000
+}
+
+AJ.findSecureService('org.alljoyn.test', credentials, function() {});
 
 ```
 

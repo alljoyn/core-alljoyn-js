@@ -258,7 +258,7 @@ var Spi = {
  * }
  *
  * u.setTrigger(IO.rxReady, RxReadyCB);
- * 
+ *
  */
 var Uart = {
     /**
@@ -269,7 +269,7 @@ var Uart = {
      */
     read: function(num) {},
     /**
-     * Write data to the UART peripheral. You can write most kinds of data types: 
+     * Write data to the UART peripheral. You can write most kinds of data types:
      * Strings, Numbers, Booleans, Arrays of numbers, and Duktape buffers.
      *
      * @param {string|number|boolean|number[]|Duktape.Buffer} data      - Data to write
@@ -277,7 +277,7 @@ var Uart = {
     write: function(data) {},
     /**
      * Set a trigger function callback for RX data available
-     * 
+     *
      * @param {constant} type               - Type of trigger. Should always be IO.rxReady for UART
      * @param {TriggerCallback} callback    - Callback function to be called when data is ready
      */
@@ -335,7 +335,7 @@ var DigitalIn = {
 /**
  * Callback function for peripheral triggers. This is used for digial inputs
  * and UART inputs.
- * 
+ *
  * @namespace
  * @param val       - Received trigger value. In the case of digital inputs this is the value of
  *                    the level of the pin that was triggered.
@@ -362,7 +362,20 @@ var PinInfo = {}
  * @property {string} signature             - Signature for properties only
  * @property {string} access                - Access rights (properties only)
  */
+
 /**
+ * Security Object
+ * @typedef SecurityObject
+ * @type {object}
+ * @property {object} ecdhe_ecdsa            - ECDHE_ECDSA suite credentials field
+ * @property {string} ecdhe_ecdsa.prv_key    - Private key for ECDHE_ECDSA authentication
+ * @property {string} ecdhe_ecdsa.cert_chain - Reply signature (methods only)
+ * @property {object} ecdhe_speke            - ECDHE_SPEKE suite credentials field
+ * @property {string} ecdhe_speke.password   - Password for ECDHE_SPEKE authentication
+ * @property {bool}   ecdhe_null             - Enables or disables ECDHE_NULL suite
+ * @propetry {constant[]} claim_with         - Array of claiming mechanisms to use (AJ.CLAIM_ECDSA, AJ.CLAIM_SPEKE, AJ.CLAIM_NULL)
+ */
+/*
  * AllJoyn object definition
  * @typedef ObjectDefinition
  * @type {object}
@@ -386,6 +399,65 @@ var PinInfo = {}
  * var AJ = require('AllJoyn');
  */
 var AJ = {
+    /**
+     * Definition of about information to announce. This is an object composed of named fields or objects,
+     * where the name is an about property and each object is a value and an access type. The access
+     * type can be one of four types: AJ.READONLY, AJ.ANNOUNCE, AJ.LOCALIZED, or AJ.PRIVATE. If an
+     * access flag is not given, AJ.ANNOUNCE will be implied. The field name can only be one of the
+     * About Data Interface fields. See https://allseenalliance.org/framework/documentation/learn/core/about-announcement/interface
+     *
+     * @example
+     * Aj.aboutDefinition = {
+     *              AppName: "AllJoyn.js",
+     *              Description:     { value: "AllJoyn.js Example" },
+     *              HardwareVersion: { value: "0.0.1", access: AJ.HIDDEN }
+     * }
+     */
+
+    aboutDefinition: {
+        /**
+         * Value for the field
+         */
+        value: "",
+        /**
+         * Access type for the About field
+         */
+        access: {}
+    }
+
+    /**
+     * Definition for security and credentials to use in alljoyn communications for the application.
+     * A SecurityObject should be assigned to this to define the enabled security suites and their
+     * credentials.
+     *
+     * @sample
+     * AJ.securityDefinition = {
+     *              ecdhe_speke: {
+     *                  password: "1234"
+     *              },
+     *              ecdhe_ecdsa: {
+                        prv_key: "-----BEGIN EC PRIVATE KEY-----.....",
+                        cert_chain:  "-----BEGIN CERTIFICATE-----....."
+     *              },
+     *              ecdhe_null: true,
+     *              claimWith: [AJ.CLAIM_NULL, AJ.CLAIM_SPEKE],
+     *              expiration: 5000
+     * }
+     *
+     */
+    securityDefinition = {
+        ecdhe_speke: {
+            password: ""
+        },
+        ecdhe_ecdsa: {
+            prv_key: "",
+            cert_chain:  ""
+        },
+        ecdhe_null: true,
+        claimWith: [AJ],
+        expiration: 1
+
+    }
     /**
      * Definition of interfaces, signals, methods and properties to be advertised. This is an
      * array of named objects, indexed by interface, where each object is either a method, signal, or
@@ -429,7 +501,11 @@ var AJ = {
     /**
      * Definition of objects and the interfaces they possess. This is an array of objects indexed
      * by an object path. Each object should contain one element, "interfaces", which is an array of
-     * strings that correspond to elements defined in the programs "interfaceDefinition".
+     * strings that correspond to elements defined in the programs "interfaceDefinition". Each object
+     * can also optionally have the element flags that defines the visibility of the object on the
+     * alljoyn bus. The flags element is an array that can contain the following types: AJ.SECURE,
+     * AJ.HIDDEN, AJ.DISABLED, AJ.ANNOUNCED and AJ.PROXY. Note: if securityDefinition is defined and
+     * and object needs to have security then the AJ.SECURE flag needs to be given.
      *
      * @type {ObjectDefinition[]}
      * @example
@@ -589,6 +665,20 @@ var AJ = {
      *  }
      */
     onPropGetAll: function(iface) {},
+
+    /**
+     * Get the AllJoyn unique name
+     *
+     * @return {String} Current AllJoyn bus unique name
+     *
+     */
+    getUniqueName: function() {},
+
+    /**
+     * Clear saved credentials from NVRAM
+     */
+    clearCredentials: function() {},
+
     /**
      * Find a service advertised by a different peer using About
      *
@@ -609,6 +699,29 @@ var AJ = {
      * }
      */
     findService: function(iface, callback) {},
+
+    /**
+     * Find a secure service advertised by a different peer using About
+     *
+     * @param {String} iface                Interface being found
+     * @param {SecurityObject}  credentials Security credentials to authenticate with the service
+     * @param {ServiceCallback} callback    Callback function for when the service is found
+     *
+     * @example
+     * var service;
+     *
+     * function found(svc) {
+     *     // Save the service to make calls on it later
+     *     service = svc;
+     * }
+     *
+     * AJ.onAttach = function() {
+     *     print('Attached');
+     *     AJ.findService('org.alljoyn.sample', found);
+     * }
+     */
+    findService: function(iface, callback) {},
+
     /**
      * Find a service using legacy name-based discovery
      *

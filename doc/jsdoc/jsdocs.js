@@ -586,6 +586,15 @@ var AJ = {
      */
     onMethodCall: function(arg) {},
     /**
+     * Callback when security policy changes.
+     *
+     * @example
+     * AJ.onPolicyChanged = function() {
+     *     print("Security policy has changed");
+     * }
+     */
+    onPolicyChanged: function() {},
+    /**
      * Callback when a signal is received. In this callback you have access to 'this' object.
      * The 'this' object represents the AllJoyn signal. Using 'this' you can check values such
      * as 'member' (signal name), 'sender', 'iface', 'path', and a boolean 'fromSelf' which

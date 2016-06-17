@@ -208,6 +208,11 @@ AJ_Status AJS_InitTables(duk_context* ctx, duk_idx_t ajIdx);
 void AJS_ResetTables(duk_context* ctx);
 
 /**
+ * Queue a PolicyChange notification
+ */
+void AJS_QueueNotifPolicyChanged();
+
+/**
  * Start processing messages until an error occurs.
  *
  * @param ctx    An opaque pointer to a duktape context structure

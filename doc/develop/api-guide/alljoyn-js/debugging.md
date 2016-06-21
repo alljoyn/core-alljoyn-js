@@ -1,10 +1,7 @@
-This work is licensed under a Creative Commons Attribution 4.0 International License.
-http://creativecommons.org/licenses/by/4.0/
-
 # Debugging AllJoyn.js
 ***
 
-JavaScipt may be easy to write but can sometimes be hard to debug without tools like GDB. Since AllJoyn.js abstracts the underlying implementation it is sometimes difficult to find out why your AllJoyn.js script is not working properly. There are some tools that you can leverage to find out what is going wrong.
+JavaScript may be easy to write but can sometimes be hard to debug without tools like GDB. Since AllJoyn.js abstracts the underlying implementation it is sometimes difficult to find out why your AllJoyn.js script is not working properly. There are some tools that you can leverage to find out what is going wrong.
 
 ### Print Debugging
 There is always the classic print debugging that you can use to figure out program flow or what variables are set to. As with most languages its as simple as calling print() in a location of interest

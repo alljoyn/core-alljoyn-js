@@ -361,25 +361,34 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
         /*
          * Read the link timeout property from the config set
          */
-        duk_get_prop_string(ctx, -1, "config");
-        duk_get_prop_string(ctx, -1, "linkTimeout");
+        duk_get_prop_string(ctx, ajIdx, "config");
+        duk_get_prop_string(ctx, ajIdx, "linkTimeout");
         linkTO = duk_get_int(ctx, -1);
         duk_pop_2(ctx);
         AJ_SetBusLinkTimeout(aj, linkTO);
     }
-    /*
-     * timer clock must be initialized
-     */
-    AJ_InitTimer(&timerClock);
-
     AJ_ASSERT(duk_get_top_index(ctx) == top);
 
     /*
      * Initialize About we can start sending announcements
      */
     AJ_AboutInit(aj, AJS_APP_PORT);
+    /*
+     * timer clock must be initialized
+     */
+    AJ_InitTimer(&timerClock);
+
 
     while (status == AJ_OK) {
+        /*
+         * Services the internal and timeout timers and updates the timeout value for any new
+         * timers that have been registered since this function was last called.
+         */
+        status = AJS_RunTimers(ctx, &timerClock, &msgTO);
+        if (status != AJ_OK) {
+            AJ_ErrPrintf(("Error servicing timer functions\n"));
+            break;
+        }
         /*
          * Check we are cleaning up the duktape stack correctly.
          */
@@ -407,15 +416,6 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
         status = AJS_ServiceExtModules(ctx);
         if (status != AJ_OK) {
             AJ_ErrPrintf(("Error servicing external modules\n"));
-            break;
-        }
-        /*
-         * Services the internal and timeout timers and updates the timeout value for any new
-         * timers that have been registered since this function was last called.
-         */
-        status = AJS_RunTimers(ctx, &timerClock, &msgTO);
-        if (status != AJ_OK) {
-            AJ_ErrPrintf(("Error servicing timer functions\n"));
             break;
         }
         /*

@@ -1316,6 +1316,18 @@ int8_t AJS_Console::LockdownConsole(void)
     return 1;
 }
 
+void AJS_Console::BusDisconnected()
+{
+    QCC_SyncPrintf("SessionLost. Bus has been disconnected.\n");
+    _exit(1);
+}
+
+void AJS_Console::BusStopping()
+{
+    QCC_SyncPrintf("SessionLost. Bus has stopped.\n");
+    _exit(1);
+}
+
 void AJS_Console::SessionLost(SessionId sessionId, SessionLostReason reason)
 {
     Print("SessionLost(%08x) was called. Reason=%u.\n", sessionId, reason);

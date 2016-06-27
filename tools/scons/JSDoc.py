@@ -61,7 +61,7 @@ def generate(env):
         'JSDoc': jsdoc3_builder,
     })
 
-    env['JSDOCCOM'] = 'jsdoc ${JSDOC_FLAGS} ${_JSDOC_TEMPLATE_OPT} -d ${TARGET.dir} ${SOURCES}'
+    env['JSDOCCOM'] = 'jsdoc ${JSDOC_FLAGS} ${_JSDOC_TEMPLATE_OPT} -d=${TARGET.dir} ${SOURCES}'
     # Suffixes/prefixes
     env['JSDOC_SUFFIX'] = '.js'
     # JSDoc 2 build flags

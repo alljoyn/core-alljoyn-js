@@ -220,19 +220,19 @@ jsenv.Append(CPPDEFINES = [
     'NOTIFICATION_SERVICE_PRODUCER',
     # Duktape defines
     'DUK_FORCE_ALIGNED_ACCESS',
-    ( 'DUK_OPT_DEBUG_BUFSIZE', '256' ),
-    'DUK_OPT_DPRINT_COLORS',
-    ( 'DUK_OPT_FORCE_ALIGN', '4' ),
-    'DDUK_OPT_LIGHTFUNC_BUILTINS',
-    'DDUK_OPT_FASTINT',
-    'DUK_OPT_HAVE_CUSTOM_H',
-    'DUK_OPT_NO_FILE_IO',
-    'DUK_OPT_SEGFAULT_ON_PANIC',
-    'DUK_OPT_SHORT_LENGTHS',
-    'DUK_OPT_DEBUGGER_SUPPORT',
-    'DUK_OPT_INTERRUPT_COUNTER',
+    ( 'DUK_USE_DEBUG_BUFSIZE', '256' ),
+    'DUK_USE_DPRINT_COLORS',
+    ( 'DUK_USE_FORCE_ALIGN', '4' ),
+    'DDUK_USE_LIGHTFUNC_BUILTINS',
+    'DDUK_USE_FASTINT',
+    'DUK_USE_HAVE_CUSTOM_H',
+    'DUK_USE_NO_FILE_IO',
+    'DUK_USE_SEGFAULT_ON_PANIC',
+    'DUK_USE_SHORT_LENGTHS',
+    'DUK_USE_DEBUGGER_SUPPORT',
+    'DUK_USE_INTERRUPT_COUNTER',
     'DUK_CMDLINE_DEBUGGER_SUPPORT',
-    ( '"DUK_OPT_EXEC_TIMEOUT_CHECK(u)"', '"AJS_ExecTimeoutCheck(u)"'),
+    ( '"DUK_USE_EXEC_TIMEOUT_CHECK(u)"', '"AJS_ExecTimeoutCheck(u)"'),
     # AllJoyn-JS defines
     'ALLJOYN_JS',
     'BIG_HEAP' ])
@@ -244,32 +244,32 @@ if include_onboarding:
 if jsenv['VARIANT'] == 'release':
     jsenv.Append(CPPDEFINES = [ 'NDEBUG' ])
 else:
-    jsenv.Append(CPPDEFINES = [ 'DUK_OPT_ASSERTIONS',
+    jsenv.Append(CPPDEFINES = [ 'DUK_USE_ASSERTIONS',
                               ( 'AJ_DEBUG_RESTRICT', '5' ),
                               'DBGAll' ])
 if jsenv['DUK_DEBUG']:
     jsenv.Append(CPPDEFINES = [ 'DBG_PRINT_CHUNKS',
-                              'DUK_OPT_DEBUG',
-                              'DUK_OPT_DPRINT' ])
+                              'DUK_USE_DEBUG',
+                              'DUK_USE_DPRINT' ])
 
 if not jsenv['POOL_MALLOC']:
     jsenv.Append(CPPDEFINES=['AJS_USE_NATIVE_MALLOC'])
 elif jsenv['SHORT_SIZES']:
-    jsenv.Append(CPPDEFINES = [ 'DUK_OPT_REFCOUNT16',
-                              'DUK_OPT_STRHASH16',
-                              'DUK_OPT_STRLEN16',
-                              'DUK_OPT_BUFLEN16',
-                              'DUK_OPT_OBJSIZES16',
-                              'DUK_OPT_HEAPPTR16',
-                              ('"DUK_OPT_HEAPPTR_ENC16(u,p)"', '"AJS_EncodePtr16(u,p)"'),
-                              ('"DUK_OPT_HEAPPTR_DEC16(u,x)"', '"AJS_DecodePtr16(u,x)"') ])
+    jsenv.Append(CPPDEFINES = [ 'DUK_USE_REFCOUNT16',
+                              'DUK_USE_STRHASH16',
+                              'DUK_USE_STRLEN16',
+                              'DUK_USE_BUFLEN16',
+                              'DUK_USE_OBJSIZES16',
+                              'DUK_USE_HEAPPTR16',
+                              ('"DUK_USE_HEAPPTR_ENC16(u,p)"', '"AJS_EncodePtr16(u,p)"'),
+                              ('"DUK_USE_HEAPPTR_DEC16(u,x)"', '"AJS_DecodePtr16(u,x)"') ])
 
 if jsenv['EXT_STRINGS']:
-    jsenv.Append(CPPDEFINES = [ 'DUK_OPT_EXTERNAL_STRINGS',
-                              ('"DUK_OPT_EXTSTR_INTERN_CHECK(u,p,l)"', '"AJS_ExternalStringCheck(u,p,l)"'),
-                              ('"DUK_OPT_EXTSTR_FREE(u,p)"', '"AJS_ExternalStringFree(u,p)"'),
-                              'DUK_OPT_STRTAB_CHAIN',
-                              'DUK_OPT_STRTAB_CHAIN_SIZE=128' ])
+    jsenv.Append(CPPDEFINES = [ 'DUK_USE_EXTERNAL_STRINGS',
+                              ('"DUK_USE_EXTSTR_INTERN_CHECK(u,p,l)"', '"AJS_ExternalStringCheck(u,p,l)"'),
+                              ('"DUK_USE_EXTSTR_FREE(u,p)"', '"AJS_ExternalStringFree(u,p)"'),
+                              'DUK_USE_STRTAB_CHAIN',
+                              'DUK_USE_STRTAB_CHAIN_SIZE=128' ])
 
 if jsenv['CONSOLE_LOCKDOWN'] :
     jsenv.Append(CPPDEFINES = [ 'AJS_CONSOLE_LOCKDOWN' ])

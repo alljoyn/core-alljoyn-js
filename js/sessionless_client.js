@@ -28,7 +28,7 @@ function sendSignal()
 {
     var sig = AJ.signal('/org/alljoyn/sessionless', {my_signal:'org.alljoyn.sessionless'});
     sig.sessionless = true;
-    sig.timeToLive = 100;
+    sig.timeToLive = 500;
     sig.send("signal");
 }
 

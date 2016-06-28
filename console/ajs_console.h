@@ -112,6 +112,10 @@ class AJS_Console : public ajn::BusListener, public ajn::SessionListener, public
 
     void SessionLost(ajn::SessionId sessionId, SessionLostReason reason);
 
+    virtual void BusDisconnected();
+
+    virtual void BusStopping();
+
     virtual void Notification(const ajn::InterfaceDescription::Member* member, const char* sourcePath, ajn::Message& msg);
 
     virtual void Print(const char* fmt, ...);

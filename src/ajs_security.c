@@ -22,8 +22,9 @@
 #include "ajs_debugger.h"
 #include "ajs_security.h"
 #include "ajs_propstore.h"
-#include <ajtcl/aj_msg_priv.h>
 
+#include <ajtcl/aj_bus.h>
+#include <ajtcl/aj_msg_priv.h>
 #include <ajtcl/aj_cert.h>
 #include <ajtcl/aj_peer.h>
 #include <ajtcl/aj_creds.h>
@@ -123,6 +124,11 @@ static AJ_Status AuthListenerCallback(uint32_t authmechanism, uint32_t command, 
         break;
     }
     return status;
+}
+
+static void PolicyChangedCallback()
+{
+    AJS_QueueNotifPolicyChanged();
 }
 
 void AJS_EnableSecuritySuite(uint32_t suite)
@@ -237,7 +243,7 @@ AJ_Status AJS_EnableSecurity(duk_context* ctx)
        return status;
    }
 
-
+   AJ_BusSetPolicyChangedCallback(AJS_GetBusAttachment(), PolicyChangedCallback);
    status = AJ_BusEnableSecurity(AJS_GetBusAttachment(), suites, 3);
    if (status != AJ_OK) {
        duk_error(ctx, DUK_ERR_TYPE_ERROR, "AJ_BusEnableSecurity() failed\n");
@@ -251,7 +257,6 @@ AJ_Status AJS_EnableSecurity(duk_context* ctx)
    if (APP_STATE_CLAIMED != state && claimCapabilities != 0) {
         AJ_SecuritySetClaimConfig(AJS_GetBusAttachment(), APP_STATE_CLAIMABLE, claimCapabilities, 0);
    }
-
 
    return status;
 }

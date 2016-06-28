@@ -1134,7 +1134,9 @@ QStatus AJS_Console::Connect(const char* deviceName, volatile sig_atomic_t* inte
     /*
      * The device we wil be looking for
      */
-    this->deviceName = deviceName;
+    if (deviceName) {
+        this->deviceName = deviceName;
+    }
 
     aj = new BusAttachment("console", true);
     aj->Start();
@@ -1314,6 +1316,18 @@ int8_t AJS_Console::LockdownConsole(void)
     }
     reply->GetArgs("y", &ret);
     return 1;
+}
+
+void AJS_Console::BusDisconnected()
+{
+    QCC_SyncPrintf("SessionLost. Bus has been disconnected.\n");
+    _exit(1);
+}
+
+void AJS_Console::BusStopping()
+{
+    QCC_SyncPrintf("SessionLost. Bus has stopped.\n");
+    _exit(1);
 }
 
 void AJS_Console::SessionLost(SessionId sessionId, SessionLostReason reason)

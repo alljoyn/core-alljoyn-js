@@ -22,6 +22,8 @@
 #include "ajs_services.h"
 #include "ajs_debugger.h"
 
+static uint32_t hasPolicyChanged = FALSE;
+
 static uint8_t IsPropAccessor(AJ_Message* msg)
 {
     if (strcmp(msg->iface, AJ_PropertiesIface[0] + 1) == 0) {
@@ -60,6 +62,11 @@ static AJ_Status SessionBindReply(duk_context* ctx, AJ_Message* msg)
         }
     }
     return status;
+}
+
+void AJS_QueueNotifPolicyChanged()
+{
+    hasPolicyChanged += 1;
 }
 
 static AJ_Status SessionDispatcher(duk_context* ctx, AJ_Message* msg)
@@ -283,6 +290,28 @@ static AJ_Status HandleMessage(duk_context* ctx, duk_idx_t ajIdx, AJ_Message* ms
     return status;
 }
 
+void ProcessPolicyNotifications(duk_context* ctx, duk_idx_t ajIdx)
+{
+    if (!hasPolicyChanged) {
+        return;
+    }
+
+    hasPolicyChanged -= 1;
+
+    duk_get_prop_string(ctx, ajIdx, "onPolicyChanged");
+    if (!duk_is_function(ctx, -1)) {
+        AJ_WarnPrintf(("onPolicyChanged: not registered - ignoring message\n"));
+        duk_pop_2(ctx);
+        return;
+    }
+
+    if (duk_pcall_method(ctx, 0) != DUK_EXEC_SUCCESS) {
+        AJ_ErrPrintf(("onPolicyChanged: %s\n", duk_safe_to_string(ctx, -1)));
+    }
+
+    duk_pop_2(ctx);
+}
+
 static AJS_DEFERRED_OP deferredOp = AJS_OP_NONE;
 
 void AJS_DeferredOperation(duk_context* ctx, AJS_DEFERRED_OP op)
@@ -332,25 +361,34 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
         /*
          * Read the link timeout property from the config set
          */
-        duk_get_prop_string(ctx, -1, "config");
-        duk_get_prop_string(ctx, -1, "linkTimeout");
+        duk_get_prop_string(ctx, ajIdx, "config");
+        duk_get_prop_string(ctx, ajIdx, "linkTimeout");
         linkTO = duk_get_int(ctx, -1);
         duk_pop_2(ctx);
         AJ_SetBusLinkTimeout(aj, linkTO);
     }
-    /*
-     * timer clock must be initialized
-     */
-    AJ_InitTimer(&timerClock);
-
     AJ_ASSERT(duk_get_top_index(ctx) == top);
 
     /*
      * Initialize About we can start sending announcements
      */
     AJ_AboutInit(aj, AJS_APP_PORT);
+    /*
+     * timer clock must be initialized
+     */
+    AJ_InitTimer(&timerClock);
+
 
     while (status == AJ_OK) {
+        /*
+         * Services the internal and timeout timers and updates the timeout value for any new
+         * timers that have been registered since this function was last called.
+         */
+        status = AJS_RunTimers(ctx, &timerClock, &msgTO);
+        if (status != AJ_OK) {
+            AJ_ErrPrintf(("Error servicing timer functions\n"));
+            break;
+        }
         /*
          * Check we are cleaning up the duktape stack correctly.
          */
@@ -378,15 +416,6 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
         status = AJS_ServiceExtModules(ctx);
         if (status != AJ_OK) {
             AJ_ErrPrintf(("Error servicing external modules\n"));
-            break;
-        }
-        /*
-         * Services the internal and timeout timers and updates the timeout value for any new
-         * timers that have been registered since this function was last called.
-         */
-        status = AJS_RunTimers(ctx, &timerClock, &msgTO);
-        if (status != AJ_OK) {
-            AJ_ErrPrintf(("Error servicing timer functions\n"));
             break;
         }
         /*
@@ -427,6 +456,8 @@ AJ_Status AJS_MessageLoop(duk_context* ctx, AJ_BusAttachment* aj, duk_idx_t ajId
             AJ_CloseMsg(&msg);
             continue;
         }
+
+        ProcessPolicyNotifications(ctx, ajIdx);
 
         switch (msg.msgId) {
         case 0:

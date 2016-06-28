@@ -146,9 +146,6 @@ int main(int argc, char** argv)
         }
     }
 
-    if (!deviceName) {
-         goto Usage;
-    }
     status = ajsConsole->Connect(deviceName, &g_interrupt);
 
     if (status == ER_OK) {

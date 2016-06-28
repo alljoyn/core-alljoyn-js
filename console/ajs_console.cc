@@ -1134,7 +1134,9 @@ QStatus AJS_Console::Connect(const char* deviceName, volatile sig_atomic_t* inte
     /*
      * The device we wil be looking for
      */
-    this->deviceName = deviceName;
+    if (deviceName) {
+        this->deviceName = deviceName;
+    }
 
     aj = new BusAttachment("console", true);
     aj->Start();

@@ -15,8 +15,6 @@
  ******************************************************************************/
 var AJ = require('AllJoyn');
 
-print(JSON.stringify(AJ));
-
 AJ.onAttach = function() {
     AJ.notification(AJ.notification.Emergency, "I've fallen and I can't get up!").send(1000);
 }

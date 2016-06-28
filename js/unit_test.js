@@ -89,6 +89,8 @@ var counter_pass = true;
 var count_done = false;
 var nvram_pass = true;
 var nvram_done = false;
+var iter = 0;
+
 
 AJ.onSignal = function()
 {
@@ -177,23 +179,58 @@ AJ.onSignal = function()
     }
 }
 
-function sendSLS(iter)
+var slsInterval;
+
+function sendSLS()
 {
     if (iter >= MAX_SIG_ITERATIONS) {
         print('PASS: sessionless_sig - count: ' + sls_count);
         sls_done = true;
+        clearInterval(slsInterval);
         return;
     }
-    AJ.signal('/org/alljoyn/unit_test1', {sessionless_sig1:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig1);
-    AJ.signal('/org/alljoyn/unit_test2', {sessionless_sig2:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig2);
-    AJ.signal('/org/alljoyn/unit_test3', {sessionless_sig3:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig3);
-    AJ.signal('/org/alljoyn/unit_test4', {sessionless_sig4:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig4);
-    AJ.signal('/org/alljoyn/unit_test5', {sessionless_sig5:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig5);
-    AJ.signal('/org/alljoyn/unit_test6', {sessionless_sig6:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig6);
-    AJ.signal('/org/alljoyn/unit_test7', {sessionless_sig7:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig7);
-    AJ.signal('/org/alljoyn/unit_test8', {sessionless_sig8:'org.alljoyn.unit_test'}).send(args_object.sessionless_sig8);
+    var sig = AJ.signal('/org/alljoyn/unit_test1', {sessionless_sig1:'org.alljoyn.unit_test'});
+    sig.sessionless = true;
+    sig.timeToLive = 250;
+    sig.send(args_object.sessionless_sig1);
+
+    sig = AJ.signal('/org/alljoyn/unit_test2', {sessionless_sig2:'org.alljoyn.unit_test'});
+    sig.sessionless = true;
+    sig.timeToLive = 250;
+    sig.send(args_object.sessionless_sig2);
+
+    sig = AJ.signal('/org/alljoyn/unit_test3', {sessionless_sig3:'org.alljoyn.unit_test'});
+    sig.sessionless = true;
+    sig.timeToLive = 250;
+    sig.send(args_object.sessionless_sig3);
+
+    sig = AJ.signal('/org/alljoyn/unit_test4', {sessionless_sig4:'org.alljoyn.unit_test'});
+    sig.sessionless = true;
+    sig.timeToLive = 250;
+    sig.send(args_object.sessionless_sig4);
+
+    sig = AJ.signal('/org/alljoyn/unit_test5', {sessionless_sig5:'org.alljoyn.unit_test'});
+    sig.sessionless = true;
+    sig.timeToLive = 250;
+    sig.send(args_object.sessionless_sig5);
+
+    sig = AJ.signal('/org/alljoyn/unit_test6', {sessionless_sig6:'org.alljoyn.unit_test'});
+    sig.sessionless = true;
+    sig.timeToLive = 250;
+    sig.send(args_object.sessionless_sig6);
+
+    sig = AJ.signal('/org/alljoyn/unit_test7', {sessionless_sig7:'org.alljoyn.unit_test'});
+    sig.sessionless = true;
+    sig.timeToLive = 250;
+    sig.send(args_object.sessionless_sig7);
+
+    sig = AJ.signal('/org/alljoyn/unit_test8', {sessionless_sig8:'org.alljoyn.unit_test'});
+    sig.sessionless = true;
+    sig.timeToLive = 250;
+    sig.send(args_object.sessionless_sig8);
+
     sls_count++;
-    sendSLS(iter + 1);
+    iter++;
 }
 
 AJ.onAttach = function()
@@ -207,7 +244,7 @@ AJ.onAttach = function()
     AJ.addMatch('org.alljoyn.unit_test', 'sessionless_sig7');
     AJ.addMatch('org.alljoyn.unit_test', 'sessionless_sig8');
     print("Starting SLS test");
-    sendSLS(0);
+    slsInterval = setInterval(sendSLS, 250);
 }
 
 var store_obj = {
@@ -221,7 +258,7 @@ var store_obj = {
 
 var store_int = 60;
 var store_str = "simple_string";
-    
+
 print("===== Starting Unit Tests =====");
 /*
  * Store/Load tests

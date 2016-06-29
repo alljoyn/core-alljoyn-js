@@ -35,7 +35,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             #
 ############################################################################
 
-# Copyright AllSeen Alliance. All rights reserved.
+# Copyright (c) Connectivity Foundation and AllJoyn Open Source Project Contributors and others.
 
 
 # the URLDownload-Builder can be download any data from an URL into a target file

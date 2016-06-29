@@ -943,6 +943,7 @@ static int NativeLoadControlPanel(duk_context* ctx)
      */
     AJS_CP_Init(objList);
     duk_pop_2(ctx);
+    isLoaded = TRUE;
     return 0;
 }
 

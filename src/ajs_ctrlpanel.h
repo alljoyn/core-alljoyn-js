@@ -142,6 +142,13 @@ void AJS_CP_SignalValueChanged(AJ_BusAttachment* aj, AJS_Widget* ajsWidget);
  */
 void AJS_CP_SignalMetadataChanged(AJ_BusAttachment* aj, AJS_Widget* ajsWidget);
 
+/**
+ * Check if the ControlPanel Service was loaded.
+ *
+ * @return Returns TRUE if the ControlPanel Service was loaded
+ */
+uint8_t AJS_CP_IsEnabled();
+
 #ifdef __cplusplus
 }
 #endif

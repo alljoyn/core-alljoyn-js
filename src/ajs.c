@@ -28,6 +28,7 @@
 #include <ajtcl/aj_creds.h>
 #include <ajtcl/aj_util.h>
 #include <ajtcl/aj_introspect.h>
+#include <ajtcl/services/ControlPanelService.h>
 
 /**
  * Turn on per-module debug printing by setting this variable to non-zero value
@@ -189,6 +190,14 @@ static AJ_Status Run(AJ_BusAttachment* aj, duk_context* ctx)
                 }
 #endif
             }
+#ifdef CONTROLPANEL_SERVICE
+            /*
+             * Prepare the ControlPanel connection.
+             */
+            if (status == AJ_OK && AJS_CP_IsEnabled()) {
+                status = AJCPS_ConnectedHandler(aj);
+            }
+#endif
             if (status == AJ_OK) {
                 /*
                  * Bind the application session port

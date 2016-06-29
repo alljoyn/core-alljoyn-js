@@ -23,7 +23,14 @@
 #include "ajs_translations.h"
 #include "ajs_ctrlpanel.h"
 
+static uint8_t isLoaded = FALSE;
+
 static int NativeContainerWidget(duk_context* ctx);
+
+uint8_t AJS_CP_IsEnabled()
+{
+    return isLoaded;
+}
 
 /*
  * Leaves the widget (this) object on the stack
@@ -943,6 +950,7 @@ static int NativeLoadControlPanel(duk_context* ctx)
      */
     AJS_CP_Init(objList);
     duk_pop_2(ctx);
+    isLoaded = TRUE;
     return 0;
 }
 

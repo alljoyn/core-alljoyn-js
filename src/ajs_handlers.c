@@ -266,7 +266,7 @@ static int NativeFindSecureService(duk_context* ctx)
     }
 
     if (!duk_is_undefined(ctx, 2)) {
-        AJ_PermissionRule rules[] = { {path, iface, AJS_GetPermissionMembers(), NULL}};
+        AJ_PermissionRule rules[] = { {path, iface, PRIVILEGED, NULL}};
         AJS_SetSecurityRules(ctx, rules, 1);
         AJS_GetAllJoynSecurityProps(ctx, 2);
         AJS_EnableSecurity(ctx);

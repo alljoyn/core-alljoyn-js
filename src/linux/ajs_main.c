@@ -40,7 +40,6 @@ int main(int argc, char* argv[])
         goto Usage;
     }
 
-    AJ_SetNVRAM_FilePath(options.nvramFile);
     AJ_Initialize();
 
     if (options.daemonize) {
@@ -76,9 +75,9 @@ int main(int argc, char* argv[])
 Usage:
 
 #ifndef NDEBUG
-    AJ_Printf("Usage: %s [--debug] [--daemon] [--log-file <log_file>] [--nvram-file <nvram_file>] [--name <device_name>] [script_file]\n", argv[0]);
+    AJ_Printf("Usage: %s [--debug] [--daemon] [--log-file <log_file>] [--name <device_name>] [script_file]\n", argv[0]);
 #else
-    AJ_Printf("Usage: %s [--daemon] [--log-file <log_file>] [--nvram-file <nvram_file>] [--name <device_name>] [script_file]\n", argv[0]);
+    AJ_Printf("Usage: %s [--daemon] [--log-file <log_file>] [--name <device_name>] [script_file]\n", argv[0]);
 #endif
     exit(1);
 }

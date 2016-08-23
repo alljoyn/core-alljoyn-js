@@ -35,7 +35,6 @@ int main(int argc, char* argv[])
         goto Usage;
     }
 
-    AJ_SetNVRAM_FilePath(options.nvramFile);
     AJ_Initialize();
 
     if (options.scriptName) {
@@ -55,9 +54,9 @@ int main(int argc, char* argv[])
 Usage:
 
 #ifndef NDEBUG
-    AJ_Printf("Usage: %s [--debug] [--name <device-name>] [--nvram-file <nvram-file>] [script_file]\n", argv[0]);
+    AJ_Printf("Usage: %s [--debug] [--name <device-name>] [script_file]\n", argv[0]);
 #else
-    AJ_Printf("Usage: %s [--name <device-name>] [--nvram-file <nvram-file>] [script_file]\n", argv[0]);
+    AJ_Printf("Usage: %s [--name <device-name>] [script_file]\n", argv[0]);
 #endif
     exit(1);
 }

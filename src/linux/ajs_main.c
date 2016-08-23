@@ -2,19 +2,32 @@
  * @file
  */
 /******************************************************************************
- * Copyright AllSeen Alliance. All rights reserved.
+ * Copyright (c) 2016 Open Connectivity Foundation (OCF) and AllJoyn Open
+ *    Source Project (AJOSP) Contributors and others.
  *
- *    Permission to use, copy, modify, and/or distribute this software for any
- *    purpose with or without fee is hereby granted, provided that the above
- *    copyright notice and this permission notice appear in all copies.
+ *    SPDX-License-Identifier: Apache-2.0
  *
- *    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- *    WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- *    MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
- *    ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- *    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- *    ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
- *    OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *    All rights reserved. This program and the accompanying materials are
+ *    made available under the terms of the Apache License, Version 2.0
+ *    which accompanies this distribution, and is available at
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Copyright 2016 Open Connectivity Foundation and Contributors to
+ *    AllSeen Alliance. All rights reserved.
+ *
+ *    Permission to use, copy, modify, and/or distribute this software for
+ *    any purpose with or without fee is hereby granted, provided that the
+ *    above copyright notice and this permission notice appear in all
+ *    copies.
+ *
+ *     THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ *     WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ *     WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ *     AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ *     DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ *     PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ *     TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ *     PERFORMANCE OF THIS SOFTWARE.
  ******************************************************************************/
 
 #include "../ajs.h"
@@ -40,7 +53,6 @@ int main(int argc, char* argv[])
         goto Usage;
     }
 
-    AJ_SetNVRAM_FilePath(options.nvramFile);
     AJ_Initialize();
 
     if (options.daemonize) {
@@ -76,10 +88,9 @@ int main(int argc, char* argv[])
 Usage:
 
 #ifndef NDEBUG
-    AJ_Printf("Usage: %s [--debug] [--daemon] [--log-file <log_file>] [--nvram-file <nvram_file>] [--name <device_name>] [script_file]\n", argv[0]);
+    AJ_Printf("Usage: %s [--debug] [--daemon] [--log-file <log_file>] [--name <device_name>] [script_file]\n", argv[0]);
 #else
-    AJ_Printf("Usage: %s [--daemon] [--log-file <log_file>] [--nvram-file <nvram_file>] [--name <device_name>] [script_file]\n", argv[0]);
+    AJ_Printf("Usage: %s [--daemon] [--log-file <log_file>] [--name <device_name>] [script_file]\n", argv[0]);
 #endif
     exit(1);
 }
-
